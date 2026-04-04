@@ -29,24 +29,30 @@ const Sidebar = ({ role, isOpen, onClose }) => {
 
   const navItems = {
     principal: [
-      { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard/principal' },
+      { name: 'Overview', icon: <LayoutDashboard size={20} />, path: '/dashboard/principal' },
       { name: 'Students', icon: <Users size={20} />, path: '/dashboard/students' },
-      { name: 'Faculty', icon: <GraduationCap size={20} />, path: '/dashboard/teachers' },
-      { name: 'Fees Management', icon: <IndianRupee size={20} />, path: '/dashboard/fees' },
+      { name: 'Teachers', icon: <GraduationCap size={20} />, path: '/dashboard/teachers' },
       { name: 'Attendance', icon: <CheckSquare size={20} />, path: '/dashboard/attendance' },
+      { name: 'Fees', icon: <IndianRupee size={20} />, path: '/dashboard/fees' },
+      { name: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/homework' },
+      { name: 'Marks', icon: <Award size={20} />, path: '/dashboard/marks' },
       { name: 'Reports', icon: <FileText size={20} />, path: '/dashboard/reports' },
-      { name: 'Academic Support', icon: <BookOpen size={20} />, path: '/dashboard/homework' },
-      { name: 'Grading', icon: <Award size={20} />, path: '/dashboard/marks' },
+      { name: 'Settings', icon: <Settings size={20} />, path: '/dashboard/settings' },
+      { name: 'Support', icon: <HelpCircle size={20} />, path: '/dashboard/support' },
     ],
     teacher: [
-      { name: 'My Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard/teacher' },
+      { name: 'Overview', icon: <LayoutDashboard size={20} />, path: '/dashboard/teacher' },
       { name: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
       { name: 'Attendance', icon: <CheckSquare size={20} />, path: '/dashboard/teacher/attendance' },
       { name: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
       { name: 'Marks Entry', icon: <Award size={20} />, path: '/dashboard/teacher/marks' },
+      { name: 'Settings', icon: <Settings size={20} />, path: '/dashboard/settings' },
+      { name: 'Support', icon: <HelpCircle size={20} />, path: '/dashboard/support' },
     ],
     parent: [
       { name: 'Child Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard/parent' },
+      { name: 'Settings', icon: <Settings size={20} />, path: '/dashboard/settings' },
+      { name: 'Support', icon: <HelpCircle size={20} />, path: '/dashboard/support' },
     ]
   };
 
@@ -114,20 +120,6 @@ const Sidebar = ({ role, isOpen, onClose }) => {
 
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-slate-100 flex flex-col gap-1">
-          <button 
-            onClick={() => navigate('/dashboard/settings')}
-            className="flex items-center gap-3 px-4 py-2.5 text-slate-600 text-sm font-medium bg-transparent border-none cursor-pointer rounded-lg hover:bg-slate-50"
-          >
-            <Settings size={20} className="text-slate-400" />
-            <span>Settings</span>
-          </button>
-          <button 
-            onClick={() => navigate('/dashboard/support')}
-            className="flex items-center gap-3 px-4 py-2.5 text-slate-600 text-sm font-medium bg-transparent border-none cursor-pointer rounded-lg hover:bg-slate-50"
-          >
-            <HelpCircle size={20} className="text-slate-400" />
-            <span>Support</span>
-          </button>
           <button 
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-2.5 text-red-600 text-sm font-medium bg-transparent border-none cursor-pointer rounded-lg hover:bg-red-50"

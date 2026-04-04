@@ -127,7 +127,7 @@ const Reports = () => {
     };
 
     return (
-        <Layout>
+        <Layout role="principal">
             <div className="flex flex-col space-y-8">
                 <div className="no-print space-y-8">
                     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">

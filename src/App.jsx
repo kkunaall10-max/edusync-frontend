@@ -28,14 +28,32 @@ import Support from './pages/Support';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
+const DashboardRedirect = ({ role }) => {
+  if (role === 'principal') return <Navigate to="/dashboard/principal" replace />;
+  if (role === 'teacher') return <Navigate to="/dashboard/teacher" replace />;
+  if (role === 'parent') return <Navigate to="/dashboard/parent" replace />;
+  if (role === 'student') return <Navigate to="/dashboard/student" replace />;
+  return <Navigate to="/unauthorized" replace />;
+};
+
 function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<Login />} />
       
+      {/* Role-based entry point */}
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            {({ role }) => <DashboardRedirect role={role} />}
+          </ProtectedRoute>
+        } 
+      />
+
       {/* =========================================================
-          PRINCIPAL ROUTES (White UI) - Prefix: /dashboard/
+          PRINCIPAL ROUTES (White UI)
           ========================================================= */}
       <Route 
         path="/dashboard/principal" 
@@ -103,7 +121,7 @@ function App() {
       />
 
       {/* =========================================================
-          TEACHER ROUTES (Nature UI) - Prefix: /dashboard/teacher/
+          TEACHER ROUTES (Nature UI)
           ========================================================= */}
       <Route 
         path="/dashboard/teacher" 
@@ -147,29 +165,8 @@ function App() {
       />
 
       {/* =========================================================
-          PARENT ROUTES
+          GLOBAL SHARED ROUTES
           ========================================================= */}
-      <Route 
-        path="/dashboard/parent" 
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentDashboard />
-          </ProtectedRoute>
-        } 
-      />
-
-      {/* =========================================================
-          STUDENT ROUTES
-          ========================================================= */}
-      <Route 
-        path="/dashboard/student" 
-        element={
-          <ProtectedRoute allowedRoles={['student']}>
-            <StudentDashboard />
-          </ProtectedRoute>
-        } 
-      />
-
       <Route 
         path="/dashboard/settings" 
         element={
@@ -178,7 +175,6 @@ function App() {
           </ProtectedRoute>
         } 
       />
-
       <Route 
         path="/dashboard/support" 
         element={
@@ -188,20 +184,37 @@ function App() {
         } 
       />
 
-      {/* =========================================================
-          GLOBAL REDIRECTS & ERRORS
-          ========================================================= */}
-      {/* Catch-all unauthorized or missing routes */}
+      {/* Other specific dashboards */}
+      <Route 
+        path="/dashboard/parent" 
+        element={
+          <ProtectedRoute allowedRoles={['parent']}>
+            <ParentDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/student" 
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <StudentDashboard />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Error Routes */}
       <Route path="/unauthorized" element={
-        <div className="min-h-screen flex items-center justify-center bg-white">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-red-600">Unauthorized Access</h1>
-            <p className="mt-2 text-slate-600">You do not have permission to view this page.</p>
+        <div className="min-h-screen flex items-center justify-center bg-white p-6">
+          <div className="max-w-md w-full text-center p-8 border border-slate-100 rounded-3xl shadow-2xl shadow-slate-200/50">
+            <h1 className="text-3xl font-black text-red-600 mb-4 tracking-tighter">Unauthorized</h1>
+            <p className="text-slate-500 font-medium mb-8 leading-relaxed">
+              Your access credentials do not permit entry to this node. Please contact your system administrator.
+            </p>
             <button 
               onClick={() => window.location.href = '/login'}
-              className="mt-4 text-slate-900 underline"
+              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-[0.98]"
             >
-              Go to Login
+              Back to Terminal
             </button>
           </div>
         </div>

@@ -2,15 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import Layout from '../components/Layout';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
-// const natureBg = '/nature-bg.jpg';
 
 const API_BASE_URL = 'https://edusync.up.railway.app/api/homework';
 const TEACHERS_API_URL = 'https://edusync.up.railway.app/api/teachers';
 
 const TeacherHomework = () => {
-    const role = 'teacher';
-    // Logic States
     const [homework, setHomework] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,11 +23,8 @@ const TeacherHomework = () => {
         section: ''
     });
 
-    const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [showDropdown, setShowDropdown] = useState(false);
     const navigate = useNavigate();
 
-    // Side Effects
     const fetchTeacherProfile = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -52,7 +47,7 @@ const TeacherHomework = () => {
     const fetchHomework = async () => {
         setLoading(true);
         try {
-            const params = (role === 'teacher' && teacherProfile) ? { 
+            const params = teacherProfile ? { 
                 class: teacherProfile.class_assigned, 
                 section: teacherProfile.section_assigned 
             } : {};
@@ -82,101 +77,123 @@ const TeacherHomework = () => {
         }
     };
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        navigate('/login');
-    };
-
-    const styles = {
-        outerWrapper: { position: 'relative', minHeight: '100vh', width: '100%', fontFamily: "'Inter', sans-serif", color: '#FFFFFF' },
-        backgroundDiv: { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundImage: "url('/nature-bg.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 },
-        contentWrapper: { position: 'relative', zIndex: 1, display: 'flex', minHeight: '100vh' },
-        sidebar: {
-            width: sidebarOpen ? '240px' : '0px',
-            transform: sidebarOpen ? 'translateX(0)' : 'translateX(-240px)',
-            height: '100vh', position: 'fixed', left: 0, top: 0, display: 'flex', flexDirection: 'column', 
-            padding: sidebarOpen ? '24px' : '0', zIndex: 50, background: 'rgba(255, 255, 255, 0.1)', 
-            backdropFilter: 'blur(30px)', borderRight: '1px solid rgba(255, 255, 255, 0.1)', transition: 'all 0.3s ease', overflow: 'hidden'
-        },
-        navLink: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', color: 'rgba(255, 255, 255, 0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: '500', transition: 'all 0.3s ease', cursor: 'pointer', marginBottom: '8px' },
-        navLinkActive: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', color: '#FFFFFF', backgroundColor: 'rgba(255, 255, 255, 0.2)', textDecoration: 'none', fontSize: '14px', fontWeight: '700', transition: 'all 0.3s ease', cursor: 'pointer', marginBottom: '8px', border: '1px solid rgba(255, 255, 255, 0.2)' },
-        header: { height: '64px', width: sidebarOpen ? 'calc(100% - 240px)' : '100%', position: 'fixed', top: 0, right: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', background: 'rgba(0, 0, 0, 0.2)', backdropFilter: 'blur(20px)', transition: 'all 0.3s ease' },
-        main: { marginLeft: sidebarOpen ? '240px' : '0px', flex: 1, padding: '40px', paddingTop: '100px', minHeight: '100vh', transition: 'margin 0.3s ease' },
-        glassPanel: { background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '24px' },
-        th: { padding: '16px 32px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em' },
-        td: { padding: '20px 32px', fontSize: '14px', borderBottom: '1px solid rgba(255,255,255,0.05)' },
-        modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
-        formInput: { width: '100%', height: '44px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '0 16px', color: 'white', fontSize: '14px', outline: 'none' }
-    };
-
     return (
-        <div style={styles.outerWrapper}>
-            <div style={styles.backgroundDiv}><div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)' }}></div></div>
-            <div style={styles.contentWrapper}>
-                <aside style={styles.sidebar}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px', padding: '0 8px' }}>
-                        <div style={{ width: '40px', height: '40px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="material-symbols-outlined" style={{ color: 'white' }}>school</span></div>
-                        <div><h1 style={{ fontSize: '20px', fontWeight: '800', margin: 0 }}>EduSync</h1><p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>HOMEWORK SANCTUARY</p></div>
+        <Layout role="teacher">
+            <div className="space-y-8">
+                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                    <div>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Homework</h1>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">
+                            Assign and manage scholarly tasks
+                        </p>
                     </div>
-                    <nav style={{ flex: 1 }}>
-                        <div onClick={() => navigate('/dashboard/teacher')} style={styles.navLink}><span className="material-symbols-outlined">dashboard</span><span>Overview</span></div>
-                        <div onClick={() => navigate('/dashboard/teacher/students')} style={styles.navLink}><span className="material-symbols-outlined">group</span><span>My Students</span></div>
-                        <div onClick={() => navigate('/dashboard/teacher/attendance')} style={styles.navLink}><span className="material-symbols-outlined">fact_check</span><span>Attendance</span></div>
-                        <div onClick={() => navigate('/dashboard/teacher/homework')} style={styles.navLinkActive}><span className="material-symbols-outlined">assignment</span><span>Homework</span></div>
-                        <div onClick={() => navigate('/dashboard/teacher/marks')} style={styles.navLink}><span className="material-symbols-outlined">grade</span><span>Marks</span></div>
-                    </nav>
-                </aside>
-
-                <div style={{ flex: 1 }}>
-                    <header style={styles.header}>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', marginRight: '20px' }}><span className="material-symbols-outlined">{sidebarOpen ? 'close' : 'menu'}</span></button>
-                            <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0 }}>Homework Management</h2>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                            <div style={{ textAlign: 'right' }}><p style={{ fontSize: '14px', fontWeight: '700', margin: 0 }}>{teacherProfile?.full_name}</p><p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>Faculty</p></div>
-                            <div onClick={() => setShowDropdown(!showDropdown)} style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><span className="material-symbols-outlined">person</span></div>
-                        </div>
-                    </header>
-
-                    <main style={styles.main}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '40px' }}>
-                            <div><h2 style={{ fontSize: '48px', fontWeight: '800', lineHeight: '1.1', margin: '0 0 8px 0' }}>Daily Assignments</h2><p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.6)' }}>Assign and track scholastic tasks.</p></div>
-                            <button onClick={() => setIsModalOpen(true)} style={{ padding: '16px 32px', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '16px', color: 'white', fontWeight: '800', cursor: 'pointer' }}><span className="material-symbols-outlined" style={{ verticalAlign: 'middle', marginRight: '8px' }}>add</span>Assign New Task</button>
-                        </div>
-
-                        <div style={styles.glassPanel}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead><tr style={{ background: 'rgba(255,255,255,0.05)' }}><th style={styles.th}>Assignment</th><th style={styles.th}>Target</th><th style={styles.th}>Due Date</th><th style={{ ...styles.th, textAlign: 'right' }}>Actions</th></tr></thead>
-                                <tbody>
-                                    {loading ? (<tr><td colSpan="4" style={{ padding: '60px', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>Loading...</td></tr>) : homework.length === 0 ? (<tr><td colSpan="4" style={{ padding: '60px', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>No assignments.</td></tr>) : (
-                                        homework.map((hw) => (
-                                            <tr key={hw.id}><td style={styles.td}><div style={{ fontWeight: '700' }}>{hw.title}</div><div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>{hw.description}</div></td><td style={styles.td}><span style={{ padding: '4px 12px', background: 'rgba(255,255,255,0.1)', borderRadius: '99px', fontSize: '12px' }}>{hw.class} - {hw.section} • {hw.subject}</span></td><td style={styles.td}><span className="material-symbols-outlined" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '8px' }}>event</span>{new Date(hw.due_date).toLocaleDateString()}</td><td style={{ ...styles.td, textAlign: 'right' }}><button onClick={() => handleDelete(hw.id)} style={{ color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}><span className="material-symbols-outlined">delete</span></button></td></tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </main>
+                    <button 
+                        onClick={() => setIsModalOpen(true)}
+                        className="h-14 px-8 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-blue-100 transition-all hover:-translate-y-1"
+                    >
+                        New Assignment
+                    </button>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {loading ? (
+                        <div className="col-span-full py-20 text-center">
+                            <div className="flex flex-col items-center gap-3">
+                                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Loading Assignments...</p>
+                            </div>
+                        </div>
+                    ) : homework.length === 0 ? (
+                        <div className="col-span-full py-20 bg-white rounded-[32px] border border-slate-100 text-center">
+                            <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No assignments found</p>
+                        </div>
+                    ) : (
+                        homework.map((hw) => (
+                            <div key={hw.id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black">
+                                        <span className="material-symbols-outlined">assignment</span>
+                                    </div>
+                                    <button 
+                                        onClick={() => handleDelete(hw.id)}
+                                        className="text-slate-300 hover:text-rose-500 transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined">delete</span>
+                                    </button>
+                                </div>
+                                <h3 className="text-lg font-black text-slate-900 mb-2 truncate">{hw.title}</h3>
+                                <p className="text-sm text-slate-500 mb-6 line-clamp-2">{hw.description}</p>
+                                
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Due Date</span>
+                                        <span className="text-xs font-black text-slate-900">{new Date(hw.due_date).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-2xl">
+                                        <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Target</span>
+                                        <span className="text-xs font-black text-blue-600">{hw.class}-{hw.section} • {hw.subject}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {isModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                        <div className="bg-white w-full max-w-lg rounded-[32px] p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+                            <h2 className="text-2xl font-black text-slate-900 mb-6">New Assignment</h2>
+                            <form onSubmit={handleAddHomework} className="space-y-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1">Assignment Title</label>
+                                    <input 
+                                        required 
+                                        className="w-full h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
+                                        value={formData.title} 
+                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1">Detailed Instructions</label>
+                                    <textarea 
+                                        required 
+                                        className="w-full h-32 bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10 transition-all resize-none"
+                                        value={formData.description} 
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    ></textarea>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1">Submission Deadline</label>
+                                    <input 
+                                        type="date" 
+                                        required 
+                                        className="w-full h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
+                                        value={formData.dueDate} 
+                                        onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} 
+                                    />
+                                </div>
+                                <div className="flex gap-4 pt-4">
+                                    <button 
+                                        type="submit" 
+                                        className="flex-1 h-12 bg-blue-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-blue-700 transition-colors"
+                                    >
+                                        Create Task
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsModalOpen(false)}
+                                        className="flex-1 h-12 bg-slate-100 text-slate-400 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-slate-200 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </div>
-
-            {isModalOpen && (
-                <div style={styles.modalOverlay}>
-                    <div style={{ ...styles.glassPanel, width: '500px', padding: '32px' }}>
-                        <h3 style={{ margin: '0 0 24px 0' }}>New Assignment</h3>
-                        <form onSubmit={handleAddHomework} style={{ display: 'grid', gap: '20px' }}>
-                            <div><label style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Title</label><input style={styles.formInput} required value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} /></div>
-                            <div><label style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Description</label><textarea style={{ ...styles.formInput, height: '80px', paddingTop: '12px' }} required value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}></textarea></div>
-                            <div><label style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Due Date</label><input type="date" style={styles.formInput} required value={formData.dueDate} onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} /></div>
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}><button type="submit" style={{ flex: 1, padding: '12px', background: 'white', color: 'black', borderRadius: '12px', fontWeight: '700', border: 'none', cursor: 'pointer' }}>Create Assignment</button><button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '12px', fontWeight: '700', border: 'none', cursor: 'pointer' }}>Cancel</button></div>
-                        </form>
-                    </div>
-                </div>
-            )}
-        </div>
+        </Layout>
     );
 };
 
 export default TeacherHomework;
-

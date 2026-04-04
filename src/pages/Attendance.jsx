@@ -92,7 +92,7 @@ const Attendance = ({ role }) => {
     };
 
     return (
-        <Layout role={role}>
+        <Layout role="principal">
             <div className="space-y-8">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
