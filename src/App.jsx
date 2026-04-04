@@ -20,9 +20,11 @@ import TeacherAttendance from './pages/TeacherAttendance';
 import TeacherHomework from './pages/TeacherHomework';
 import TeacherMarks from './pages/TeacherMarks';
 
-// Other Roles
+// Extra Pages
 import ParentDashboard from './pages/ParentDashboard';
 import StudentDashboard from './pages/StudentDashboard';
+import Settings from './pages/Settings';
+import Support from './pages/Support';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -164,6 +166,24 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['student']}>
             <StudentDashboard />
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/dashboard/settings" 
+        element={
+          <ProtectedRoute allowedRoles={['principal', 'teacher', 'parent', 'student']}>
+            <Settings />
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/dashboard/support" 
+        element={
+          <ProtectedRoute allowedRoles={['principal', 'teacher', 'parent', 'student']}>
+            <Support />
           </ProtectedRoute>
         } 
       />

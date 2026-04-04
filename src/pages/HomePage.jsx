@@ -1,16 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import heroBg from '../assets/hero-bg.jpg';
 import FeatureCarousel from '../components/FeatureCarousel';
-
-// Feature Images
-import feat1a from '../assets/feat1a.jpg';
-import feat1b from '../assets/feat1b.jpg';
-import feat2a from '../assets/feat2a.jpg';
-import feat2b from '../assets/feat2b.jpg';
-import feat3 from '../assets/feat3.jpg';
-import feat4 from '../assets/feat4.jpg';
+// Hero and Feature assets now served from /public
 
 const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
 
@@ -23,12 +15,12 @@ const HomePage = () => {
 
   const images = {
     alt: "EduSync feature",
-    step1img1: feat1a,
-    step1img2: feat1b,
-    step2img1: feat2a,
-    step2img2: feat2b,
-    step3img: feat3,
-    step4img: feat4
+    step1img1: '/feat1a.jpg',
+    step1img2: '/feat1b.jpg',
+    step2img1: '/feat2a.jpg',
+    step2img2: '/feat2b.jpg',
+    step3img: '/feat3.jpg',
+    step4img: '/feat4.jpg'
   };
 
   useEffect(() => {
@@ -99,7 +91,7 @@ const HomePage = () => {
       left: 0,
       width: '100%',
       height: '100%',
-      backgroundImage: `url(${heroBg})`,
+      backgroundImage: "url('/hero-bg.jpg')",
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundAttachment: 'fixed',

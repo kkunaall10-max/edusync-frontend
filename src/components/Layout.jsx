@@ -153,8 +153,6 @@ const Layout = ({ children, role }) => {
             </div>
             
             <nav style={styles.navLinks} className="hidden lg:flex ml-4">
-                <a style={{ ...styles.navLink, ...styles.navLinkActive }} href="#">Academic Year</a>
-                <a style={styles.navLink} href="#">Term Schedule</a>
             </nav>
           </div>
 

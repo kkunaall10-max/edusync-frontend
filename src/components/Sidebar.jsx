@@ -40,10 +40,10 @@ const Sidebar = ({ role, isOpen, onClose }) => {
     ],
     teacher: [
       { name: 'My Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard/teacher' },
-      { name: 'My Students', icon: <Users size={20} />, path: '/dashboard/students' },
-      { name: 'Attendance', icon: <CheckSquare size={20} />, path: '/dashboard/attendance' },
-      { name: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/homework' },
-      { name: 'Marks Entry', icon: <Award size={20} />, path: '/dashboard/marks' },
+      { name: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
+      { name: 'Attendance', icon: <CheckSquare size={20} />, path: '/dashboard/teacher/attendance' },
+      { name: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
+      { name: 'Marks Entry', icon: <Award size={20} />, path: '/dashboard/teacher/marks' },
     ],
     parent: [
       { name: 'Child Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard/parent' },
@@ -94,7 +94,6 @@ const Sidebar = ({ role, isOpen, onClose }) => {
                 key={item.name}
                 onClick={() => {
                   navigate(item.path);
-                  if (window.innerWidth < 768) onClose();
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 cursor-pointer text-left transition-all duration-200 border-none ${
                     isActive 
@@ -115,11 +114,17 @@ const Sidebar = ({ role, isOpen, onClose }) => {
 
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-slate-100 flex flex-col gap-1">
-          <button className="flex items-center gap-3 px-4 py-2.5 text-slate-600 text-sm font-medium bg-transparent border-none cursor-pointer rounded-lg hover:bg-slate-50">
+          <button 
+            onClick={() => navigate('/dashboard/settings')}
+            className="flex items-center gap-3 px-4 py-2.5 text-slate-600 text-sm font-medium bg-transparent border-none cursor-pointer rounded-lg hover:bg-slate-50"
+          >
             <Settings size={20} className="text-slate-400" />
             <span>Settings</span>
           </button>
-          <button className="flex items-center gap-3 px-4 py-2.5 text-slate-600 text-sm font-medium bg-transparent border-none cursor-pointer rounded-lg hover:bg-slate-50">
+          <button 
+            onClick={() => navigate('/dashboard/support')}
+            className="flex items-center gap-3 px-4 py-2.5 text-slate-600 text-sm font-medium bg-transparent border-none cursor-pointer rounded-lg hover:bg-slate-50"
+          >
             <HelpCircle size={20} className="text-slate-400" />
             <span>Support</span>
           </button>

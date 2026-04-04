@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import natureBg from '../assets/nature-bg.jpg';
+// const natureBg = '/nature-bg.jpg';
 
 const API_BASE_URL = 'https://edusync.up.railway.app/api';
 
@@ -137,7 +137,7 @@ const MyStudents = () => {
             left: 0,
             width: '100vw',
             height: '100vh',
-            backgroundImage: `url(${natureBg})`,
+            backgroundImage: "url('/nature-bg.jpg')",
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             zIndex: 0
@@ -278,7 +278,7 @@ const MyStudents = () => {
 
     if (loading) {
         return (
-            <div style={{minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', backgroundImage: `url(${natureBg})`, backgroundSize:'cover', fontFamily:'Inter, sans-serif'}}>
+            <div style={{minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', backgroundImage: "url('/nature-bg.jpg')", backgroundSize:'cover', fontFamily:'Inter, sans-serif'}}>
                 <div style={{backgroundColor:'rgba(255,255,255,0.1)', backdropFilter:'blur(20px)', padding:'32px', borderRadius:'16px', border:'1px solid rgba(255,255,255,0.2)', textAlign:'center'}}>
                     <div style={{width:'40px', height:'40px', border:'4px solid #FFFFFF', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 1s linear infinite', margin:'0 auto 16px auto'}}></div>
                     <p style={{color:'#FFFFFF', fontWeight:'600'}}>Fetching Student Records...</p>

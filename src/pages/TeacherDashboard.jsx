@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import Layout from '../components/Layout';
-import natureBg from '../assets/nature-bg.jpg';
+// const natureBg = '/nature-bg.jpg';
 
 const API_BASE_URL = 'https://edusync.up.railway.app/api';
 
@@ -70,7 +70,7 @@ const TeacherDashboard = () => {
             <div className="min-h-screen flex items-center justify-center bg-slate-900 font-['Inter'] relative">
                 <div 
                     className="absolute inset-0 opacity-40 bg-cover bg-center"
-                    style={{ backgroundImage: `url(${natureBg})` }}
+                    style={{ backgroundImage: "url('/nature-bg.jpg')" }}
                 ></div>
                 <div className="relative z-10 text-center">
                     <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -121,7 +121,7 @@ const TeacherDashboard = () => {
         <div className="min-h-screen relative font-['Inter'] bg-slate-900 overflow-x-hidden">
             <div 
                 className="fixed inset-0 bg-cover bg-center z-0 opacity-60"
-                style={{ backgroundImage: `url(${natureBg})` }}
+                style={{ backgroundImage: "url('/nature-bg.jpg')" }}
             ></div>
             
             <div className="relative z-10">

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
-import natureBg from '../assets/nature-bg.jpg';
+// const natureBg = '/nature-bg.jpg';
 
 const ATTENDANCE_API_URL = 'https://edusync.up.railway.app/api/attendance';
 const STUDENTS_API_URL = 'https://edusync.up.railway.app/api/students';
@@ -137,7 +137,7 @@ const TeacherAttendance = () => {
 
     const styles = {
         outerWrapper: { position: 'relative', minHeight: '100vh', width: '100%', fontFamily: "'Inter', sans-serif", color: '#FFFFFF' },
-        backgroundDiv: { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundImage: `url(${natureBg})`, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 },
+        backgroundDiv: { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundImage: "url('/nature-bg.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 },
         contentWrapper: { position: 'relative', zIndex: 1, display: 'flex', minHeight: '100vh' },
         glassPanel: { background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '16px' },
         sidebar: {

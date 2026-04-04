@@ -3,7 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import Layout from '../components/Layout';
-import parentBg from '../assets/parent-bg.jpg';
+// Using root-relative path for Vercel
+const parentBg = '/parent-bg.jpg';
 
 const API_BASE_URL = 'https://edusync.up.railway.app/api/parent';
 
