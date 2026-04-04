@@ -3,17 +3,17 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
+import Layout from '../components/Layout';
 
 const API_BASE_URL = 'https://edusync.up.railway.app/api/teachers';
 
-const TeacherList = () => {
+const TeacherList = ({ role }) => {
     const [teachers, setTeachers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedTeacher, setSelectedTeacher] = useState(null);
     const [user, setUser] = useState(null);
     const [search, setSearch] = useState('');
-    const [showDropdown, setShowDropdown] = useState(false);
 
     const [formData, setFormData] = useState({
         full_name: '',
@@ -30,7 +30,6 @@ const TeacherList = () => {
 
     const navigate = useNavigate();
 
-    // Side Effects
     useEffect(() => {
         const checkUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -110,44 +109,6 @@ const TeacherList = () => {
         }
     };
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        navigate('/login');
-    };
-
-    // Styles (Consistent with Principal Dashboard and Student List)
-    const styles = {
-        wrapper: {display:'flex', minHeight:'100vh', backgroundColor:'#F9FAFB', fontFamily:'Inter, sans-serif'},
-        sidebar: {width:'240px', minHeight:'100vh', backgroundColor:'#FFFFFF', borderRight:'1px solid #E5E7EB', padding:'24px 16px', display:'flex', flexDirection:'column', position:'fixed', top:0, left:0},
-        logoArea: {marginBottom:'32px'},
-        logoText: {fontSize:'22px', fontWeight:'700', color:'#2563EB', margin:0},
-        portalLabel: {fontSize:'11px', color:'#6B7280', textTransform:'uppercase', margin:0, letterSpacing:'0.05em'},
-        navLink: {display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', borderRadius:'8px', color:'#6B7280', textDecoration:'none', fontSize:'14px', fontWeight:'500', marginBottom:'4px', cursor:'pointer'},
-        navLinkActive: {display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', borderRadius:'8px', color:'#2563EB', backgroundColor:'#EFF6FF', textDecoration:'none', fontSize:'14px', fontWeight:'600', marginBottom:'4px', cursor:'pointer'},
-        main: {marginLeft:'240px', flex:1},
-        header: {height:'64px', backgroundColor:'#FFFFFF', borderBottom:'1px solid #E5E7EB', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 32px', position:'sticky', top:0, zIndex:10},
-        headerTitle: {fontSize:'18px', fontWeight:'600', color:'#111827', margin:0},
-        content: {padding:'32px'},
-        pageTitle: {fontSize:'32px', fontWeight:'800', color:'#111827', margin:0, letterSpacing:'-0.02em'},
-        pageSubtitle: {fontSize:'14px', color:'#6B7280', marginTop:'4px', margin:0},
-        topToolBar: {display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'32px'},
-        searchContainer: {position:'relative', width:'400px'},
-        searchInput: {width:'100%', height:'48px', backgroundColor:'#FFFFFF', border:'1px solid #E5E7EB', borderRadius:'12px', paddingLeft:'44px', paddingRight:'16px', fontSize:'14px', color:'#111827', outline:'none', boxShadow:'0 1px 2px rgba(0,0,0,0.05)'},
-        btnPrimary: {display:'flex', alignItems:'center', gap:'8px', padding:'12px 24px', backgroundColor:'#2563EB', color:'#FFFFFF', border:'none', borderRadius:'12px', fontSize:'14px', fontWeight:'700', cursor:'pointer', transition:'all 0.2s', boxShadow:'0 4px 12px rgba(37, 99, 235, 0.2)'},
-        tableCard: {backgroundColor:'#FFFFFF', borderRadius:'24px', border:'1px solid #E5E7EB', overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,0.05)'},
-        th: {backgroundColor:'#F9FAFB', padding:'16px 24px', fontSize:'11px', fontWeight:'800', color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.08em', borderBottom:'1px solid #E5E7EB'},
-        td: {padding:'16px 24px', fontSize:'14px', color:'#111827', borderBottom:'1px solid #F3F4F6'},
-        avatar: (color) => ({width:'40px', height:'40px', borderRadius:'50%', backgroundColor:color.bg || '#EFF6FF', color:color.text || '#2563EB', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:'700'}),
-        badge: (color) => ({display:'inline-flex', padding:'4px 12px', borderRadius:'9999px', fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.05em', ...color}),
-        modalOverlay: {position:'fixed', inset:0, backgroundColor:'rgba(17, 24, 39, 0.4)', backdropFilter:'blur(8px)', display:'flex', itemsCenter:'center', justifyContent:'center', zIndex:'100', padding:'24px'},
-        modalCard: {width:'100%', maxWidth:'640px', backgroundColor:'#FFFFFF', borderRadius:'24px', display:'flex', flexDirection:'column', maxHeight:'90vh', boxShadow:'0 25px 50px -12px rgba(0,0,0,0.2)'},
-        modalHeader: {padding:'24px 32px', borderBottom:'1px solid #F3F4F6'},
-        modalBody: {padding:'32px', overflowY:'auto'},
-        modalFooter: {padding:'24px 32px', backgroundColor:'#F9FAFB', borderTop:'1px solid #F3F4F6', display:'flex', justifyContent:'flex-end', gap:'12px'},
-        formLabel: {display:'block', fontSize:'11px', fontWeight:'700', color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'8px'},
-        formInput: {width:'100%', height:'44px', backgroundColor:'#F9FAFB', border:'1px solid #E5E7EB', borderRadius:'12px', padding:'0 16px', fontSize:'14px', outline:'none', transition:'all 0.2s'}
-    };
-
     const getInitials = (name) => {
         if (!name) return '??';
         const parts = name.split(' ');
@@ -156,243 +117,212 @@ const TeacherList = () => {
     };
 
     return (
-        <div style={styles.wrapper}>
-            {/* Sidebar Replicated */}
-            <aside style={styles.sidebar}>
-                <div style={styles.logoArea}>
-                    <h1 style={styles.logoText}>EduSync</h1>
-                    <p style={styles.portalLabel}>Management Portal</p>
+        <Layout role={role}>
+            <div className="space-y-8">
+                {/* Page Title */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <h2 className="text-3xl font-black text-slate-900 m-0 tracking-tight">Teachers</h2>
+                        <p className="text-sm text-slate-500 mt-1 font-medium">{teachers.length} professional educators registered</p>
+                    </div>
                 </div>
-                <nav style={{flex:1}}>
-                    <a onClick={() => navigate('/dashboard/principal')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">dashboard</span>
-                        <span>Overview</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/students')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">group</span>
-                        <span>Students</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/teachers')} style={styles.navLinkActive}>
-                        <span className="material-symbols-outlined">person</span>
-                        <span>Teachers</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/attendance')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">calendar_today</span>
-                        <span>Attendance</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/fees')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">payments</span>
-                        <span>Fees</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/homework')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">assignment</span>
-                        <span>Homework</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/marks')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">grade</span>
-                        <span>Marks</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/reports')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">assessment</span>
-                        <span>Reports</span>
-                    </a>
-                </nav>
-            </aside>
 
-            <div style={styles.main}>
-                <header style={styles.header}>
-                    <h2 style={styles.headerTitle}>Teacher Management</h2>
-                    <div 
-                        style={{display:'flex', alignItems:'center', gap:'16px', position: 'relative', cursor: 'pointer'}}
-                        onClick={() => setShowDropdown(!showDropdown)}
+                {/* Toolbar */}
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    <div className="relative w-full lg:max-w-md">
+                        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                        <input 
+                            className="w-full h-12 bg-white border border-slate-200 rounded-xl pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                            placeholder="Search name or employee ID..." 
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                    <button 
+                        className="w-full lg:w-auto h-12 flex items-center justify-center gap-2 px-6 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+                        onClick={() => handleOpenModal()}
                     >
-                        <div style={{textAlign:'right'}}>
-                            <p style={{fontSize:'13px', fontWeight:'600', color:'#111827', margin:0}}>{user?.email?.split('@')[0] || 'Administrator'}</p>
-                            <p style={{fontSize:'10px', color:'#6B7280', margin:0, textTransform:'uppercase'}}>Institutional Admin</p>
-                        </div>
-                        <div style={{width:'36px', height:'36px', backgroundColor:'#F3F4F6', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'#9CA3AF'}}>
-                            <span className="material-symbols-outlined">account_circle</span>
-                        </div>
+                        <span className="material-symbols-outlined text-lg">person_add</span>
+                        Add Teacher
+                    </button>
+                </div>
 
-                        {showDropdown && (
-                            <div style={{
-                                position: 'absolute',
-                                top: '48px',
-                                right: 0,
-                                backgroundColor: '#FFFFFF',
-                                border: '1px solid #E5E7EB',
-                                borderRadius: '8px',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                padding: '8px',
-                                zIndex: 100,
-                                minWidth: '140px'
-                            }}>
-                                <button
-                                    onClick={handleLogout}
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        textAlign: 'left',
-                                        background: 'none',
-                                        border: 'none',
-                                        color: '#DC2626',
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                        cursor: 'pointer',
-                                        borderRadius: '4px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px'
-                                    }}
-                                >
-                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
-                                    Logout
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </header>
-
-                <main style={styles.content}>
-                    <div style={{marginBottom:'40px'}}>
-                        <h2 style={styles.pageTitle}>Teachers</h2>
-                        <p style={styles.pageSubtitle}>{teachers.length} professional educators registered</p>
-                    </div>
-
-                    <div style={styles.topToolBar}>
-                        <div style={styles.searchContainer}>
-                            <span className="material-symbols-outlined" style={{position:'absolute', left:'16px', top:'12px', color:'#9CA3AF'}}>search</span>
-                            <input 
-                                style={styles.searchInput} 
-                                placeholder="Search by name or employee ID..." 
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
-                        </div>
-                        <button style={styles.btnPrimary} onClick={() => handleOpenModal()}>
-                            <span className="material-symbols-outlined">person_add</span>
-                            Add Teacher
-                        </button>
-                    </div>
-
-                    <div style={styles.tableCard}>
-                        <div style={{overflowX:'auto'}}>
-                            <table style={{width:'100%', borderCollapse:'collapse'}}>
-                                <thead>
+                {/* Content Area */}
+                <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50/50">
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee ID</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Subject</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned Class</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {loading ? (
                                     <tr>
-                                        <th style={styles.th}>Employee ID</th>
-                                        <th style={styles.th}>Full Name</th>
-                                        <th style={styles.th}>Subject</th>
-                                        <th style={styles.th}>Assigned Class</th>
-                                        <th style={styles.th}>Phone</th>
-                                        <th style={{...styles.th, textAlign:'right'}}>Actions</th>
+                                        <td colSpan="6" className="px-6 py-12 text-center text-slate-400 font-medium italic">Loading teachers...</td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {loading ? (
-                                        <tr>
-                                            <td colSpan="6" style={{...styles.td, textAlign:'center', padding:'64px', color:'#9CA3AF'}}>Loading data...</td>
-                                        </tr>
-                                    ) : teachers.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="6" style={{...styles.td, textAlign:'center', padding:'64px', color:'#9CA3AF'}}>
-                                                <div style={{display:'flex', flexDirection:'column', alignItems:'center'}}>
-                                                    <span className="material-symbols-outlined" style={{fontSize:'48px', marginBottom:'16px'}}>person_off</span>
-                                                    <p style={{fontWeight:'600', fontSize:'16px', color:'#111827'}}>No teachers found</p>
-                                                    <p style={{fontSize:'13px'}}>Register a new educator to get started.</p>
+                                ) : teachers.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="6" className="px-6 py-20 text-center">
+                                            <div className="flex flex-col items-center">
+                                                <span className="material-symbols-outlined text-4xl text-slate-200 mb-2">person_off</span>
+                                                <p className="text-slate-900 font-bold">No teachers found</p>
+                                                <p className="text-sm text-slate-500">Register a new educator to get started.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    teachers.map((teacher, idx) => (
+                                        <tr key={teacher.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className="px-6 py-4 font-bold text-blue-600 font-mono text-sm">{teacher.employee_id}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xs font-black ${idx % 2 === 0 ? 'bg-blue-50 text-blue-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                        {getInitials(teacher.full_name)}
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-sm font-bold text-slate-900 block">{teacher.full_name}</span>
+                                                        <span className="text-[10px] text-slate-400 font-medium">{teacher.email}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-md uppercase tracking-wider">
+                                                    {teacher.subject}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {teacher.class_assigned ? (
+                                                    <span className="text-sm font-bold text-slate-700">
+                                                        {teacher.class_assigned}-{teacher.section_assigned || 'A'}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs text-slate-400 italic">Unassigned</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-slate-500 font-medium">{teacher.phone || 'N/A'}</td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <button onClick={() => handleOpenModal(teacher)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+                                                        <span className="material-symbols-outlined text-lg">edit</span>
+                                                    </button>
+                                                    <button onClick={() => handleDelete(teacher.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                                                        <span className="material-symbols-outlined text-lg">delete</span>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
-                                    ) : (
-                                        teachers.map((teacher, idx) => (
-                                            <tr key={teacher.id} style={{transition:'background-color 0.2s'}} onMouseEnter={(e)=>e.currentTarget.style.backgroundColor='#F9FAFB'} onMouseLeave={(e)=>e.currentTarget.style.backgroundColor='transparent'}>
-                                                <td style={{...styles.td, fontWeight:'700', color:'#2563EB', fontFamily:'monospace'}}>{teacher.employee_id}</td>
-                                                <td style={styles.td}>
-                                                    <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                                                        <div style={styles.avatar(idx % 2 === 0 ? {bg:'#EFF6FF', text:'#2563EB'} : {bg:'#FFF1F2', text:'#E11D48'})}>
-                                                            {getInitials(teacher.full_name)}
-                                                        </div>
-                                                        <div>
-                                                            <span style={{fontWeight:'600', display:'block'}}>{teacher.full_name}</span>
-                                                            <span style={{fontSize:'11px', color:'#6B7280', fontStyle:'italic'}}>{teacher.email}</span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td style={styles.td}>
-                                                    <span style={styles.badge({backgroundColor:'#F0F9FF', color:'#0369A1', border:'1px solid #E0F2FE'})}>
-                                                        {teacher.subject}
-                                                    </span>
-                                                </td>
-                                                <td style={styles.td}>
-                                                    {teacher.class_assigned ? (
-                                                        <span style={{fontWeight:'600', color:'#374151'}}>
-                                                            {teacher.class_assigned}-{teacher.section_assigned || 'A'}
-                                                        </span>
-                                                    ) : (
-                                                        <span style={{color:'#9CA3AF', fontStyle:'italic'}}>Unassigned</span>
-                                                    )}
-                                                </td>
-                                                <td style={{...styles.td, color:'#6B7280'}}>{teacher.phone || 'N/A'}</td>
-                                                <td style={{...styles.td, textAlign:'right'}}>
-                                                    <div style={{display:'flex', justifyContent:'flex-end', gap:'8px'}}>
-                                                        <button onClick={() => handleOpenModal(teacher)} style={{background:'none', border:'none', padding:'8px', cursor:'pointer', color:'#9CA3AF'}} className="hover-blue">
-                                                            <span className="material-symbols-outlined text-sm">edit</span>
-                                                        </button>
-                                                        <button onClick={() => handleDelete(teacher.id)} style={{background:'none', border:'none', padding:'8px', cursor:'pointer', color:'#9CA3AF'}} className="hover-red">
-                                                            <span className="material-symbols-outlined text-sm">delete</span>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                </main>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden divide-y divide-slate-100">
+                        {loading ? (
+                            <div className="p-8 text-center text-slate-400 italic font-medium">Syncing faculty database...</div>
+                        ) : teachers.length === 0 ? (
+                            <div className="p-10 text-center">
+                                <span className="material-symbols-outlined text-4xl text-slate-200 mb-2">person_off</span>
+                                <p className="text-slate-900 font-bold">No teachers found</p>
+                            </div>
+                        ) : (
+                            teachers.map((teacher, idx) => (
+                                <div key={teacher.id} className="p-5 space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black uppercase ${idx % 2 === 0 ? 'bg-blue-50 text-blue-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                {getInitials(teacher.full_name)}
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black text-slate-900 leading-none">{teacher.full_name}</h4>
+                                                <p className="text-[10px] font-bold text-blue-600 mt-1 uppercase tracking-wider">{teacher.employee_id}</p>
+                                            </div>
+                                        </div>
+                                        <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-lg uppercase tracking-wider">{teacher.subject}</span>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Class Assigned</p>
+                                            <p className="text-xs font-bold text-slate-700">{teacher.class_assigned ? `${teacher.class_assigned}-${teacher.section_assigned || 'A'}` : 'N/A'}</p>
+                                        </div>
+                                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Contact</p>
+                                            <p className="text-xs font-bold text-slate-700">{teacher.phone || 'No phone'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => handleOpenModal(teacher)}
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-100 text-slate-900 rounded-xl text-xs font-black hover:bg-slate-200 transition-colors border-none"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">edit</span>
+                                            Edit profile
+                                        </button>
+                                        <button 
+                                            onClick={() => handleDelete(teacher.id)}
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-50 text-red-600 rounded-xl text-xs font-black hover:bg-red-100 transition-colors border-none"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">delete</span>
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
             </div>
 
-            {/* Integrated Teacher Modal */}
+            {/* Responsive Teacher Modal */}
             {isModalOpen && (
-                <div style={styles.modalOverlay}>
-                    <div style={styles.modalCard}>
-                        <div style={styles.modalHeader}>
-                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] sm:p-6">
+                    <div className="w-full h-full sm:h-auto sm:max-w-2xl bg-white sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-6 border-bottom border-slate-100 shrink-0">
+                            <div className="flex justify-between items-center text-slate-900">
                                 <div>
-                                    <h3 style={{fontSize:'20px', fontWeight:'800', color:'#111827', margin:0}}>{selectedTeacher ? 'Edit Teacher' : 'Add Teacher'}</h3>
-                                    <p style={{fontSize:'13px', color:'#6B7280', margin:0, marginTop:'4px'}}>Institution Faculty Management</p>
+                                    <h3 className="text-xl font-black">{selectedTeacher ? 'Edit Teacher' : 'Add New Teacher'}</h3>
+                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Faculty Registration</p>
                                 </div>
-                                <span onClick={() => setIsModalOpen(false)} className="material-symbols-outlined" style={{cursor:'pointer', color:'#9CA3AF'}}>close</span>
+                                <button onClick={() => setIsModalOpen(false)} className="material-symbols-outlined p-2 hover:bg-slate-100 rounded-full transition-colors bg-none border-none cursor-pointer">close</button>
                             </div>
                         </div>
-                        <form onSubmit={handleSave}>
-                            <div style={styles.modalBody}>
-                                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'24px'}}>
-                                    <div>
-                                        <label style={styles.formLabel}>Full Name</label>
+                        <form onSubmit={handleSave} className="flex-1 overflow-y-auto">
+                            <div className="p-6 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</label>
                                         <input 
-                                            style={styles.formInput} 
+                                            className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
                                             placeholder="e.g. Sarah Jenkins" 
                                             required 
                                             value={formData.full_name}
                                             onChange={(e) => setFormData({...formData, full_name: e.target.value})}
                                         />
                                     </div>
-                                    <div>
-                                        <label style={styles.formLabel}>Employee ID</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee ID</label>
                                         <input 
-                                            style={styles.formInput} 
+                                            className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
                                             placeholder="e.g. EDU-TR-101" 
                                             required 
                                             value={formData.employee_id}
                                             onChange={(e) => setFormData({...formData, employee_id: e.target.value})}
                                         />
                                     </div>
-                                    <div>
-                                        <label style={styles.formLabel}>Email Address</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</label>
                                         <input 
-                                            style={styles.formInput} 
+                                            className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none"
                                             type="email" 
                                             placeholder="sarah@edusync.edu"
                                             required
@@ -400,30 +330,30 @@ const TeacherList = () => {
                                             onChange={(e) => setFormData({...formData, email: e.target.value})}
                                         />
                                     </div>
-                                    <div>
-                                        <label style={styles.formLabel}>Phone Number</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone Number</label>
                                         <input 
-                                            style={styles.formInput} 
+                                            className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none"
                                             placeholder="+91 XXXXX XXXXX"
                                             value={formData.phone}
                                             onChange={(e) => setFormData({...formData, phone: e.target.value})}
                                         />
                                     </div>
-                                    <div>
-                                        <label style={styles.formLabel}>Subject</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Subject Expertise</label>
                                         <input 
-                                            style={styles.formInput} 
+                                            className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
                                             placeholder="e.g. Mathematics" 
                                             required 
                                             value={formData.subject}
                                             onChange={(e) => setFormData({...formData, subject: e.target.value})}
                                         />
                                     </div>
-                                    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px'}}>
-                                        <div>
-                                            <label style={styles.formLabel}>Class</label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned Class</label>
                                             <select 
-                                                style={styles.formInput}
+                                                className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none"
                                                 value={formData.class_assigned}
                                                 onChange={(e) => setFormData({...formData, class_assigned: e.target.value})}
                                             >
@@ -431,10 +361,10 @@ const TeacherList = () => {
                                                 {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
                                             </select>
                                         </div>
-                                        <div>
-                                            <label style={styles.formLabel}>Section</label>
+                                        <div className="space-y-2">
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Section</label>
                                             <select 
-                                                style={styles.formInput}
+                                                className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none"
                                                 value={formData.section_assigned}
                                                 onChange={(e) => setFormData({...formData, section_assigned: e.target.value})}
                                             >
@@ -443,10 +373,10 @@ const TeacherList = () => {
                                             </select>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label style={styles.formLabel}>Gender</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Gender</label>
                                         <select 
-                                            style={styles.formInput}
+                                            className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none"
                                             value={formData.gender}
                                             onChange={(e) => setFormData({...formData, gender: e.target.value})}
                                         >
@@ -455,40 +385,35 @@ const TeacherList = () => {
                                             <option value="other">Other</option>
                                         </select>
                                     </div>
-                                    <div>
-                                        <label style={styles.formLabel}>Date of Joining</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Date of Joining</label>
                                         <input 
-                                            style={styles.formInput} 
+                                            className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none"
                                             type="date"
                                             value={formData.date_of_joining}
                                             onChange={(e) => setFormData({...formData, date_of_joining: e.target.value})}
                                         />
                                     </div>
-                                    <div style={{gridColumn:'span 2'}}>
-                                        <label style={styles.formLabel}>Address</label>
+                                    <div className="md:col-span-2 space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Residential Address</label>
                                         <textarea 
-                                            style={{...styles.formInput, height:'80px', paddingTop:'12px'}} 
-                                            placeholder="Residential address..."
+                                            className="w-full h-24 bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm font-bold outline-none resize-none" 
+                                            placeholder="Full address..."
                                             value={formData.address}
                                             onChange={(e) => setFormData({...formData, address: e.target.value})}
                                         ></textarea>
                                     </div>
                                 </div>
                             </div>
-                            <div style={styles.modalFooter}>
-                                <button type="button" onClick={() => setIsModalOpen(false)} style={{padding:'10px 24px', backgroundColor:'transparent', border:'none', color:'#6B7280', fontWeight:'700', cursor:'pointer'}}>Cancel</button>
-                                <button type="submit" style={styles.btnPrimary}>Save Teacher</button>
+                            <div className="p-6 bg-slate-50 flex gap-3 shrink-0">
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-slate-500 text-xs font-black uppercase tracking-widest bg-transparent border-none cursor-pointer">Cancel</button>
+                                <button type="submit" className="flex-[2] py-4 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-200 border-none cursor-pointer">Save Faculty</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-
-            <style>{`
-                .hover-blue:hover { color: #2563EB !important; background-color: #EFF6FF; border-radius: 8px; }
-                .hover-red:hover { color: #EF4444 !important; background-color: #FEF2F2; border-radius: 8px; }
-            `}</style>
-        </div>
+        </Layout>
     );
 };
 

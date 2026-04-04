@@ -3,11 +3,12 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES } from '../utils/constants';
+import Layout from '../components/Layout';
 
 const API_BASE_URL = 'https://edusync.up.railway.app/api/fees';
 const STUDENTS_API_URL = 'https://edusync.up.railway.app/api/students';
 
-const FeeManagement = () => {
+const FeeManagement = ({ role }) => {
     const [fees, setFees] = useState([]);
     const [stats, setStats] = useState({ total_collected: 0, total_pending: 0, total_overdue: 0 });
     const [loading, setLoading] = useState(true);
@@ -19,11 +20,9 @@ const FeeManagement = () => {
         class: ''
     });
 
-    // Modals state
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [selectedFee, setSelectedFee] = useState(null);
-    const [showDropdown, setShowDropdown] = useState(false);
     
     const [newFee, setNewFee] = useState({
         student_id: '',
@@ -109,69 +108,6 @@ const FeeManagement = () => {
         }
     };
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        navigate('/login');
-    };
-
-    // Styles (Consistent with Academic Atelier)
-    const styles = {
-        wrapper: {display:'flex', minHeight:'100vh', backgroundColor:'#F9FAFB', fontFamily:'Inter, sans-serif'},
-        sidebar: {width:'240px', minHeight:'100vh', backgroundColor:'#FFFFFF', borderRight:'1px solid #E5E7EB', padding:'24px 16px', display:'flex', flexDirection:'column', position:'fixed', top:0, left:0},
-        logoArea: {marginBottom:'32px'},
-        logoText: {fontSize:'22px', fontWeight:'700', color:'#2563EB', margin:0},
-        portalLabel: {fontSize:'11px', color:'#6B7280', textTransform:'uppercase', margin:0, letterSpacing:'0.05em'},
-        navLink: {display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', borderRadius:'8px', color:'#6B7280', textDecoration:'none', fontSize:'14px', fontWeight:'500', marginBottom:'4px', cursor:'pointer'},
-        navLinkActive: {display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', borderRadius:'8px', color:'#2563EB', backgroundColor:'#EFF6FF', textDecoration:'none', fontSize:'14px', fontWeight:'600', marginBottom:'4px', cursor:'pointer'},
-        main: {marginLeft:'240px', flex:1},
-        header: {height:'64px', backgroundColor:'#FFFFFF', borderBottom:'1px solid #E5E7EB', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 32px', position:'sticky', top:0, zIndex:10},
-        headerTitle: {fontSize:'18px', fontWeight:'600', color:'#111827', margin:0},
-        content: {padding:'32px', maxWidth:'1200px', margin:'0 auto'},
-        statsGrid: {display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:'24px', marginBottom:'40px'},
-        statsCard: (borderColor) => ({backgroundColor:'#FFFFFF', padding:'32px', borderRadius:'16px', borderLeft:`4px solid ${borderColor}`, boxShadow:'0 1px 3px rgba(0,0,0,0.05)'}),
-        statsLabel: {fontSize:'11px', fontWeight:'700', color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'8px'},
-        statsValue: (color) => ({fontSize:'28px', fontWeight:'800', color:color, margin:0}),
-        filtersRow: {backgroundColor:'#FFFFFF', padding:'24px', borderRadius:'16px', border:'1px solid #E5E7EB', display:'flex', gap:'20px', marginBottom:'40px', alignItems:'flex-end'},
-        filterItem: {flex:1},
-        filterLabel: {display:'block', fontSize:'11px', fontWeight:'700', color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'8px'},
-        select: {width:'100%', height:'40px', border:'none', backgroundColor:'#F9FAFB', borderRadius:'8px', padding:'0 12px', fontSize:'14px', fontWeight:'600', color:'#111827', outline:'none', cursor:'pointer'},
-        tableCard: {backgroundColor:'#FFFFFF', borderRadius:'24px', border:'1px solid #E5E7EB', overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,0.05)'},
-        th: {backgroundColor:'#F9FAFB', padding:'16px 24px', fontSize:'11px', fontWeight:'800', color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.08em', borderBottom:'1px solid #E5E7EB'},
-        td: {padding:'16px 24px', fontSize:'14px', color:'#111827', borderBottom:'1px solid #F3F4F6', verticalAlign:'middle'},
-        avatar: {width:'36px', height:'36px', borderRadius:'50%', backgroundColor:'#EFF6FF', color:'#2563EB', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:'700'},
-        statusBadge: (status) => {
-            const configs = {
-                paid: {bg:'#DCFCE7', color:'#16A34A'},
-                pending: {bg:'#FEF3C7', color:'#D97706'},
-                overdue: {bg:'#FEE2E2', color:'#DC2626'},
-                default: {bg:'#F3F4F6', color:'#6B7280'}
-            };
-            const config = configs[status.toLowerCase()] || configs.default;
-            return {
-                padding:'4px 12px',
-                borderRadius:'9999px',
-                fontSize:'10px',
-                fontWeight:'800',
-                textTransform:'uppercase',
-                letterSpacing:'0.05em',
-                backgroundColor: config.bg,
-                color: config.color,
-                display:'inline-block'
-            };
-        },
-        actionBtn: {padding:'8px 16px', backgroundColor:'#16A34A', color:'#FFFFFF', border:'none', borderRadius:'8px', fontSize:'11px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.05em', cursor:'pointer', transition:'all 0.2s'},
-        modalOverlay: {position:'fixed', top:0, left:0, width:'100vw', height:'100vh', backgroundColor:'rgba(17, 24, 39, 0.4)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100},
-        modalContent: {backgroundColor:'#FFFFFF', borderRadius:'32px', width:'100%', maxWidth:'500px', padding:'40px', boxShadow:'0 25px 50px -12px rgba(0,0,0,0.2)'},
-        modalAddFee: {backgroundColor:'#FFFFFF', borderRadius:'32px', width:'100%', maxWidth:'600px', padding:'40px', boxShadow:'0 25px 50px -12px rgba(0,0,0,0.2)'},
-        modalTitle: {fontSize:'24px', fontWeight:'800', color:'#111827', margin:'0 0 8px 0'},
-        modalSubtitle: {fontSize:'14px', color:'#6B7280', margin:'0 0 32px 0'},
-        formLabel: {display:'block', fontSize:'11px', fontWeight:'700', color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'8px'},
-        input: {width:'100%', height:'48px', backgroundColor:'#F9FAFB', border:'none', borderRadius:'12px', padding:'0 16px', fontSize:'14px', fontWeight:'600', color:'#111827', outline:'none', marginBottom:'24px'},
-        modalFooter: {display:'flex', gap:'16px', marginTop:'8px'},
-        cancelBtn: {flex:1, height:'48px', backgroundColor:'#FFFFFF', border:'1px solid #E5E7EB', borderRadius:'12px', fontSize:'14px', fontWeight:'700', color:'#6B7280', cursor:'pointer'},
-        submitBtn: {flex:1, height:'48px', backgroundColor:'#2563EB', border:'none', borderRadius:'12px', fontSize:'14px', fontWeight:'700', color:'#FFFFFF', cursor:'pointer'}
-    };
-
     const getInitials = (name) => {
         if (!name) return '??';
         const parts = name.split(' ');
@@ -180,288 +116,247 @@ const FeeManagement = () => {
     };
 
     return (
-        <div style={styles.wrapper}>
-            {/* Sidebar */}
-            <aside style={styles.sidebar}>
-                <div style={styles.logoArea}>
-                    <h1 style={styles.logoText}>EduSync</h1>
-                    <p style={styles.portalLabel}>Management Portal</p>
-                </div>
-                <nav style={{flex:1}}>
-                    <a onClick={() => navigate('/dashboard/principal')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">dashboard</span>
-                        <span>Overview</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/students')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">group</span>
-                        <span>Students</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/teachers')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">person_book</span>
-                        <span>Teachers</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/attendance')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">calendar_today</span>
-                        <span>Attendance</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/fees')} style={styles.navLinkActive}>
-                        <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>payments</span>
-                        <span>Fees</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/homework')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">assignment</span>
-                        <span>Homework</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/marks')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">grade</span>
-                        <span>Marks</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/reports')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">assessment</span>
-                        <span>Reports</span>
-                    </a>
-                </nav>
-            </aside>
-
-            <div style={styles.main}>
-                <header style={styles.header}>
-                    <h2 style={styles.headerTitle}>Fee Management</h2>
-                    <div 
-                        style={{display:'flex', alignItems:'center', gap:'16px', position: 'relative', cursor: 'pointer'}}
-                        onClick={() => setShowDropdown(!showDropdown)}
+        <Layout role={role}>
+            <div className="space-y-8">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight m-0">Billing</h1>
+                        <p className="text-sm md:text-base text-slate-500 mt-1 font-medium italic">"Financial transparency drives institutional growth."</p>
+                    </div>
+                    <button 
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="w-full md:w-auto h-12 px-8 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
                     >
-                        <div style={{textAlign:'right'}}>
-                            <p style={{fontSize:'13px', fontWeight:'600', color:'#111827', margin:0}}>School Principal</p>
-                            <p style={{fontSize:'10px', color:'#6B7280', margin:0, textTransform:'uppercase'}}>Institutional Admin</p>
-                        </div>
-                        <div style={{width:'36px', height:'36px', backgroundColor:'#F3F4F6', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'#9CA3AF'}}>
-                            <span className="material-symbols-outlined">account_circle</span>
-                        </div>
+                        <span className="material-symbols-outlined">add_card</span>
+                        Add Fee Record
+                    </button>
+                </div>
 
-                        {showDropdown && (
-                            <div style={{
-                                position: 'absolute',
-                                top: '48px',
-                                right: 0,
-                                backgroundColor: '#FFFFFF',
-                                border: '1px solid #E5E7EB',
-                                borderRadius: '8px',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                padding: '8px',
-                                zIndex: 100,
-                                minWidth: '140px'
-                            }}>
-                                <button
-                                    onClick={handleLogout}
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        textAlign: 'left',
-                                        background: 'none',
-                                        border: 'none',
-                                        color: '#DC2626',
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                        cursor: 'pointer',
-                                        borderRadius: '4px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px'
-                                    }}
-                                >
-                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
-                                    Logout
-                                </button>
-                            </div>
+                {/* Stats Bento Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white p-6 rounded-3xl border-l-4 border-emerald-500 border-y border-r border-slate-200 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Collected</span>
+                            <span className="material-symbols-outlined text-emerald-500">account_balance_wallet</span>
+                        </div>
+                        <h2 className="text-2xl font-black text-slate-900">₹{stats.total_collected.toLocaleString()}</h2>
+                    </div>
+                    <div className="bg-white p-6 rounded-3xl border-l-4 border-amber-500 border-y border-r border-slate-200 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Pending</span>
+                            <span className="material-symbols-outlined text-amber-500">pending_actions</span>
+                        </div>
+                        <h2 className="text-2xl font-black text-slate-900">₹{stats.total_pending.toLocaleString()}</h2>
+                    </div>
+                    <div className="bg-white p-6 rounded-3xl border-l-4 border-rose-500 border-y border-r border-slate-200 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Overdue</span>
+                            <span className="material-symbols-outlined text-rose-500">priority_high</span>
+                        </div>
+                        <h2 className="text-2xl font-black text-slate-900">₹{stats.total_overdue.toLocaleString()}</h2>
+                    </div>
+                </div>
+
+                {/* Filters */}
+                <div className="bg-white p-4 md:p-6 rounded-3xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Month</label>
+                        <select 
+                            className="w-full h-11 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-900 outline-none cursor-pointer"
+                            value={filters.month}
+                            onChange={(e) => setFilters(prev => ({...prev, month: e.target.value}))}
+                        >
+                            {months.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Year</label>
+                        <select 
+                            className="w-full h-11 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-900 outline-none cursor-pointer"
+                            value={filters.year}
+                            onChange={(e) => setFilters(prev => ({...prev, year: e.target.value}))}
+                        >
+                            {years.map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Status</label>
+                        <select 
+                            className="w-full h-11 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-900 outline-none cursor-pointer"
+                            value={filters.status}
+                            onChange={(e) => setFilters(prev => ({...prev, status: e.target.value}))}
+                        >
+                            <option value="All">All Statuses</option>
+                            <option value="paid">Paid</option>
+                            <option value="pending">Pending</option>
+                            <option value="overdue">Overdue</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Class</label>
+                        <select 
+                            className="w-full h-11 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-900 outline-none cursor-pointer"
+                            value={filters.class}
+                            onChange={(e) => setFilters(prev => ({...prev, class: e.target.value}))}
+                        >
+                            <option value="">All Classes</option>
+                            {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Table / Cards */}
+                <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                    {/* Desktop View */}
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50/50 border-bottom border-slate-100">
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Student</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Fee Type</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Due Date</th>
+                                    <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {loading ? (
+                                    <tr><td colSpan="6" className="px-6 py-12 text-center text-slate-400 italic">Syncing ledger...</td></tr>
+                                ) : fees.length === 0 ? (
+                                    <tr><td colSpan="6" className="px-6 py-20 text-center text-slate-400">No records found.</td></tr>
+                                ) : (
+                                    fees.map(fee => (
+                                        <tr key={fee.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-[10px]">{getInitials(fee.student?.full_name)}</div>
+                                                    <div>
+                                                        <div className="text-sm font-black text-slate-900 tracking-tight">{fee.student?.full_name}</div>
+                                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{fee.student?.class}-{fee.student?.section}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm font-bold text-slate-600">{fee.fee_type}</td>
+                                            <td className="px-6 py-4 text-sm font-black text-slate-900">₹{fee.amount.toLocaleString()}</td>
+                                            <td className="px-6 py-4 text-sm text-slate-500 font-medium">{new Date(fee.due_date).toLocaleDateString()}</td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                    fee.status === 'paid' ? 'bg-emerald-50 text-emerald-600' :
+                                                    fee.status === 'overdue' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'
+                                                }`}>
+                                                    {fee.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                {fee.status !== 'paid' ? (
+                                                    <button 
+                                                        onClick={() => { setSelectedFee(fee); setIsPaymentModalOpen(true); }}
+                                                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all"
+                                                    >
+                                                        Mark Paid
+                                                    </button>
+                                                ) : (
+                                                    <div className="text-right">
+                                                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest block">Receipt</span>
+                                                        <span className="text-[10px] font-mono text-slate-500 font-bold">{fee.receipt_number}</span>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile/Tablet View */}
+                    <div className="md:hidden divide-y divide-slate-100">
+                        {loading ? (
+                            <div className="p-8 text-center text-slate-400 italic">Syncing daily records...</div>
+                        ) : fees.length === 0 ? (
+                            <div className="p-10 text-center text-slate-400">No records matched filters.</div>
+                        ) : (
+                            fees.map(fee => (
+                                <div key={fee.id} className="p-5 flex flex-col gap-4">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-xs">{getInitials(fee.student?.full_name)}</div>
+                                            <div>
+                                                <h4 className="text-sm font-black text-slate-900 leading-none">{fee.student?.full_name}</h4>
+                                                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{fee.student?.class}-{fee.student?.section} | {fee.fee_type}</p>
+                                            </div>
+                                        </div>
+                                        <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                                            fee.status === 'paid' ? 'bg-emerald-50 border-emerald-500 text-emerald-600' :
+                                            fee.status === 'overdue' ? 'bg-rose-50 border-rose-500 text-rose-600' : 'bg-amber-50 border-amber-500 text-amber-600'
+                                        }`}>
+                                            {fee.status}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Amount Due</p>
+                                            <p className="text-base font-black text-slate-900">₹{fee.amount.toLocaleString()}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Due On</p>
+                                            <p className="text-xs font-bold text-slate-900">{new Date(fee.due_date).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                    {fee.status !== 'paid' ? (
+                                        <button 
+                                            onClick={() => { setSelectedFee(fee); setIsPaymentModalOpen(true); }}
+                                            className="w-full h-11 bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-100"
+                                        >
+                                            Process Payment
+                                        </button>
+                                    ) : (
+                                        <div className="flex justify-between items-center text-[10px]">
+                                            <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Transaction Complete</span>
+                                            <span className="font-mono text-slate-900 font-black">{fee.receipt_number}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ))
                         )}
                     </div>
-                </header>
-
-                <main style={styles.content}>
-                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:'32px'}}>
-                        <div>
-                            <h1 style={{fontSize:'32px', fontWeight:'800', color:'#111827', margin:'0 0 8px 0'}}>Institutional Billing</h1>
-                            <p style={{fontSize:'14px', color:'#6B7280', margin:0, fontWeight:'500'}}>Monitor financial health and manage student billing cycles.</p>
-                        </div>
-                        <button 
-                            onClick={() => setIsAddModalOpen(true)}
-                            style={{...styles.submitBtn, padding:'0 24px', maxWidth:'160px', height:'48px'}}
-                        >
-                            <span className="material-symbols-outlined">add</span>
-                            <span>Add Fee</span>
-                        </button>
-                    </div>
-
-                    {/* Stats Bento Grid */}
-                    <div style={styles.statsGrid}>
-                        <div style={styles.statsCard('#16A34A')}>
-                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px'}}>
-                                <span style={styles.statsLabel}>Total Collected</span>
-                                <span className="material-symbols-outlined" style={{color:'#16A34A'}}>account_balance_wallet</span>
-                            </div>
-                            <h2 style={styles.statsValue('#111827')}>₹{stats.total_collected.toLocaleString()}</h2>
-                        </div>
-                        <div style={styles.statsCard('#D97706')}>
-                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px'}}>
-                                <span style={styles.statsLabel}>Total Pending</span>
-                                <span className="material-symbols-outlined" style={{color:'#D97706'}}>pending_actions</span>
-                            </div>
-                            <h2 style={styles.statsValue('#111827')}>₹{stats.total_pending.toLocaleString()}</h2>
-                        </div>
-                        <div style={styles.statsCard('#DC2626')}>
-                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px'}}>
-                                <span style={styles.statsLabel}>Total Overdue</span>
-                                <span className="material-symbols-outlined" style={{color:'#DC2626'}}>priority_high</span>
-                            </div>
-                            <h2 style={styles.statsValue('#111827')}>₹{stats.total_overdue.toLocaleString()}</h2>
-                        </div>
-                    </div>
-
-                    {/* Filters Row */}
-                    <div style={styles.filtersRow}>
-                        <div style={styles.filterItem}>
-                            <label style={styles.filterLabel}>Month</label>
-                            <select 
-                                style={styles.select}
-                                value={filters.month}
-                                onChange={(e) => setFilters(prev => ({...prev, month: e.target.value}))}
-                            >
-                                {months.map(m => <option key={m} value={m}>{m}</option>)}
-                            </select>
-                        </div>
-                        <div style={styles.filterItem}>
-                            <label style={styles.filterLabel}>Year</label>
-                            <select 
-                                style={styles.select}
-                                value={filters.year}
-                                onChange={(e) => setFilters(prev => ({...prev, year: e.target.value}))}
-                            >
-                                {years.map(y => <option key={y} value={y}>{y}</option>)}
-                            </select>
-                        </div>
-                        <div style={styles.filterItem}>
-                            <label style={styles.filterLabel}>Status</label>
-                            <select 
-                                style={styles.select}
-                                value={filters.status}
-                                onChange={(e) => setFilters(prev => ({...prev, status: e.target.value}))}
-                            >
-                                <option value="All">All Status</option>
-                                <option value="paid">Paid</option>
-                                <option value="pending">Pending</option>
-                                <option value="overdue">Overdue</option>
-                            </select>
-                        </div>
-                        <div style={styles.filterItem}>
-                            <label style={styles.filterLabel}>Class</label>
-                            <select 
-                                style={styles.select}
-                                value={filters.class}
-                                onChange={(e) => setFilters(prev => ({...prev, class: e.target.value}))}
-                            >
-                                <option value="">All Classes</option>
-                                {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div style={styles.tableCard}>
-                        <div style={{overflowX:'auto'}}>
-                            <table style={{width:'100%', borderCollapse:'collapse'}}>
-                                <thead>
-                                    <tr>
-                                        <th style={styles.th}>Student</th>
-                                        <th style={styles.th}>Fee Type</th>
-                                        <th style={styles.th}>Amount</th>
-                                        <th style={styles.th}>Month/Year</th>
-                                        <th style={styles.th}>Due Date</th>
-                                        <th style={{...styles.th, textAlign:'center'}}>Status</th>
-                                        <th style={{...styles.th, textAlign:'right'}}>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {loading ? (
-                                        <tr>
-                                            <td colSpan="7" style={{...styles.td, textAlign:'center', padding:'64px', color:'#9CA3AF'}}>Processing financial records...</td>
-                                        </tr>
-                                    ) : fees.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="7" style={{...styles.td, textAlign:'center', padding:'64px', color:'#9CA3AF'}}>No fee records found for the selection.</td>
-                                        </tr>
-                                    ) : (
-                                        fees.map((fee) => (
-                                            <tr key={fee.id} style={{transition:'background-color 0.2s'}} onMouseEnter={(e)=>e.currentTarget.style.backgroundColor='#F9FAFB'} onMouseLeave={(e)=>e.currentTarget.style.backgroundColor='transparent'}>
-                                                <td style={styles.td}>
-                                                    <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                                                        <div style={styles.avatar}>{getInitials(fee.student?.full_name)}</div>
-                                                        <div>
-                                                            <div style={{fontWeight:'700', marginBottom:'2px'}}>{fee.student?.full_name}</div>
-                                                            <div style={{fontSize:'11px', color:'#6B7280', fontWeight:'600'}}>Class {fee.student?.class}-{fee.student?.section}</div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td style={styles.td}>{fee.fee_type}</td>
-                                                <td style={{...styles.td, fontWeight:'800'}}>₹{fee.amount.toLocaleString()}</td>
-                                                <td style={styles.td}>{fee.month} {fee.year}</td>
-                                                <td style={styles.td}>{new Date(fee.due_date).toLocaleDateString()}</td>
-                                                <td style={{...styles.td, textAlign:'center'}}>
-                                                    <span style={styles.statusBadge(fee.status)}>{fee.status}</span>
-                                                </td>
-                                                <td style={{...styles.td, textAlign:'right'}}>
-                                                    {fee.status.toLowerCase() !== 'paid' ? (
-                                                        <button 
-                                                            onClick={() => { setSelectedFee(fee); setIsPaymentModalOpen(true); }}
-                                                            style={styles.actionBtn}
-                                                        >
-                                                            Mark Paid
-                                                        </button>
-                                                    ) : (
-                                                        <div style={{textAlign:'right'}}>
-                                                            <span style={{fontSize:'9px', fontWeight:'800', color:'#9CA3AF', textTransform:'uppercase', display:'block'}}>Receipt</span>
-                                                            <span style={{fontSize:'10px', color:'#6B7280', fontFamily:'monospace'}}>{fee.receipt_number}</span>
-                                                        </div>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </main>
+                </div>
             </div>
 
-            {/* Add Fee Modal */}
+            {/* Modals */}
             {isAddModalOpen && (
-                <div style={styles.modalOverlay}>
-                    <div style={styles.modalAddFee}>
-                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'8px'}}>
-                            <h3 style={styles.modalTitle}>Add New Fee Record</h3>
-                            <button onClick={() => setIsAddModalOpen(false)} style={{border:'none', background:'none', cursor:'pointer', color:'#9CA3AF'}}>
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[32px] w-full max-w-xl p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 className="text-2xl font-black text-slate-900 m-0">New Billing</h3>
+                                <p className="text-xs text-slate-500 mt-1 font-bold uppercase tracking-widest">Institutional Fee Registry</p>
+                            </div>
+                            <button onClick={() => setIsAddModalOpen(false)} className="w-10 h-10 rounded-full hover:bg-slate-50 flex items-center justify-center text-slate-400 transition-colors">
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
-                        <p style={styles.modalSubtitle}>Create a new billing statement for an institutional student.</p>
-                        
-                        <form onSubmit={handleAddFee}>
-                            <div style={{marginBottom:'24px'}}>
-                                <label style={styles.formLabel}>Select Student</label>
+
+                        <form onSubmit={handleAddFee} className="space-y-6">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Select Student</label>
                                 <select 
-                                    style={styles.input}
+                                    className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-900 outline-none"
                                     value={newFee.student_id}
                                     onChange={(e) => setNewFee({...newFee, student_id: e.target.value})}
                                     required
                                 >
-                                    <option value="">Search student by name...</option>
+                                    <option value="">Search student...</option>
                                     {students.map(s => <option key={s.id} value={s.id}>{s.full_name} ({s.class}-{s.section})</option>)}
                                 </select>
                             </div>
 
-                            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px'}}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label style={styles.formLabel}>Fee Type</label>
-                                    <select style={styles.input} value={newFee.fee_type} onChange={(e)=>setNewFee({...newFee, fee_type: e.target.value})}>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Fee Type</label>
+                                    <select className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-900 outline-none" value={newFee.fee_type} onChange={(e)=>setNewFee({...newFee, fee_type: e.target.value})}>
                                         <option value="Tuition">Tuition Fee</option>
                                         <option value="Transport">Transport Fee</option>
                                         <option value="Library">Library Fee</option>
@@ -470,10 +365,10 @@ const FeeManagement = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={styles.formLabel}>Amount (₹)</label>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Amount (₹)</label>
                                     <input 
                                         type="number" 
-                                        style={styles.input} 
+                                        className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-900 outline-none"
                                         placeholder="5000"
                                         value={newFee.amount}
                                         onChange={(e)=>setNewFee({...newFee, amount:e.target.value})}
@@ -481,16 +376,16 @@ const FeeManagement = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label style={styles.formLabel}>Month</label>
-                                    <select style={styles.input} value={newFee.month} onChange={(e)=>setNewFee({...newFee, month: e.target.value})}>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Month</label>
+                                    <select className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-900 outline-none" value={newFee.month} onChange={(e)=>setNewFee({...newFee, month: e.target.value})}>
                                         {months.map(m => <option key={m} value={m}>{m}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={styles.formLabel}>Due Date</label>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Due Date</label>
                                     <input 
                                         type="date" 
-                                        style={styles.input}
+                                        className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-900 outline-none"
                                         value={newFee.due_date}
                                         onChange={(e)=>setNewFee({...newFee, due_date: e.target.value})}
                                         required
@@ -498,60 +393,53 @@ const FeeManagement = () => {
                                 </div>
                             </div>
 
-                            <div style={styles.modalFooter}>
-                                <button type="button" onClick={() => setIsAddModalOpen(false)} style={styles.cancelBtn}>Cancel</button>
-                                <button type="submit" style={styles.submitBtn}>Create Record</button>
+                            <div className="flex gap-3 pt-4">
+                                <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 h-12 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all">Cancel</button>
+                                <button type="submit" className="flex-2 h-12 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex-grow-[2]">Create Statement</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Payment Modal */}
             {isPaymentModalOpen && (
-                <div style={styles.modalOverlay}>
-                    <div style={styles.modalContent}>
-                        <div style={{textAlign:'center', marginBottom:'32px'}}>
-                            <div style={{width:'64px', height:'64px', backgroundColor:'#EFF6FF', color:'#2563EB', borderRadius:'16px', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px auto'}}>
-                                <span className="material-symbols-outlined" style={{fontSize:'32px'}}>payments</span>
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
+                        <div className="text-center mb-8">
+                            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                <span className="material-symbols-outlined text-3xl">payments</span>
                             </div>
-                            <h3 style={styles.modalTitle}>Process Payment</h3>
-                            <p style={styles.modalSubtitle}>Confirm payment of <span style={{fontWeight:'800', color:'#111827'}}>₹{selectedFee?.amount}</span> for {selectedFee?.student?.full_name}</p>
+                            <h3 className="text-2xl font-black text-slate-900 mb-2">Process Transaction</h3>
+                            <p className="text-sm text-slate-500 font-medium">Record payment of <span className="text-blue-600 font-black">₹{selectedFee?.amount?.toLocaleString()}</span> for {selectedFee?.student?.full_name}</p>
                         </div>
 
-                        <div style={{marginBottom:'32px'}}>
-                            <label style={styles.formLabel}>Payment Method</label>
-                            <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:'10px'}}>
-                                {['cash', 'online', 'cheque'].map(m => (
-                                    <button 
-                                        key={m}
-                                        onClick={() => setPaymentMethod(m)}
-                                        style={{
-                                            height:'48px',
-                                            borderRadius:'12px',
-                                            border: paymentMethod === m ? '2px solid #2563EB' : '1px solid #E5E7EB',
-                                            backgroundColor: paymentMethod === m ? '#EFF6FF' : '#FFFFFF',
-                                            color: paymentMethod === m ? '#2563EB' : '#6B7280',
-                                            fontSize:'11px',
-                                            fontWeight:'800',
-                                            textTransform:'uppercase',
-                                            cursor:'pointer'
-                                        }}
-                                    >
-                                        {m}
-                                    </button>
-                                ))}
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">Confirm Methodology</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {['cash', 'online', 'cheque'].map(m => (
+                                        <button 
+                                            key={m}
+                                            onClick={() => setPaymentMethod(m)}
+                                            className={`h-12 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                                                paymentMethod === m ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'
+                                            }`}
+                                        >
+                                            {m}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
-                        <div style={styles.modalFooter}>
-                            <button onClick={() => setIsPaymentModalOpen(false)} style={styles.cancelBtn}>Cancel</button>
-                            <button onClick={handlePayment} style={styles.submitBtn}>Confirm Transaction</button>
+                        <div className="flex gap-3 mt-8">
+                            <button onClick={() => setIsPaymentModalOpen(false)} className="flex-1 h-12 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all">Abort</button>
+                            <button onClick={handlePayment} className="flex-1 h-12 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100">Finalize</button>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+        </Layout>
     );
 };
 

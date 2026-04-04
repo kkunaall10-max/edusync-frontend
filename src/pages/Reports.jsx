@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import Layout from '../components/Layout';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
+import { 
+    FileText, 
+    TrendingUp, 
+    AlertCircle, 
+    CheckCircle, 
+    Printer, 
+    Search, 
+    Download, 
+    Filter,
+    ArrowRight,
+    ChevronDown
+} from 'lucide-react';
 
 const API_BASE_URL = 'https://edusync.up.railway.app/api/reports';
 const STUDENTS_API_URL = 'https://edusync.up.railway.app/api/students';
@@ -13,8 +24,6 @@ const Reports = () => {
     const [data, setData] = useState(null);
     const [allStudents, setAllStudents] = useState([]);
     const [selectedStudent, setSelectedStudent] = useState('');
-    const [showDropdown, setShowDropdown] = useState(false);
-    const navigate = useNavigate();
 
     // Filters
     const [attFilters, setAttFilters] = useState({ 
@@ -117,515 +126,485 @@ const Reports = () => {
         window.print();
     };
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        navigate('/login');
-    };
-
-    // Styles (Consistent with Academic Atelier)
-    const styles = {
-        wrapper: {display:'flex', minHeight:'100vh', backgroundColor:'#F9FAFB', fontFamily:'Inter, sans-serif'},
-        sidebar: {width:'240px', minHeight:'100vh', backgroundColor:'#FFFFFF', borderRight:'1px solid #E5E7EB', padding:'24px 16px', display:'flex', flexDirection:'column', position:'fixed', top:0, left:0},
-        logoArea: {marginBottom:'32px'},
-        logoText: {fontSize:'22px', fontWeight:'700', color:'#2563EB', margin:0},
-        portalLabel: {fontSize:'11px', color:'#6B7280', textTransform:'uppercase', margin:0, letterSpacing:'0.05em'},
-        navLink: {display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', borderRadius:'8px', color:'#6B7280', textDecoration:'none', fontSize:'14px', fontWeight:'500', marginBottom:'4px', cursor:'pointer'},
-        navLinkActive: {display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', borderRadius:'8px', color:'#2563EB', backgroundColor:'#EFF6FF', textDecoration:'none', fontSize:'14px', fontWeight:'600', marginBottom:'4px', cursor:'pointer'},
-        main: {marginLeft:'240px', flex:1},
-        header: {height:'64px', backgroundColor:'#FFFFFF', borderBottom:'1px solid #E5E7EB', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 32px', position:'sticky', top:0, zIndex:10},
-        headerTitle: {fontSize:'18px', fontWeight:'600', color:'#111827', margin:0},
-        content: {padding:'32px', maxWidth:'1400px', margin:'0 auto'},
-        tabsWrapper: {display:'flex', backgroundColor:'#F3F4F6', padding:'4px', borderRadius:'12px', width:'fit-content', marginBottom:'40px'},
-        tab: (active) => ({padding:'10px 24px', borderRadius:'8px', fontSize:'14px', fontWeight:'700', color:active ? '#111827' : '#6B7280', backgroundColor:active ? '#FFFFFF' : 'transparent', border:'none', cursor:'pointer', transition:'all 0.2s', boxShadow:active ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'}),
-        statsGrid: {display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:'20px', marginBottom:'40px'},
-        statsCard: {backgroundColor:'#FFFFFF', padding:'24px', borderRadius:'16px', border:'1px solid #E5E7EB', boxShadow:'0 1px 3px rgba(0,0,0,0.05)'},
-        statsLabel: {fontSize:'10px', fontWeight:'700', color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'8px'},
-        statsValue: {fontSize:'24px', fontWeight:'800', color:'#111827', margin:0},
-        filtersRow: {backgroundColor:'#FFFFFF', padding:'24px', borderRadius:'16px', border:'1px solid #E5E7EB', display:'flex', gap:'16px', marginBottom:'40px', alignItems:'flex-end'},
-        filterItem: {flex:1},
-        filterLabel: {display:'block', fontSize:'11px', fontWeight:'700', color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'8px'},
-        select: {width:'100%', height:'40px', border:'none', backgroundColor:'#F9FAFB', borderRadius:'8px', padding:'0 12px', fontSize:'14px', fontWeight:'600', color:'#111827', outline:'none', cursor:'pointer', border:'1px solid #E5E7EB'},
-        input: {width:'100%', height:'40px', border:'none', backgroundColor:'#F9FAFB', borderRadius:'8px', padding:'0 12px', fontSize:'14px', fontWeight:'600', color:'#111827', outline:'none', border:'1px solid #E5E7EB'},
-        tableCard: {backgroundColor:'#FFFFFF', borderRadius:'24px', border:'1px solid #E5E7EB', overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,0.05)'},
-        th: {backgroundColor:'#F9FAFB', padding:'16px 24px', fontSize:'11px', fontWeight:'800', color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.08em', borderBottom:'1px solid #E5E7EB', textAlign:'left'},
-        td: {padding:'16px 24px', fontSize:'14px', color:'#111827', borderBottom:'1px solid #F3F4F6', verticalAlign:'middle'},
-        reportCard: {backgroundColor:'#FFFFFF', width:'100%', maxWidth:'800px', margin:'0 auto', padding:'40px', border:'1px solid #E5E7EB', borderRadius:'8px', boxShadow:'0 10px 30px rgba(0,0,0,0.05)'},
-        reportHeader: {textAlign:'center', borderBottom:'2px solid #111827', paddingBottom:'24px', marginBottom:'32px'},
-        schoolName: {fontSize:'28px', fontWeight:'800', color:'#2563EB', margin:'10px 0'},
-        reportSubtitle: {fontSize:'10px', color:'#6B7280', textTransform:'uppercase', fontWeight:'700', letterSpacing:'0.2em'},
-        studentMetaGrid: {display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:'24px', padding:'24px 0', borderBottom:'1px solid #E5E7EB', marginBottom:'32px'},
-        metaItem: {display:'flex', flexDirection:'column', gap:'4px'},
-        metaLabel: {fontSize:'10px', fontWeight:'700', color:'#9CA3AF', textTransform:'uppercase'},
-        metaValue: {fontSize:'14px', fontWeight:'700', color:'#111827'},
-        gradeBadge: (color, bg) => ({padding:'4px 12px', borderRadius:'9999px', fontSize:'10px', fontWeight:'900', color:color, backgroundColor:bg, textTransform:'uppercase'}),
-        printBtn: {padding:'14px 32px', backgroundColor:'#2563EB', color:'#FFFFFF', borderRadius:'12px', fontSize:'14px', fontWeight:'800', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px', margin:'32px auto 0 auto', boxShadow:'0 4px 12px rgba(37,99,235,0.2)'}
-    };
-
     return (
-        <div style={styles.wrapper}>
-            {/* Sidebar */}
-            <aside style={{
-                width: '240px',
-                minHeight: '100vh',
-                backgroundColor: '#FFFFFF',
-                borderRight: '1px solid #E5E7EB',
-                padding: '24px 16px',
-                display: 'flex',
-                flexDirection: 'column',
-                position: 'fixed',
-                top: 0,
-                left: 0
-            }} className="no-print">
-                <div style={styles.logoArea}>
-                    <h1 style={styles.logoText}>EduSync</h1>
-                    <p style={styles.portalLabel}>Academic Architect</p>
+        <Layout>
+            <div className="flex flex-col space-y-8">
+                <div className="no-print space-y-8">
+                    <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                        <div>
+                            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Institutional Audit</h1>
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Academic & Financial Transcripts</p>
+                        </div>
+                    </div>
+
+                    {/* Tabs */}
+                    <div className="flex overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar gap-2">
+                        {[
+                            { id: 'attendance', label: 'Attendance Audit', icon: CheckCircle },
+                            { id: 'fee', label: 'Financial Audit', icon: TrendingUp },
+                            { id: 'academic', label: 'Academic Analysis', icon: Search },
+                            { id: 'report-card', label: 'Student Record', icon: FileText }
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => { 
+                                    if(activeTab === tab.id) {
+                                        if (activeTab === 'attendance') fetchAttendanceReport();
+                                        if (activeTab === 'fee') fetchFeeReport();
+                                        if (activeTab === 'academic') fetchAcademicReport();
+                                        if (activeTab === 'report-card' && selectedStudent) fetchStudentReportCard(selectedStudent);
+                                    } else {
+                                        setActiveTab(tab.id); 
+                                        setData(null); 
+                                    }
+                                }}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${activeTab === tab.id ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'}`}
+                            >
+                                <tab.icon size={16} />
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Filters */}
+                    {activeTab !== 'report-card' && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm items-end">
+                            {activeTab === 'attendance' && (
+                                <>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Class</label>
+                                        <select className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none appearance-none cursor-pointer" 
+                                            value={attFilters.class} onChange={(e)=>setAttFilters({...attFilters, class: e.target.value})}>
+                                            {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Section</label>
+                                        <select className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none appearance-none cursor-pointer"
+                                            value={attFilters.section} onChange={(e)=>setAttFilters({...attFilters, section: e.target.value})}>
+                                            {SCHOOL_SECTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Month</label>
+                                        <select className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none appearance-none cursor-pointer"
+                                            value={attFilters.month} onChange={(e)=>setAttFilters({...attFilters, month: e.target.value})}>
+                                            {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                                        </select>
+                                    </div>
+                                </>
+                            )}
+                            {activeTab === 'fee' && (
+                                <>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Month</label>
+                                        <select className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none appearance-none cursor-pointer"
+                                            value={feeFilters.month} onChange={(e)=>setFeeFilters({...feeFilters, month: e.target.value})}>
+                                            {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Year</label>
+                                        <select className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none appearance-none cursor-pointer"
+                                            value={feeFilters.year} onChange={(e)=>setFeeFilters({...feeFilters, year: e.target.value})}>
+                                            <option value="2026">2026</option>
+                                            <option value="2025">2025</option>
+                                        </select>
+                                    </div>
+                                </>
+                            )}
+                            {activeTab === 'academic' && (
+                                <>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Class</label>
+                                        <select className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none appearance-none cursor-pointer"
+                                            value={academicFilters.class} onChange={(e)=>setAcademicFilters({...academicFilters, class: e.target.value})}>
+                                            {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Exam Type</label>
+                                        <select className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none appearance-none cursor-pointer"
+                                            value={academicFilters.exam_type} onChange={(e)=>setAcademicFilters({...academicFilters, exam_type: e.target.value})}>
+                                            {['Unit Test', 'Mid Term', 'Final Exam', 'Assignment'].map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                    </div>
+                                </>
+                            )}
+                            <button 
+                                onClick={activeTab === 'attendance' ? fetchAttendanceReport : activeTab === 'fee' ? fetchFeeReport : fetchAcademicReport}
+                                className="h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2"
+                            >
+                                Sync Report
+                                <ArrowRight size={16} />
+                            </button>
+                        </div>
+                    )}
+
+                    {activeTab === 'report-card' && (
+                        <div className="max-w-md mx-auto bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 text-center">Protocol Subject Selection</label>
+                                <div className="relative">
+                                    <select className="w-full h-14 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none appearance-none cursor-pointer transition-all" 
+                                        value={selectedStudent} onChange={(e)=>setSelectedStudent(e.target.value)}>
+                                        <option value="">Choose student profile...</option>
+                                        {allStudents.map(s => <option key={s.id} value={s.id}>{s.full_name} ({s.roll_number})</option>)}
+                                    </select>
+                                    <ChevronDown size={20} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
-                <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <a onClick={() => navigate('/dashboard/principal')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">dashboard</span>
-                        <span>Overview</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/students')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">group</span>
-                        <span>Students</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/teachers')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">person_book</span>
-                        <span>Teachers</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/attendance')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">calendar_today</span>
-                        <span>Attendance</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/fees')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">payments</span>
-                        <span>Fees</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/homework')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">assignment</span>
-                        <span>Homework</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/marks')} style={styles.navLink}>
-                        <span className="material-symbols-outlined">grade</span>
-                        <span>Marks</span>
-                    </a>
-                    <a onClick={() => navigate('/dashboard/reports')} style={styles.navLinkActive}>
-                        <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>assessment</span>
-                        <span>Reports</span>
-                    </a>
-                </nav>
-            </aside>
 
-            <div style={styles.main}>
-                <header style={styles.header} className="no-print">
-                    <h2 style={styles.headerTitle}>Institutional Reports</h2>
-                    <div 
-                        style={{display:'flex', alignItems:'center', gap:'16px', position: 'relative', cursor: 'pointer'}}
-                        onClick={() => setShowDropdown(!showDropdown)}
-                    >
-                        <div style={{textAlign:'right'}}>
-                            <p style={{fontSize:'13px', fontWeight:'600', color:'#111827', margin:0}}>School Principal</p>
-                            <p style={{fontSize:'10px', color:'#6B7280', margin:0, textTransform:'uppercase'}}>Principal Portal</p>
-                        </div>
-                        <div style={{width:'36px', height:'36px', backgroundColor:'#F3F4F6', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'#9CA3AF'}}>
-                            <span className="material-symbols-outlined">account_circle</span>
-                        </div>
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+                        <div className="w-12 h-12 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Aggregating Scholastic Data...</p>
+                    </div>
+                ) : data ? (
+                    <>
+                        {activeTab === 'attendance' && (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                    {[
+                                        { label: 'Total Enrolment', value: data.totalStudents, color: 'text-slate-900' },
+                                        { label: 'Institutional Avg', value: `${data.classAvg}%`, color: 'text-blue-600' },
+                                        { label: 'Critical Variance', value: data.below75Count, color: 'text-rose-600' }
+                                    ].map((stat, i) => (
+                                        <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                                            <p className={`text-3xl font-black ${stat.color}`}>{stat.value}</p>
+                                        </div>
+                                    ))}
+                                </div>
 
-                        {showDropdown && (
-                            <div style={{
-                                position: 'absolute',
-                                top: '48px',
-                                right: 0,
-                                backgroundColor: '#FFFFFF',
-                                border: '1px solid #E5E7EB',
-                                borderRadius: '8px',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                padding: '8px',
-                                zIndex: 100,
-                                minWidth: '140px'
-                            }}>
-                                <button
-                                    onClick={handleLogout}
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        textAlign: 'left',
-                                        background: 'none',
-                                        border: 'none',
-                                        color: '#DC2626',
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                        cursor: 'pointer',
-                                        borderRadius: '4px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px'
-                                    }}
-                                >
-                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
-                                    Logout
-                                </button>
+                                {/* Desktop Table */}
+                                <div className="hidden lg:block bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-50/50">
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Index</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Subject Identity</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Ratio</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Achievement</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Audit Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {data.breakdown.map(s => (
+                                                <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="px-6 py-4 text-xs font-bold text-slate-400">#{s.roll_number}</td>
+                                                    <td className="px-6 py-4 text-sm font-black text-slate-900">{s.full_name}</td>
+                                                    <td className="px-6 py-4 text-sm font-bold text-slate-600">{s.present} / {s.total}</td>
+                                                    <td className="px-6 py-4 text-sm font-black text-blue-600">{s.percentage}%</td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${s.percentage >= 75 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                            {s.status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Mobile Cards */}
+                                <div className="lg:hidden space-y-4">
+                                    {data.breakdown.map(s => (
+                                        <div key={s.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">#{s.roll_number}</p>
+                                                    <h3 className="text-base font-black text-slate-900">{s.full_name}</h3>
+                                                </div>
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${s.percentage >= 75 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                    {s.status}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center pt-2 border-t border-slate-50">
+                                                <div className="text-center">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ratio</p>
+                                                    <p className="text-sm font-bold text-slate-600">{s.present} / {s.total}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Achievement</p>
+                                                    <p className="text-sm font-black text-blue-600">{s.percentage}%</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
-                    </div>
-                </header>
 
-                <main style={styles.content}>
-                    <div className="no-print">
-                        <div style={{marginBottom:'32px'}}>
-                            <h1 style={{fontSize:'32px', fontWeight:'800', margin:0, letterSpacing:'-0.02em'}}>Scholastic Audit</h1>
-                            <p style={{fontSize:'14px', color:'#6B7280', margin:'4px 0 0 0'}}>Generate consolidated academic and financial transcripts.</p>
-                        </div>
+                        {activeTab === 'fee' && (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {[
+                                        { label: 'Gross Verified', value: `₹${data.totalCollected}`, color: 'text-emerald-600' },
+                                        { label: 'Network Pending', value: `₹${data.totalPending}`, color: 'text-blue-600' },
+                                        { label: 'Critical Arrears', value: `₹${data.totalOverdue}`, color: 'text-rose-600' },
+                                        { label: 'Liquidity Rate', value: `${data.collectionPercentage}%`, color: 'text-slate-900' }
+                                    ].map((stat, i) => (
+                                        <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                                            <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
+                                        </div>
+                                    ))}
+                                </div>
 
-                        <div style={styles.tabsWrapper}>
-                            <button onClick={() => { setActiveTab('attendance'); setData(null); }} style={styles.tab(activeTab === 'attendance')}>Attendance Audit</button>
-                            <button onClick={() => { setActiveTab('fee'); setData(null); }} style={styles.tab(activeTab === 'fee')}>Financial Audit</button>
-                            <button onClick={() => { setActiveTab('academic'); setData(null); }} style={styles.tab(activeTab === 'academic')}>Academic Analysis</button>
-                            <button onClick={() => { setActiveTab('report-card'); setData(null); }} style={styles.tab(activeTab === 'report-card')}>Student Record</button>
-                        </div>
+                                {/* Desktop Table */}
+                                <div className="hidden lg:block bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-50/50">
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Protocol Type</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Subject Name</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Deadline</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Valuation</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Settlement</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {data.records.map(f => (
+                                                <tr key={f.id} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <p className="text-sm font-black text-slate-900">{f.fee_type}</p>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{f.month} {f.year || '2026'}</p>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm font-bold text-slate-600">{f.student?.full_name}</td>
+                                                    <td className="px-6 py-4 text-sm font-bold text-slate-600">{new Date(f.due_date).toLocaleDateString()}</td>
+                                                    <td className="px-6 py-4 text-sm font-black text-slate-900">₹{f.amount}</td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${f.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                            {f.status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
 
-                        {activeTab !== 'report-card' && (
-                            <div style={styles.filtersRow}>
-                                {activeTab === 'attendance' && (
-                                    <>
-                                        <div style={styles.filterItem}>
-                                            <label style={styles.filterLabel}>Class</label>
-                                            <select style={styles.select} value={attFilters.class} onChange={(e)=>setAttFilters({...attFilters, class: e.target.value})}>
-                                                {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-                                            </select>
+                                {/* Mobile Cards */}
+                                <div className="lg:hidden space-y-4">
+                                    {data.records.map(f => (
+                                        <div key={f.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="text-base font-black text-slate-900">{f.fee_type}</h3>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{f.student?.full_name}</p>
+                                                </div>
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${f.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                    {f.status}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center pt-2 border-t border-slate-50">
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Deadline</p>
+                                                    <p className="text-sm font-bold text-slate-600">{new Date(f.due_date).toLocaleDateString()}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valuation</p>
+                                                    <p className="text-sm font-black text-slate-900">₹{f.amount}</p>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div style={styles.filterItem}>
-                                            <label style={styles.filterLabel}>Section</label>
-                                            <select style={styles.select} value={attFilters.section} onChange={(e)=>setAttFilters({...attFilters, section: e.target.value})}>
-                                                {SCHOOL_SECTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                                            </select>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'academic' && (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {[
+                                        { label: 'Scholastic Avg', value: `${data.classAvg}%`, color: 'text-slate-900' },
+                                        { label: 'Peak Performance', value: `${data.highest}%`, color: 'text-emerald-600' },
+                                        { label: 'Protocol Pass', value: data.passCount, color: 'text-blue-600' },
+                                        { label: 'Revision Required', value: data.failCount, color: 'text-rose-600' }
+                                    ].map((stat, i) => (
+                                        <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                                            <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
                                         </div>
-                                        <div style={styles.filterItem}>
-                                            <label style={styles.filterLabel}>Month</label>
-                                            <select style={styles.select} value={attFilters.month} onChange={(e)=>setAttFilters({...attFilters, month: e.target.value})}>
-                                                {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                                            </select>
+                                    ))}
+                                </div>
+
+                                {/* Desktop Table */}
+                                <div className="hidden lg:block bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-50/50">
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Identity</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Discipline</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Matrix Score</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Scholastic Grade</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {data.records.map(r => (
+                                                <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="px-6 py-4 text-sm font-black text-slate-900">{r.student?.full_name}</td>
+                                                    <td className="px-6 py-4 text-sm font-bold text-slate-600">{r.subject}</td>
+                                                    <td className="px-6 py-4">
+                                                        <p className="text-sm font-black text-slate-900">{r.marks_obtained} / {r.total_marks}</p>
+                                                        <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{r.percentage}% Achievement</p>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <span className={`inline-flex w-8 h-8 items-center justify-center rounded-full text-xs font-black ${r.grade === 'F' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-900'}`}>
+                                                            {r.grade}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Mobile Cards */}
+                                <div className="lg:hidden space-y-4">
+                                    {data.records.map(r => (
+                                        <div key={r.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="text-base font-black text-slate-900">{r.student?.full_name}</h3>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{r.subject}</p>
+                                                </div>
+                                                <span className={`w-8 h-8 inline-flex items-center justify-center rounded-full text-xs font-black ${r.grade === 'F' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-900'}`}>
+                                                    {r.grade}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-end pt-2 border-t border-slate-50">
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Score Ratio</p>
+                                                    <p className="text-sm font-black text-slate-900">{r.marks_obtained} / {r.total_marks}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Achievement</p>
+                                                    <p className="text-sm font-black text-blue-600">{r.percentage}%</p>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </>
-                                )}
-                                {activeTab === 'fee' && (
-                                    <>
-                                        <div style={styles.filterItem}>
-                                            <label style={styles.filterLabel}>Month</label>
-                                            <select style={styles.select} value={feeFilters.month} onChange={(e)=>setFeeFilters({...feeFilters, month: e.target.value})}>
-                                                {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                                            </select>
-                                        </div>
-                                        <div style={styles.filterItem}>
-                                            <label style={styles.filterLabel}>Year</label>
-                                            <select style={styles.select} value={feeFilters.year} onChange={(e)=>setFeeFilters({...feeFilters, year: e.target.value})}>
-                                                <option value="2026">2026</option>
-                                                <option value="2025">2025</option>
-                                            </select>
-                                        </div>
-                                    </>
-                                )}
-                                {activeTab === 'academic' && (
-                                    <>
-                                        <div style={styles.filterItem}>
-                                            <label style={styles.filterLabel}>Class</label>
-                                            <select style={styles.select} value={academicFilters.class} onChange={(e)=>setAcademicFilters({...academicFilters, class: e.target.value})}>
-                                                {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-                                            </select>
-                                        </div>
-                                        <div style={styles.filterItem}>
-                                            <label style={styles.filterLabel}>Exam Type</label>
-                                            <select style={styles.select} value={academicFilters.exam_type} onChange={(e)=>setAcademicFilters({...academicFilters, exam_type: e.target.value})}>
-                                                {['Unit Test', 'Mid Term', 'Final Exam', 'Assignment'].map(t => <option key={t} value={t}>{t}</option>)}
-                                            </select>
-                                        </div>
-                                    </>
-                                )}
-                                <div style={{...styles.filterItem, flex:'none'}}>
-                                    <button 
-                                        onClick={activeTab === 'attendance' ? fetchAttendanceReport : activeTab === 'fee' ? fetchFeeReport : fetchAcademicReport}
-                                        style={{...styles.select, backgroundColor:'#2563EB', color:'#FFFFFF', border:'none', width:'140px', fontWeight:'700'}}
-                                    >Generate</button>
+                                    ))}
                                 </div>
                             </div>
                         )}
 
                         {activeTab === 'report-card' && (
-                            <div style={{...styles.filtersRow, maxWidth:'400px', margin:'0 auto 40px auto'}}>
-                                <div style={styles.filterItem}>
-                                    <label style={styles.filterLabel}>Select Student</label>
-                                    <select style={styles.select} value={selectedStudent} onChange={(e)=>setSelectedStudent(e.target.value)}>
-                                        <option value="">Choose student profile...</option>
-                                        {allStudents.map(s => <option key={s.id} value={s.id}>{s.full_name} ({s.roll_number})</option>)}
-                                    </select>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {loading ? (
-                        <div style={{textAlign:'center', padding:'64px'}}>
-                            <div className="spinner" style={{width:'32px', height:'32px', border:'4px solid #F3F4F6', borderTop:'4px solid #2563EB', borderRadius:'50%', animation:'spin 1s linear infinite', margin:'0 auto 16px auto'}}></div>
-                            <p style={{fontSize:'12px', fontWeight:'800', color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.1em'}}>Aggregating Scholastic Data...</p>
-                        </div>
-                    ) : data ? (
-                        <>
-                            {activeTab === 'attendance' && (
-                                <>
-                                    <div style={styles.statsGrid}>
-                                        <div style={styles.statsCard}>
-                                            <span style={styles.statsLabel}>Total Students</span>
-                                            <h3 style={styles.statsValue}>{data.totalStudents}</h3>
-                                        </div>
-                                        <div style={styles.statsCard}>
-                                            <span style={styles.statsLabel}>Class Average</span>
-                                            <h3 style={{...styles.statsValue, color:'#2563EB'}}>{data.classAvg}%</h3>
-                                        </div>
-                                        <div style={styles.statsCard}>
-                                            <span style={styles.statsLabel}>Critical (&lt;75%)</span>
-                                            <h3 style={{...styles.statsValue, color:'#EF4444'}}>{data.below75Count}</h3>
-                                        </div>
-                                    </div>
-                                    <div style={styles.tableCard}>
-                                        <table style={{width:'100%', borderCollapse:'collapse'}}>
-                                            <thead>
-                                                <tr>
-                                                    <th style={styles.th}>Roll No</th>
-                                                    <th style={styles.th}>Student Name</th>
-                                                    <th style={styles.th}>Present/Total</th>
-                                                    <th style={styles.th}>Percentage</th>
-                                                    <th style={styles.th}>Status Badge</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {data.breakdown.map(s => (
-                                                    <tr key={s.id}>
-                                                        <td style={styles.td}>{s.roll_number}</td>
-                                                        <td style={{...styles.td, fontWeight:'700'}}>{s.full_name}</td>
-                                                        <td style={styles.td}>{s.present} / {s.total}</td>
-                                                        <td style={{...styles.td, fontWeight:'800'}}>{s.percentage}%</td>
-                                                        <td style={styles.td}>
-                                                            <span style={styles.gradeBadge(s.percentage >= 75 ? '#16A34A' : '#DC2626', s.percentage >= 75 ? '#DCFCE7' : '#FEE2E2')}>
-                                                                {s.status}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </>
-                            )}
-
-                            {activeTab === 'fee' && (
-                                <>
-                                    <div style={styles.statsGrid}>
-                                        <div style={styles.statsCard}>
-                                            <span style={styles.statsLabel}>Gross Collected</span>
-                                            <h3 style={{...styles.statsValue, color:'#16A34A'}}>₹{data.totalCollected}</h3>
-                                        </div>
-                                        <div style={styles.statsCard}>
-                                            <span style={styles.statsLabel}>Net Pending</span>
-                                            <h3 style={{...styles.statsValue, color:'#2563EB'}}>₹{data.totalPending}</h3>
-                                        </div>
-                                        <div style={styles.statsCard}>
-                                            <span style={styles.statsLabel}>Critical Overdue</span>
-                                            <h3 style={{...styles.statsValue, color:'#EF4444'}}>₹{data.totalOverdue}</h3>
-                                        </div>
-                                        <div style={styles.statsCard}>
-                                            <span style={styles.statsLabel}>Collection Rate</span>
-                                            <h3 style={styles.statsValue}>{data.collectionPercentage}%</h3>
-                                        </div>
-                                    </div>
-                                    <div style={styles.tableCard}>
-                                        <table style={{width:'100%', borderCollapse:'collapse'}}>
-                                            <thead>
-                                                <tr>
-                                                    <th style={styles.th}>Financial Record</th>
-                                                    <th style={styles.th}>Student Name</th>
-                                                    <th style={styles.th}>Due Date</th>
-                                                    <th style={styles.th}>Amount</th>
-                                                    <th style={styles.th}>Settlement</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {data.records.map(f => (
-                                                    <tr key={f.id}>
-                                                        <td style={styles.td}>
-                                                            <div style={{fontWeight:'700'}}>{f.fee_type}</div>
-                                                            <div style={{fontSize:'10px', color:'#9CA3AF'}}>{f.month} {f.year || '2026'}</div>
-                                                        </td>
-                                                        <td style={styles.td}>{f.student?.full_name}</td>
-                                                        <td style={styles.td}>{new Date(f.due_date).toLocaleDateString()}</td>
-                                                        <td style={{...styles.td, fontWeight:'800'}}>₹{f.amount}</td>
-                                                        <td style={styles.td}>
-                                                            <span style={styles.gradeBadge(f.status === 'paid' ? '#16A34A' : '#DC2626', f.status === 'paid' ? '#DCFCE7' : '#FEE2E2')}>
-                                                                {f.status}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </>
-                            )}
-
-                            {activeTab === 'academic' && (
-                                <>
-                                    <div style={styles.statsGrid}>
-                                        <div style={styles.statsCard}>
-                                            <span style={styles.statsLabel}>Class Avg %</span>
-                                            <h3 style={styles.statsValue}>{data.classAvg}%</h3>
-                                        </div>
-                                        <div style={styles.statsCard}>
-                                            <span style={styles.statsLabel}>Highest Score</span>
-                                            <h3 style={{...styles.statsValue, color:'#16A34A'}}>{data.highest}%</h3>
-                                        </div>
-                                        <div style={styles.statsCard}>
-                                            <span style={styles.statsLabel}>Passed Count</span>
-                                            <h3 style={{...styles.statsValue, color:'#2563EB'}}>{data.passCount}</h3>
-                                        </div>
-                                        <div style={styles.statsCard}>
-                                            <span style={styles.statsLabel}>Correction Needed</span>
-                                            <h3 style={{...styles.statsValue, color:'#EF4444'}}>{data.failCount}</h3>
-                                        </div>
-                                    </div>
-                                    <div style={styles.tableCard}>
-                                        <table style={{width:'100%', borderCollapse:'collapse'}}>
-                                            <thead>
-                                                <tr>
-                                                    <th style={styles.th}>Student Name</th>
-                                                    <th style={styles.th}>Subject Area</th>
-                                                    <th style={styles.th}>Audit Score</th>
-                                                    <th style={styles.th}>Scholastic Grade</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {data.records.map(r => (
-                                                    <tr key={r.id}>
-                                                        <td style={{...styles.td, fontWeight:'700'}}>{r.student?.full_name}</td>
-                                                        <td style={styles.td}>{r.subject}</td>
-                                                        <td style={styles.td}>
-                                                            <div style={{fontWeight:'800'}}>{r.marks_obtained} / {r.total_marks}</div>
-                                                            <div style={{fontSize:'10px', color:'#2563EB'}}>{r.percentage}% Achievement</div>
-                                                        </td>
-                                                        <td style={styles.td}>
-                                                            <span style={styles.gradeBadge(r.grade === 'F' ? '#DC2626' : '#111827', r.grade === 'F' ? '#FEE2E2' : '#F3F4F6')}>
-                                                                {r.grade}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </>
-                            )}
-
-                            {activeTab === 'report-card' && (
-                                <div style={{background:'#F3F4F6', padding:'48px 0', borderRadius:'24px'}}>
-                                    <div style={styles.reportCard}>
-                                        <div style={styles.reportHeader}>
-                                            <span style={styles.reportSubtitle}>Official Scholastic Transcript</span>
-                                            <h1 style={styles.schoolName}>DAV Centenary Public School</h1>
-                                            <p style={{fontSize:'10px', fontWeight:'800', color:'#9CA3AF', textTransform:'uppercase', margin:0, letterSpacing:'0.1em'}}>Academic Session 2023 - 2024</p>
+                            <div className="space-y-10">
+                                <div className="bg-white max-w-3xl mx-auto p-10 md:p-16 rounded-[48px] border-4 border-slate-100 shadow-2xl relative overflow-hidden print:border-0 print:shadow-none print:p-0">
+                                    {/* Watermark/Accent */}
+                                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl"></div>
+                                    
+                                    <div className="relative space-y-12">
+                                        <div className="text-center space-y-2">
+                                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] mb-4">Official Institutional Transcript</p>
+                                            <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter">DAV CENTENARY PUBLIC SCHOOL</h2>
+                                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Academic Year Cluster: 2023 - 2024</p>
                                         </div>
 
-                                        <div style={styles.studentMetaGrid}>
-                                            <div style={styles.metaItem}>
-                                                <span style={styles.metaLabel}>Student Designation</span>
-                                                <span style={styles.metaValue}>{data.student.full_name}</span>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 py-8 border-y-2 border-slate-100">
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subject Identity</p>
+                                                <p className="text-lg font-black text-slate-900">{data.student.full_name}</p>
                                             </div>
-                                            <div style={styles.metaItem}>
-                                                <span style={styles.metaLabel}>Institutional Roll No</span>
-                                                <span style={styles.metaValue}>{data.student.roll_number}</span>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Protocol Roll</p>
+                                                <p className="text-lg font-black text-slate-900">{data.student.roll_number}</p>
                                             </div>
-                                            <div style={styles.metaItem}>
-                                                <span style={styles.metaLabel}>Class & Subsection</span>
-                                                <span style={styles.metaValue}>{data.student.class} - {data.student.section}</span>
+                                            <div className="space-y-1 col-span-2 md:col-span-1">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Categorization</p>
+                                                <p className="text-lg font-black text-slate-900">{data.student.class} — {data.student.section}</p>
                                             </div>
                                         </div>
 
-                                        <div style={{marginBottom:'40px'}}>
-                                            <h4 style={{fontSize:'11px', fontWeight:'800', color:'#111827', textTransform:'uppercase', marginBottom:'16px'}}>I. Academic Achievement Matrix</h4>
-                                            <table style={{width:'100%', borderCollapse:'collapse', border:'2px solid #F3F4F6', borderRadius:'8px', overflow:'hidden'}}>
-                                                <thead>
-                                                    <tr style={{backgroundColor:'#F9FAFB'}}>
-                                                        <th style={{...styles.td, fontSize:'10px', fontWeight:'800'}}>Subject Body</th>
-                                                        <th style={{...styles.td, fontSize:'10px', fontWeight:'800', textAlign:'center'}}>Max Score</th>
-                                                        <th style={{...styles.td, fontSize:'10px', fontWeight:'800', textAlign:'center'}}>Achieved</th>
-                                                        <th style={{...styles.td, fontSize:'10px', fontWeight:'800', textAlign:'center'}}>Grade</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {data.marks.map(m => (
-                                                        <tr key={m.id}>
-                                                            <td style={{...styles.td, fontSize:'12px', fontWeight:'700'}}>{m.subject}</td>
-                                                            <td style={{...styles.td, fontSize:'12px', textAlign:'center'}}>{m.total_marks}</td>
-                                                            <td style={{...styles.td, fontSize:'12px', textAlign:'center', fontWeight:'800'}}>{m.marks_obtained}</td>
-                                                            <td style={{...styles.td, textAlign:'center'}}>
-                                                                <span style={{fontWeight:'900', color: m.grade === 'F' ? '#EF4444' : '#111827'}}>{m.grade}</span>
-                                                            </td>
+                                        <div className="space-y-6">
+                                            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
+                                                <div className="w-8 h-0.5 bg-blue-600"></div>
+                                                Scholastic Achievement Matrix
+                                            </h3>
+                                            <div className="overflow-hidden rounded-3xl border-2 border-slate-100">
+                                                <table className="w-full text-left border-collapse">
+                                                    <thead>
+                                                        <tr className="bg-slate-50">
+                                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Discipline</th>
+                                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Max</th>
+                                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Achieved</th>
+                                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Grade</th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                                <tfoot>
-                                                    <tr style={{backgroundColor:'#F9FAFB', borderTop:'2px solid #F3F4F6'}}>
-                                                        <td style={{...styles.td, fontWeight:'800'}} colSpan="2">Aggregate Scholastic Score</td>
-                                                        <td style={{...styles.td, textAlign:'center', fontWeight:'900', fontSize:'16px'}} colSpan="2">{data.attendanceSummary.percentage}% Overall</td>
-                                                    </tr>
-                                                </tfoot>
-                                            </table>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100">
+                                                        {data.marks.map(m => (
+                                                            <tr key={m.id}>
+                                                                <td className="px-6 py-4 text-sm font-black text-slate-900">{m.subject}</td>
+                                                                <td className="px-6 py-4 text-sm font-bold text-slate-400 text-center">{m.total_marks}</td>
+                                                                <td className="px-6 py-4 text-sm font-black text-slate-900 text-center">{m.marks_obtained}</td>
+                                                                <td className="px-6 py-4 text-right">
+                                                                    <span className={`text-sm font-black ${m.grade === 'F' ? 'text-rose-600' : 'text-slate-900'}`}>{m.grade}</span>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                    <tfoot>
+                                                        <tr className="bg-slate-900 text-white">
+                                                            <td className="px-6 py-6 text-sm font-black uppercase tracking-widest" colSpan="2">Aggregate Scholastic Score</td>
+                                                            <td className="px-6 py-6 text-3xl font-black text-right" colSpan="2">{data.attendanceSummary.percentage}%</td>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            </div>
                                         </div>
 
-                                        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'80px', marginTop:'64px'}}>
-                                            <div style={{textAlign:'center'}}>
-                                                <div style={{height:'1px', backgroundColor:'#E5E7EB', marginBottom:'12px'}}></div>
-                                                <p style={styles.metaLabel}>Signature of Principal</p>
-                                                <p style={{fontSize:'9px', color:'#9CA3AF'}}>Dr. Julian Vance</p>
+                                        <div className="grid grid-cols-2 gap-20 pt-10">
+                                            <div className="border-t-2 border-slate-200 pt-4 text-center">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Institutional Principal</p>
+                                                <p className="text-[9px] text-slate-300 mt-1 italic tracking-widest">Digitally Verified Architecture</p>
                                             </div>
-                                            <div style={{textAlign:'center'}}>
-                                                <div style={{height:'1px', backgroundColor:'#E5E7EB', marginBottom:'12px'}}></div>
-                                                <p style={styles.metaLabel}>Signature of Parent</p>
-                                                <p style={{fontSize:'9px', color:'#9CA3AF'}}>Date: _________________</p>
+                                            <div className="border-t-2 border-slate-200 pt-4 text-center">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Parental Acknowledgement</p>
+                                                <p className="text-[9px] text-slate-300 mt-1">Status: Electronic Handshake Req.</p>
                                             </div>
                                         </div>
-
-                                        <p style={{textAlign:'center', fontSize:'8px', color:'#9CA3AF', marginTop:'48px'}}>This is a verified institutional record generated via EduSync Academic Architecture. Valid without seal if digital signature is present.</p>
                                     </div>
+                                </div>
 
-                                    <button onClick={handlePrint} style={styles.printBtn} className="no-print">
-                                        <span className="material-symbols-outlined">print</span>
+                                <div className="flex justify-center">
+                                    <button onClick={handlePrint} className="no-print h-16 px-10 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-2xl hover:bg-slate-800 transition-all flex items-center gap-3">
+                                        <Printer size={20} />
                                         Print Official Transcript
                                     </button>
                                 </div>
-                            )}
-                        </>
-                    ) : (
-                        <div style={{height:'300px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', color:'#9CA3AF'}} className="no-print">
-                            <span className="material-symbols-outlined" style={{fontSize:'64px', marginBottom:'16px', opacity:0.2}}>summarize</span>
-                            <p style={{fontSize:'12px', fontWeight:'700', textTransform:'uppercase', letterSpacing:'0.1em'}}>Configure filters to generate institutional audit</p>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-32 text-center space-y-6">
+                        <div className="w-24 h-24 bg-slate-50 rounded-[40px] flex items-center justify-center text-slate-200">
+                            <FileText size={48} strokeWidth={1} />
                         </div>
-                    )}
-                </main>
+                        <div className="space-y-2">
+                            <h3 className="text-xl font-black text-slate-900 tracking-tight">System Ready for Audit</h3>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Apply filters above to generate scholastic data</p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <style>{`
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
                 @media print {
                     .no-print { display: none !important; }
                     body { background: white !important; margin: 0; padding: 0; }
                     main { margin: 0 !important; padding: 0 !important; width: 100% !important; }
-                    #root { background: white !important; }
+                    .Layout-main { margin-left: 0 !important; padding: 0 !important; }
+                    .Layout-sidebar { display: none !important; }
+                    .Layout-header { display: none !important; }
                 }
             `}</style>
-        </div>
+        </Layout>
     );
 };
 
 export default Reports;
-

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown, Save, User, Phone, Mail, Calendar, MapPin, Hash, GraduationCap } from 'lucide-react';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 
 const API_URL = 'https://edusync.up.railway.app/api/students';
@@ -72,128 +72,42 @@ const StudentForm = ({ isOpen, onClose, onSuccess, initialData }) => {
 
     if (!isOpen) return null;
 
-    // Inline Styles based on Stitch AI Design
-    const styles = {
-        overlay: {
-            position: 'fixed',
-            inset: 0,
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            backdropFilter: 'blur(4px)',
-            fontFamily: "'Inter', sans-serif"
-        },
-        card: {
-            width: '600px',
-            backgroundColor: '#FFFFFF',
-            borderRadius: '12px',
-            boxShadow: '0px 12px 32px rgba(17, 24, 39, 0.15)',
-            overflow: 'hidden'
-        },
-        header: {
-            padding: '16px 20px',
-            display: 'flex',
-            justifyContent: 'between',
-            alignItems: 'center',
-            borderBottom: '1px solid #F1F5F9'
-        },
-        title: {
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#0F172A',
-            margin: 0
-        },
-        label: {
-            display: 'block',
-            fontSize: '12px',
-            fontWeight: '500',
-            color: '#64748B',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '6px'
-        },
-        input: {
-            width: '100%',
-            height: '40px',
-            padding: '0 12px',
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #E5E7EB',
-            borderRadius: '12px',
-            fontSize: '14px',
-            color: '#1E293B',
-            outline: 'none',
-            boxSizing: 'border-box',
-            transition: 'all 0.2s'
-        },
-        select: {
-            appearance: 'none',
-            backgroundImage: 'none'
-        },
-        footer: {
-            padding: '24px 20px',
-            backgroundColor: 'rgba(248, 250, 252, 0.5)',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '12px',
-            borderTop: '1px solid #F1F5F9'
-        },
-        btnCancel: {
-            height: '36px',
-            padding: '0 24px',
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #2563EB',
-            color: '#2563EB',
-            borderRadius: '12px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-        },
-        btnSave: {
-            height: '36px',
-            padding: '0 24px',
-            backgroundColor: '#2563EB',
-            color: '#FFFFFF',
-            border: 'none',
-            borderRadius: '12px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.1)',
-            transition: 'background-color 0.2s'
-        }
-    };
-
     return (
-        <div style={styles.overlay}>
-            <div style={styles.card} className="animate-in fade-in zoom-in duration-200">
-                {/* Modal Header */}
-                <div style={styles.header}>
-                    <h2 style={styles.title}>{initialData ? 'Edit Student' : 'Add New Student'}</h2>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+            <div className="w-full h-full sm:h-auto sm:max-w-2xl bg-white sm:rounded-[32px] shadow-2xl shadow-slate-900/20 overflow-hidden animate-in fade-in zoom-in duration-200">
+                {/* Header */}
+                <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                    <div>
+                        <h2 className="text-xl font-black text-slate-900 leading-tight">
+                            {initialData ? 'Academic Record Update' : 'New Enrollment'}
+                        </h2>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Student Profile Matrix</p>
+                    </div>
                     <button 
                         onClick={onClose}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '8px' }}
+                        className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
-                {/* Modal Content */}
-                <form onSubmit={handleSubmit} style={{ padding: '20px' }}>
+                {/* Form Body */}
+                <form onSubmit={handleSubmit} className="p-6 md:p-8">
                     {error && (
-                        <div style={{ padding: '12px', backgroundColor: '#FEF2F2', color: '#B91C1C', borderRadius: '12px', fontSize: '12px', marginBottom: '16px', border: '1px solid #FEE2E2' }}>
+                        <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-xs font-bold text-center">
                             {error}
                         </div>
                     )}
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 24px' }}>
-                        {/* Row 1 */}
-                        <div>
-                            <label style={styles.label}>Full Name</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Full Name */}
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <User size={12} className="text-blue-500" />
+                                Full Identity
+                            </label>
                             <input 
-                                style={styles.input}
+                                className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none transition-all"
                                 name="full_name"
                                 value={formData.full_name}
                                 onChange={handleChange}
@@ -201,10 +115,15 @@ const StudentForm = ({ isOpen, onClose, onSuccess, initialData }) => {
                                 required
                             />
                         </div>
-                        <div>
-                            <label style={styles.label}>Roll Number</label>
+
+                        {/* Roll Number */}
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <Hash size={12} className="text-blue-500" />
+                                Roll Sequence
+                            </label>
                             <input 
-                                style={styles.input}
+                                className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none transition-all"
                                 name="roll_number"
                                 value={formData.roll_number}
                                 onChange={handleChange}
@@ -213,41 +132,56 @@ const StudentForm = ({ isOpen, onClose, onSuccess, initialData }) => {
                             />
                         </div>
 
-                        {/* Row 2 */}
-                        <div style={{ position: 'relative' }}>
-                            <label style={styles.label}>Class</label>
-                            <select 
-                                style={{ ...styles.input, ...styles.select }}
-                                name="class"
-                                value={formData.class}
-                                onChange={handleChange}
-                                required
-                            >
-                                <option value="">Select Grade</option>
-                                {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                            <ChevronDown size={18} style={{ position: 'absolute', right: '12px', top: '34px', color: '#94A3B8', pointerEvents: 'none' }} />
-                        </div>
-                        <div style={{ position: 'relative' }}>
-                            <label style={styles.label}>Section</label>
-                            <select 
-                                style={{ ...styles.input, ...styles.select }}
-                                name="section"
-                                value={formData.section}
-                                onChange={handleChange}
-                                required
-                            >
-                                <option value="">Select Section</option>
-                                {SCHOOL_SECTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                            <ChevronDown size={18} style={{ position: 'absolute', right: '12px', top: '34px', color: '#94A3B8', pointerEvents: 'none' }} />
+                        {/* Class */}
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <GraduationCap size={12} className="text-blue-500" />
+                                Academic Grade
+                            </label>
+                            <div className="relative">
+                                <select 
+                                    className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none appearance-none cursor-pointer transition-all"
+                                    name="class"
+                                    value={formData.class}
+                                    onChange={handleChange}
+                                    required
+                                >
+                                    <option value="">Select Grade</option>
+                                    {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            </div>
                         </div>
 
-                        {/* Row 3 */}
-                        <div>
-                            <label style={styles.label}>Parent Email</label>
+                        {/* Section */}
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <Hash size={12} className="text-blue-500" />
+                                Sub-Section
+                            </label>
+                            <div className="relative">
+                                <select 
+                                    className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none appearance-none cursor-pointer transition-all"
+                                    name="section"
+                                    value={formData.section}
+                                    onChange={handleChange}
+                                    required
+                                >
+                                    <option value="">Select Section</option>
+                                    {SCHOOL_SECTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            </div>
+                        </div>
+
+                        {/* Parent Email */}
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <Mail size={12} className="text-blue-500" />
+                                Guardian Email
+                            </label>
                             <input 
-                                style={styles.input}
+                                className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none transition-all"
                                 name="parent_email"
                                 value={formData.parent_email}
                                 onChange={handleChange}
@@ -255,10 +189,15 @@ const StudentForm = ({ isOpen, onClose, onSuccess, initialData }) => {
                                 type="email"
                             />
                         </div>
-                        <div>
-                            <label style={styles.label}>Parent Phone</label>
+
+                        {/* Parent Phone */}
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <Phone size={12} className="text-blue-500" />
+                                Guardian Contact
+                            </label>
                             <input 
-                                style={styles.input}
+                                className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none transition-all"
                                 name="parent_phone"
                                 value={formData.parent_phone}
                                 onChange={handleChange}
@@ -266,26 +205,36 @@ const StudentForm = ({ isOpen, onClose, onSuccess, initialData }) => {
                             />
                         </div>
 
-                        {/* Row 4 */}
-                        <div style={{ position: 'relative' }}>
-                            <label style={styles.label}>Gender</label>
-                            <select 
-                                style={{ ...styles.input, ...styles.select }}
-                                name="gender"
-                                value={formData.gender}
-                                onChange={handleChange}
-                            >
-                                <option value="">Select Gender</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
-                            </select>
-                            <ChevronDown size={18} style={{ position: 'absolute', right: '12px', top: '34px', color: '#94A3B8', pointerEvents: 'none' }} />
+                        {/* Gender */}
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <User size={12} className="text-blue-500" />
+                                Gender
+                            </label>
+                            <div className="relative">
+                                <select 
+                                    className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none appearance-none cursor-pointer transition-all"
+                                    name="gender"
+                                    value={formData.gender}
+                                    onChange={handleChange}
+                                >
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            </div>
                         </div>
-                        <div>
-                            <label style={styles.label}>Date of Birth</label>
+
+                        {/* DOB */}
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <Calendar size={12} className="text-blue-500" />
+                                Date of Birth
+                            </label>
                             <input 
-                                style={styles.input}
+                                className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none transition-all"
                                 name="date_of_birth"
                                 value={formData.date_of_birth}
                                 onChange={handleChange}
@@ -293,11 +242,14 @@ const StudentForm = ({ isOpen, onClose, onSuccess, initialData }) => {
                             />
                         </div>
 
-                        {/* Row 5 Full Width */}
-                        <div style={{ gridColumn: 'span 2' }}>
-                            <label style={styles.label}>Address</label>
+                        {/* Address - Full width */}
+                        <div className="space-y-2 md:col-span-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <MapPin size={12} className="text-blue-500" />
+                                Residential Node
+                            </label>
                             <input 
-                                style={styles.input}
+                                className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none transition-all"
                                 name="address"
                                 value={formData.address}
                                 onChange={handleChange}
@@ -305,11 +257,14 @@ const StudentForm = ({ isOpen, onClose, onSuccess, initialData }) => {
                             />
                         </div>
 
-                        {/* Row 6 */}
-                        <div>
-                            <label style={styles.label}>Admission Date</label>
+                        {/* Admission Date */}
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <Calendar size={12} className="text-blue-500" />
+                                Enrollment Date
+                            </label>
                             <input 
-                                style={styles.input}
+                                className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none transition-all"
                                 name="admission_date"
                                 value={formData.admission_date}
                                 onChange={handleChange}
@@ -318,25 +273,28 @@ const StudentForm = ({ isOpen, onClose, onSuccess, initialData }) => {
                         </div>
                     </div>
 
-                    {/* Modal Footer */}
-                    <div style={styles.footer}>
+                    {/* Footer Buttons */}
+                    <div className="mt-10 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-end gap-3">
                         <button 
                             type="button"
                             onClick={onClose}
-                            style={styles.btnCancel}
+                            className="w-full sm:w-auto h-12 px-8 bg-white border-2 border-blue-600 text-blue-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-50 transition-colors order-2 sm:order-1"
                         >
                             Cancel
                         </button>
                         <button 
                             type="submit"
-                            style={{ 
-                                ...styles.btnSave, 
-                                opacity: loading ? 0.7 : 1, 
-                                cursor: loading ? 'not-allowed' : 'pointer' 
-                            }}
+                            className={`w-full sm:w-auto h-12 px-8 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2 order-1 sm:order-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                             disabled={loading}
                         >
-                            {loading ? 'Saving...' : 'Save Student'}
+                            {loading ? (
+                                'Synchronizing...'
+                            ) : (
+                                <>
+                                    Commit Changes
+                                    <Save size={16} />
+                                </>
+                            )}
                         </button>
                     </div>
                 </form>

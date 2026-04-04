@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { LogIn, Key, Mail, ChevronDown, ShieldCheck, GraduationCap, Users } from 'lucide-react';
+import { ChevronDown, ShieldCheck, GraduationCap, Users, LogIn } from 'lucide-react';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -24,7 +24,6 @@ const Login = () => {
 
             if (authError) throw authError;
 
-            // Fetch user role from profiles table
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('role')
@@ -33,7 +32,6 @@ const Login = () => {
 
             if (profileError) {
                 console.error('Error fetching profile:', profileError);
-                // Fallback redirection based on selected role
                 const selectedRole = role.toLowerCase();
                 navigate(`/dashboard/${selectedRole}`);
                 return;
@@ -46,7 +44,6 @@ const Login = () => {
                 throw new Error(`Unauthorized: You are registered as a ${dbRole}, not a ${selectedRole}.`);
             }
 
-            // Route based on role
             if (dbRole === 'principal') navigate('/dashboard/principal');
             else if (dbRole === 'teacher') navigate('/dashboard/teacher');
             else if (dbRole === 'parent') navigate('/dashboard/parent');
@@ -59,181 +56,32 @@ const Login = () => {
         }
     };
 
-    // Premium Inline Styles (Academic Atelier System)
-    const styles = {
-        shell: {
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px',
-            backgroundColor: '#F9FAFB',
-            fontFamily: "'Inter', sans-serif",
-            position: 'relative',
-            overflow: 'hidden'
-        },
-        main: {
-            width: '100%',
-            display: 'flex',
-            justifyContent: 'center',
-            position: 'relative',
-            zIndex: 10
-        },
-        canvas: {
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            width: '100%'
-        },
-        branding: {
-            textAlign: 'center',
-            marginBottom: '32px'
-        },
-        title: {
-            fontFamily: "'Manrope', sans-serif",
-            fontSize: '32px',
-            fontWeight: '800',
-            color: '#2563EB',
-            letterSpacing: '-0.025em',
-            lineHeight: '1',
-            margin: '0 0 8px 0'
-        },
-        subtitle: {
-            fontSize: '14px',
-            color: '#6B7280',
-            fontWeight: '500',
-            letterSpacing: '0.025em',
-            margin: 0
-        },
-        card: {
-            width: '400px',
-            backgroundColor: '#FFFFFF',
-            borderRadius: '12px',
-            border: '1px solid #E5E7EB',
-            padding: '40px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 15px -3px rgba(0, 0, 0, 0.04)',
-            boxSizing: 'border-box'
-        },
-        formGroup: {
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px'
-        },
-        inputBox: {
-            display: 'flex',
-            flexDirection: 'column'
-        },
-        label: {
-            fontSize: '14px',
-            fontWeight: '500',
-            color: '#374151',
-            marginBottom: '6px'
-        },
-        input: {
-            width: '100%',
-            height: '44px',
-            border: '1px solid #E5E7EB',
-            borderRadius: '8px',
-            padding: '0 12px',
-            fontSize: '14px',
-            outline: 'none',
-            backgroundColor: '#FFFFFF',
-            transition: 'border-color 0.2s',
-            boxSizing: 'border-box'
-        },
-        select: {
-            appearance: 'none',
-            cursor: 'pointer'
-        },
-        selectIcon: {
-            position: 'absolute',
-            right: '12px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            color: '#94A3B8',
-            pointerEvents: 'none'
-        },
-        submitBtn: {
-            width: '100%',
-            height: '44px',
-            backgroundColor: '#2563EB',
-            color: '#FFFFFF',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '15px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            marginTop: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-        },
-        errorAlert: {
-            marginTop: '16px',
-            padding: '12px',
-            backgroundColor: '#FEF2F2',
-            color: '#B91C1C',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontWeight: '500',
-            border: '1px solid #FEE2E2',
-            textAlign: 'center'
-        },
-        forgotLink: {
-            fontSize: '13px',
-            color: '#6B7280',
-            textDecoration: 'none',
-            transition: 'color 0.2s'
-        },
-        footer: {
-            marginTop: '32px',
-            textAlign: 'center'
-        },
-        footerText: {
-            fontSize: '11px',
-            color: '#94A3B8',
-            fontWeight: '600',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em'
-        },
-        bgGradient: (pos) => ({
-            position: 'absolute',
-            width: '40%',
-            height: '40%',
-            backgroundColor: pos === 'top' ? 'rgba(37, 99, 235, 0.05)' : 'rgba(73, 92, 149, 0.05)',
-            borderRadius: '50%',
-            filter: 'blur(100px)',
-            zIndex: 1,
-            pointerEvents: 'none',
-            ...(pos === 'top' ? { top: '-10%', left: '-5%' } : { bottom: '-10%', right: '-5%' })
-        })
-    };
-
     return (
-        <div style={styles.shell}>
-            {/* Visual Background Elements */}
-            <div style={styles.bgGradient('top')}></div>
-            <div style={styles.bgGradient('bottom')}></div>
+        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 font-inter relative overflow-hidden">
+            {/* Ambient Backdrops */}
+            <div className="absolute -top-[10%] -left-[5%] w-2/5 h-2/5 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+            <div className="absolute -bottom-[10%] -right-[5%] w-2/5 h-2/5 bg-slate-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
-            <main style={styles.main}>
-                <div style={styles.canvas}>
-                    {/* Branding Header */}
-                    <div style={styles.branding}>
-                        <h1 style={styles.title}>EduSync</h1>
-                        <p style={styles.subtitle}>School Management Platform</p>
+            <main className="w-full max-w-[440px] relative z-10">
+                <div className="flex flex-col items-center">
+                    {/* Branding */}
+                    <div className="text-center mb-10">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-xl shadow-blue-200 mb-6 group transition-transform hover:scale-105 duration-500">
+                            <GraduationCap className="text-white w-8 h-8" />
+                        </div>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-2">EduSync</h1>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Institutional Portal</p>
                     </div>
 
                     {/* Login Card */}
-                    <div style={styles.card}>
-                        <form onSubmit={handleLogin} style={styles.formGroup}>
-                            {/* Role Dropdown */}
-                            <div style={styles.inputBox}>
-                                <label style={styles.label}>Role</label>
-                                <div style={{ position: 'relative' }}>
+                    <div className="w-full bg-white rounded-[32px] border border-slate-100 p-8 md:p-10 shadow-2xl shadow-slate-200/50">
+                        <form onSubmit={handleLogin} className="space-y-6">
+                            {/* Role Select */}
+                            <div className="space-y-2">
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest px-1">Access Level</label>
+                                <div className="relative group">
                                     <select 
-                                        style={{ ...styles.input, ...styles.select }}
+                                        className="w-full h-14 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none cursor-pointer appearance-none transition-all"
                                         value={role}
                                         onChange={(e) => setRole(e.target.value)}
                                         required
@@ -242,17 +90,17 @@ const Login = () => {
                                         <option value="Teacher">Teacher</option>
                                         <option value="Parent">Parent</option>
                                     </select>
-                                    <div style={styles.selectIcon}>
-                                        <ChevronDown size={18} />
+                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none">
+                                        <ChevronDown size={20} />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Email Field */}
-                            <div style={styles.inputBox}>
-                                <label style={styles.label}>Email Address</label>
+                            {/* Email */}
+                            <div className="space-y-2">
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest px-1">Institutional Email</label>
                                 <input 
-                                    style={styles.input}
+                                    className="w-full h-14 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none transition-all placeholder:text-slate-300"
                                     placeholder="name@edusync.edu" 
                                     type="email"
                                     value={email}
@@ -261,14 +109,14 @@ const Login = () => {
                                 />
                             </div>
 
-                            {/* Password Field */}
-                            <div style={styles.inputBox}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                                    <label style={{ ...styles.label, marginBottom: 0 }}>Password</label>
-                                    <a href="#" style={styles.forgotLink}>Forgot password?</a>
+                            {/* Password */}
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center px-1">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Secret Key</label>
+                                    <a href="#" className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">Recover?</a>
                                 </div>
                                 <input 
-                                    style={styles.input}
+                                    className="w-full h-14 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none transition-all placeholder:text-slate-300"
                                     placeholder="••••••••" 
                                     type="password"
                                     value={password}
@@ -277,41 +125,59 @@ const Login = () => {
                                 />
                             </div>
 
-                            {/* Submit Button */}
+                            {/* Error Alert */}
+                            {error && (
+                                <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-xs font-bold text-center animate-shake">
+                                    {error}
+                                </div>
+                            )}
+
+                            {/* Submit */}
                             <button 
-                                style={{ 
-                                    ...styles.submitBtn, 
-                                    opacity: loading ? 0.7 : 1, 
-                                    cursor: loading ? 'not-allowed' : 'pointer' 
-                                }} 
+                                className={`w-full h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg shadow-blue-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                                 type="submit"
                                 disabled={loading}
                             >
-                                {loading ? 'Authenticating...' : 'Sign In'}
+                                {loading ? (
+                                    <span className="flex items-center gap-2 italic">
+                                        Authenticating...
+                                    </span>
+                                ) : (
+                                    <>
+                                        Authorized Sign In
+                                        <LogIn size={18} />
+                                    </>
+                                )}
                             </button>
                         </form>
 
-                        {/* Error Handling */}
-                        {error && (
-                            <div style={styles.errorAlert}>
-                                {error}
-                            </div>
-                        )}
-
-                        {/* Secondary Links */}
-                        <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #F1F5F9', textAlign: 'center' }}>
-                            <p style={{ fontSize: '12px', color: '#94A3B8' }}>
-                                Need an account? <a href="#" style={{ color: '#2563EB', fontWeight: '600', textDecoration: 'none' }}>Contact administration</a>
+                        {/* Secondary */}
+                        <div className="mt-8 pt-8 border-top border-slate-50 text-center">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">
+                                System Inquiry? <a href="#" className="text-blue-600 font-black hover:underline ml-1">Contact Protocol</a>
                             </p>
                         </div>
                     </div>
 
-                    {/* Simple Footer */}
-                    <footer style={styles.footer}>
-                        <p style={styles.footerText}>Secured by EduSync Infrastructure</p>
+                    {/* Footer */}
+                    <footer className="mt-10 text-center space-y-4">
+                        <div className="flex items-center justify-center gap-2 text-slate-300">
+                            <ShieldCheck size={14} />
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em]">End-to-End Encrypted Node</p>
+                        </div>
+                        <p className="text-[10px] font-bold text-slate-400">© 2026 EduSync Core. All Rights Reserved.</p>
                     </footer>
                 </div>
             </main>
+
+            <style>{`
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    25% { transform: translateX(-4px); }
+                    75% { transform: translateX(4px); }
+                }
+                .animate-shake { animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both; }
+            `}</style>
         </div>
     );
 };

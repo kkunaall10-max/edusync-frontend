@@ -2,430 +2,321 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import Layout from '../components/Layout';
 import parentBg from '../assets/parent-bg.jpg';
 
 const API_BASE_URL = 'https://edusync.up.railway.app/api/parent';
 
 const ParentDashboard = () => {
-  const [child, setChild] = useState(null);
-  const [attendance, setAttendance] = useState(null);
-  const [fees, setFees] = useState(null);
-  const [homework, setHomework] = useState([]);
-  const [marks, setMarks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
+    const [child, setChild] = useState(null);
+    const [attendance, setAttendance] = useState(null);
+    const [fees, setFees] = useState(null);
+    const [homework, setHomework] = useState([]);
+    const [marks, setMarks] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const navigate = useNavigate();
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No logged in user found");
+    const fetchDashboardData = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("No logged in user found");
 
-      // 1. Fetch Child Profile
-      const childRes = await axios.get(`${API_BASE_URL}/child`, { 
-        params: { parent_email: user.email } 
-      });
-      const childData = childRes.data;
-      setChild(childData);
+            const childRes = await axios.get(`${API_BASE_URL}/child`, { 
+                params: { parent_email: user.email } 
+            });
+            const childData = childRes.data;
+            setChild(childData);
 
-      // 2. Fetch Related Data in Parallel
-      const [attendanceRes, feesRes, homeworkRes, marksRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/attendance`, { params: { student_id: childData.id } }),
-        axios.get(`${API_BASE_URL}/fees`, { params: { student_id: childData.id } }),
-        axios.get(`${API_BASE_URL}/homework`, { params: { class: childData.class, section: childData.section } }),
-        axios.get(`${API_BASE_URL}/marks`, { params: { student_id: childData.id } })
-      ]);
+            const [attendanceRes, feesRes, homeworkRes, marksRes] = await Promise.all([
+                axios.get(`${API_BASE_URL}/attendance`, { params: { student_id: childData.id } }),
+                axios.get(`${API_BASE_URL}/fees`, { params: { student_id: childData.id } }),
+                axios.get(`${API_BASE_URL}/homework`, { params: { class: childData.class, section: childData.section } }),
+                axios.get(`${API_BASE_URL}/marks`, { params: { student_id: childData.id } })
+            ]);
 
-      setAttendance(attendanceRes.data);
-      setFees(feesRes.data);
-      setHomework(homeworkRes.data?.slice(0, 5) || []);
-      setMarks(marksRes.data?.slice(0, 5) || []);
+            setAttendance(attendanceRes.data);
+            setFees(feesRes.data);
+            setHomework(homeworkRes.data?.slice(0, 5) || []);
+            setMarks(marksRes.data?.slice(0, 5) || []);
 
-    } catch (err) {
-      console.error("Dashboard Load Error:", err);
-      setError(err.response?.data?.error || "Unable to load dashboard data");
-    } finally {
-      setLoading(false);
-    }
-  };
+        } catch (err) {
+            console.error("Dashboard Load Error:", err);
+            setError(err.response?.data?.error || "Unable to load dashboard data");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    useEffect(() => {
+        fetchDashboardData();
+    }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  };
+    const getInitials = (name) => {
+        if (!name) return "??";
+        return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    };
 
-  const getInitials = (name) => {
-    if (!name) return "??";
-    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-  };
+    const getGrade = (percentage) => {
+        if (percentage >= 90) return { label: 'A+', color: '#DCFCE7', bg: 'rgba(236, 246, 239, 0.4)', shadow: 'rgba(236,246,239,0.2)' };
+        if (percentage >= 80) return { label: 'A', color: '#DBEAFE', bg: 'rgba(198, 198, 199, 0.4)', shadow: 'rgba(198,198,199,0.2)' };
+        if (percentage >= 70) return { label: 'B+', color: '#F3F4F6', bg: 'rgba(212, 212, 212, 0.4)', shadow: 'rgba(212,212,212,0.1)' };
+        if (percentage >= 60) return { label: 'B', color: '#FEF3C7', bg: 'rgba(251, 191, 36, 0.1)', shadow: 'rgba(251,191,36,0.1)' };
+        if (percentage >= 40) return { label: 'C', color: '#FFEDD5', bg: 'rgba(249, 115, 22, 0.1)', shadow: 'rgba(249,115,22,0.1)' };
+        return { label: 'F', color: '#FEE2E2', bg: 'rgba(220, 38, 38, 0.1)', shadow: 'rgba(220,38,38,0.1)' };
+    };
 
-  const getGrade = (percentage) => {
-    if (percentage >= 90) return { label: 'A+', color: '#DCFCE7', bg: 'rgba(236, 246, 239, 0.4)', shadow: 'rgba(236,246,239,0.2)' };
-    if (percentage >= 80) return { label: 'A', color: '#DBEAFE', bg: 'rgba(198, 198, 199, 0.4)', shadow: 'rgba(198,198,199,0.2)' };
-    if (percentage >= 70) return { label: 'B+', color: '#F3F4F6', bg: 'rgba(212, 212, 212, 0.4)', shadow: 'rgba(212,212,212,0.1)' };
-    if (percentage >= 60) return { label: 'B', color: '#FEF3C7', bg: 'rgba(251, 191, 36, 0.1)', shadow: 'rgba(251,191,36,0.1)' };
-    if (percentage >= 40) return { label: 'C', color: '#FFEDD5', bg: 'rgba(249, 115, 22, 0.1)', shadow: 'rgba(249,115,22,0.1)' };
-    return { label: 'F', color: '#FEE2E2', bg: 'rgba(220, 38, 38, 0.1)', shadow: 'rgba(220,38,38,0.1)' };
-  };
+    const styles = {
+        glassCard: {
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(25px)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '20px',
+            padding: '24px'
+        },
+        avatar: {
+            width: '64px',
+            height: '64px',
+            borderRadius: '16px',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '20px',
+            fontWeight: '800',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            flexShrink: 0
+        },
+        badge: {
+            padding: '6px 12px',
+            borderRadius: '9999px',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            color: '#FFFFFF',
+            fontSize: '10px',
+            fontWeight: '700',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            border: '1px solid rgba(255, 255, 255, 0.1)'
+        }
+    };
 
-  const styles = {
-    fixedBg: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      backgroundImage: `url(${parentBg})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      zIndex: -1
-    },
-    wrapper: {
-      minHeight: '100vh',
-      color: '#FFFFFF',
-      fontFamily: '"Manrope", sans-serif'
-    },
-    sidebar: {
-      width: '240px',
-      height: '100vh',
-      position: 'fixed',
-      left: 0,
-      top: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.45)',
-      backdropFilter: 'blur(20px)',
-      borderRight: '1px solid rgba(255, 255, 255, 0.15)',
-      padding: '32px 24px',
-      display: 'flex',
-      flexDirection: 'column',
-      zIndex: 50
-    },
-    sidebarLink: (isActive) => ({
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '12px 16px',
-      borderRadius: '12px',
-      color: isActive ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)',
-      fontWeight: isActive ? '700' : '500',
-      backgroundColor: isActive ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-      borderRight: isActive ? '2px solid #FFFFFF' : 'none',
-      textDecoration: 'none',
-      transition: 'all 0.3s',
-      marginBottom: '8px',
-      cursor: 'pointer'
-    }),
-    header: {
-      height: '64px',
-      position: 'fixed',
-      top: 0,
-      right: 0,
-      left: '240px',
-      backgroundColor: 'rgba(0, 0, 0, 0.35)',
-      backdropFilter: 'blur(20px)',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 32px',
-      zIndex: 40
-    },
-    main: {
-      marginLeft: '240px',
-      padding: '96px 32px 48px 32px',
-      minHeight: '100vh'
-    },
-    glassCard: {
-      backgroundColor: 'rgba(0, 0, 0, 0.35)',
-      backdropFilter: 'blur(20px)',
-      border: '1px solid rgba(255, 255, 255, 0.15)',
-      borderRadius: '16px',
-      padding: '24px'
-    },
-    heroCard: {
-      display: 'flex',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: '24px',
-      position: 'relative',
-      overflow: 'hidden'
-    },
-    avatar: {
-      width: '80px',
-      height: '80px',
-      borderRadius: '16px',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      backdropFilter: 'blur(10px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '24px',
-      fontWeight: '800',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
-    },
-    badge: {
-      padding: '8px 16px',
-      borderRadius: '9999px',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      color: '#FFFFFF',
-      fontSize: '11px',
-      fontWeight: '700',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      border: '1px solid rgba(255, 255, 255, 0.1)'
-    }
-  };
-
-  if (loading) {
-    return (
-      <div style={styles.wrapper}>
-        <div style={styles.fixedBg} />
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-          <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
-          <p style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Syncing child profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !child) {
-    return (
-      <div style={styles.wrapper}>
-        <div style={styles.fixedBg} />
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '32px' }}>
-          <div style={{ ...styles.glassCard, maxWidth: '480px', width: '100%', padding: '48px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '64px', color: '#ee7d77', marginBottom: '24px' }}>error</span>
-            <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '12px' }}>No student linked</h2>
-            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '32px' }}>{error || "We couldn't find any child profile associated with your account."}</p>
-            <button 
-              onClick={fetchDashboardData}
-              style={{ padding: '12px 32px', backgroundColor: '#FFFFFF', color: '#000000', borderRadius: '12px', fontWeight: '700', border: 'none', cursor: 'pointer' }}
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const totalPaid = fees?.records?.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0) || 0;
-  const totalPending = fees?.records?.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0) || 0;
-  const totalOverdue = fees?.records?.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0) || 0;
-
-  return (
-    <div style={styles.wrapper}>
-      <div style={styles.fixedBg} />
-
-      {/* Sidebar */}
-      <aside style={styles.sidebar}>
-        <div style={{ marginBottom: '40px' }}>
-          <h1 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.02em', margin: 0 }}>EduSync</h1>
-          <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.6, fontWeight: '800', marginTop: '4px' }}>Parent Portal</p>
-        </div>
-        <nav style={{ flex: 1 }}>
-          <a style={styles.sidebarLink(true)} onClick={() => navigate('/dashboard/parent')}>
-            <span className="material-symbols-outlined">dashboard</span>
-            <span>Child Dashboard</span>
-          </a>
-          <a style={styles.sidebarLink(false)} onClick={handleLogout}>
-            <span className="material-symbols-outlined">logout</span>
-            <span>Logout</span>
-          </a>
-        </nav>
-        <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 0' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', fontWeight:'800', border:'1px solid rgba(255,255,255,0.3)' }}>
-            {child.full_name?.substring(0, 1) || 'G'}
-          </div>
-          <div style={{ overflow: 'hidden' }}>
-            <p style={{ fontSize: '12px', fontWeight: '700', margin: 0 }}>Parent Account</p>
-            <p style={{ fontSize: '10px', opacity: 0.6, margin: 0 }}>Active Profile</p>
-          </div>
-        </div>
-      </aside>
-
-      {/* Top Navbar */}
-      <header style={styles.header}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '800', margin: 0 }}>My Child's Overview</h2>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          <button style={{ background: 'none', border: 'none', color: '#FFFFFF', cursor: 'pointer', position: 'relative' }}>
-            <span className="material-symbols-outlined">notifications</span>
-            <span style={{ position: 'absolute', top: 0, right: 0, width: '8px', height: '8px', backgroundColor: '#ee7d77', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)' }}></span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main style={styles.main}>
-        <div style={{ maxWidth: '1152px', margin: '0 auto' }}>
-          
-          {/* Hero Card */}
-          <section style={{ ...styles.glassCard, ...styles.heroCard, marginBottom: '32px' }}>
-            <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-              <div style={styles.avatar}>{getInitials(child.full_name)}</div>
-              <div>
-                <h3 style={{ fontSize: '32px', fontWeight: '800', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>{child.full_name}</h3>
-                <div style={{ display: 'flex', gap: '16px', opacity: 0.8, fontSize: '14px', fontWeight: '600' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span className="material-symbols-outlined" style={{ fontSize: '18px' }}>badge</span> Roll: {child.roll_number}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span className="material-symbols-outlined" style={{ fontSize: '18px' }}>school</span> Class {child.class}-{child.section}</span>
+    if (loading) {
+        return (
+            <div className="min-h-screen relative font-['Inter'] bg-slate-900 flex flex-col items-center justify-center gap-4">
+                <div 
+                    className="fixed inset-0 bg-cover bg-center z-0 opacity-40"
+                    style={{ backgroundImage: `url(${parentBg})` }}
+                ></div>
+                <div className="relative z-10 text-center">
+                    <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-white font-bold tracking-tight">Syncing child profile...</p>
                 </div>
-              </div>
             </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={styles.badge}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: parseFloat(attendance?.percentage) >= 75 ? '#DCFCE7' : '#ee7d77' }}></span>
-                Attendance {attendance?.percentage}%
-              </div>
-              <div style={styles.badge}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: fees?.summary?.overdueCount > 0 ? '#ee7d77' : '#DCFCE7' }}></span>
-                Fee Status: {fees?.summary?.overdueCount > 0 ? 'Due' : 'Clear'}
-              </div>
-            </div>
-          </section>
+        );
+    }
 
-          {/* Bento Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '32px' }}>
+    if (error || !child) {
+        return (
+            <div className="min-h-screen relative font-['Inter'] bg-slate-900 flex flex-col items-center justify-center p-6">
+                <div 
+                    className="fixed inset-0 bg-cover bg-center z-0 opacity-40"
+                    style={{ backgroundImage: `url(${parentBg})` }}
+                ></div>
+                <div className="relative z-10 w-full max-w-md p-10 text-center rounded-3xl" style={styles.glassCard}>
+                    <span className="material-symbols-outlined text-6xl text-red-400 mb-6">error</span>
+                    <h2 className="text-2xl font-black text-white mb-3">No student linked</h2>
+                    <p className="text-white/60 mb-8">{error || "We couldn't find any child profile associated with your account."}</p>
+                    <button 
+                        onClick={fetchDashboardData}
+                        className="w-full py-4 bg-white text-black rounded-xl font-bold hover:bg-slate-100 transition-colors cursor-pointer border-none"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    const totalPaid = fees?.records?.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0) || 0;
+    const totalPending = fees?.records?.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0) || 0;
+    const totalOverdue = fees?.records?.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0) || 0;
+
+    return (
+        <div className="min-h-screen relative font-['Inter'] bg-slate-950 overflow-x-hidden">
+            <div 
+                className="fixed inset-0 bg-cover bg-center z-0 opacity-50"
+                style={{ backgroundImage: `url(${parentBg})` }}
+            ></div>
             
-            {/* Card 1: Attendance */}
-            <div style={{ ...styles.glassCard, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '280px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <h4 style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Attendance</h4>
-                  <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>Academic Statistics</p>
-                </div>
-                <span className="material-symbols-outlined" style={{ opacity: 0.3 }}>calendar_month</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', margin: '24px 0' }}>
-                <span style={{ fontSize: '72px', fontWeight: '800', letterSpacing: '-0.02em', lineHeight: 1 }}>{attendance?.total}</span>
-                <span style={{ fontSize: '20px', fontWeight: '600', opacity: 0.6 }}>Total Days</span>
-              </div>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '700', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#DCFCE7' }}></span> Present: {attendance?.present}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ee7d77' }}></span> Absent: {attendance?.absent}
-                  </div>
-                </div>
-                <div style={{ width: '100%', height: '12px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '9999px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${attendance?.percentage}%`, backgroundColor: parseFloat(attendance?.percentage) >= 75 ? '#DCFCE7' : '#ee7d77', transition: 'all 1s ease-out' }}></div>
-                </div>
-                <p style={{ fontSize: '13px', fontStyle: 'italic', opacity: 0.8, marginTop: '12px' }}>
-                  {parseFloat(attendance?.percentage) >= 75 ? "Excellent attendance sustained!" : "Attendance tracking below requirement."}
-                </p>
-              </div>
-            </div>
+            <div className="relative z-10">
+                <Layout role="parent">
+                    <div className="max-w-6xl mx-auto space-y-8">
+                        {/* Hero Card */}
+                        <section style={styles.glassCard} className="flex flex-col md:flex-row items-center justify-between gap-6">
+                            <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+                                <div style={styles.avatar}>{getInitials(child.full_name)}</div>
+                                <div>
+                                    <h3 className="text-3xl md:text-4xl font-black text-white m-0 tracking-tight leading-none">{child.full_name}</h3>
+                                    <div className="flex flex-wrap justify-center md:justify-start gap-4 text-white/70 text-sm font-bold mt-3">
+                                        <span className="flex items-center gap-2"><span className="material-symbols-outlined text-sm">badge</span> Roll: {child.roll_number}</span>
+                                        <span className="flex items-center gap-2"><span className="material-symbols-outlined text-sm">school</span> Class {child.class}-{child.section}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap justify-center gap-3">
+                                <div style={styles.badge}>
+                                    <span className={`w-2 h-2 rounded-full ${parseFloat(attendance?.percentage) >= 75 ? 'bg-emerald-400' : 'bg-red-400'}`}></span>
+                                    Attendance {attendance?.percentage}%
+                                </div>
+                                <div style={styles.badge}>
+                                    <span className={`w-2 h-2 rounded-full ${fees?.summary?.overdueCount > 0 ? 'bg-red-400' : 'bg-emerald-400'}`}></span>
+                                    Fees: {fees?.summary?.overdueCount > 0 ? 'Action Required' : 'Up to date'}
+                                </div>
+                            </div>
+                        </section>
 
-            {/* Card 2: Fee Status */}
-            <div style={{ ...styles.glassCard, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '280px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <h4 style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Fee Status</h4>
-                  <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>Financial Overview</p>
-                </div>
-                <span className="material-symbols-outlined" style={{ opacity: 0.3 }}>payments</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', margin: '24px 0' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#DCFCE7' }}>₹{totalPaid.toLocaleString()}</p>
-                  <p style={{ fontSize: '9px', fontWeight: '800', opacity: 0.4, textTransform: 'uppercase' }}>Paid</p>
-                </div>
-                <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)', borderRight: '1px solid rgba(255,255,255,0.1)' }}>
-                  <p style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#DBEAFE' }}>₹{totalPending.toLocaleString()}</p>
-                  <p style={{ fontSize: '9px', fontWeight: '800', opacity: 0.4, textTransform: 'uppercase' }}>Pending</p>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#ee7d77' }}>₹{totalOverdue.toLocaleString()}</p>
-                  <p style={{ fontSize: '9px', fontWeight: '800', opacity: 0.4, textTransform: 'uppercase' }}>Overdue</p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {fees?.records?.slice(0, 2).map((fee, idx) => (
-                  <div key={fee.id || idx} style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px 16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13px', fontWeight: '600' }}>{fee.month} {fee.fee_type}</span>
-                    <span style={{ fontSize: '10px', fontWeight: '800', padding: '4px 10px', borderRadius: '9999px', backgroundColor: fee.status === 'paid' ? 'rgba(236, 246, 239, 0.2)' : 'rgba(238, 125, 119, 0.2)', color: fee.status === 'paid' ? '#DCFCE7' : '#ee7d77', border: `1px solid ${fee.status === 'paid' ? '#DCFCE7' : '#ee7d77'}` }}>{fee.status.toUpperCase()}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+                        {/* Responsive Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
+                            
+                            {/* Card 1: Attendance */}
+                            <div style={styles.glassCard} className="flex flex-col justify-between min-h-[300px]">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest">Attendance</h4>
+                                        <p className="text-[10px] text-white/50 mt-1 uppercase font-bold">Academic Statistics</p>
+                                    </div>
+                                    <span className="material-symbols-outlined opacity-30 text-white">calendar_month</span>
+                                </div>
+                                <div className="flex items-baseline gap-4 mb-8">
+                                    <span className="text-7xl md:text-8xl font-black text-white leading-none tracking-tighter">{attendance?.total}</span>
+                                    <span className="text-lg font-bold text-white/40 uppercase">Total Days</span>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between text-xs font-black text-white/90">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Present: {attendance?.present}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-red-400"></span> Absent: {attendance?.absent}
+                                        </div>
+                                    </div>
+                                    <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full transition-all duration-1000 ease-out ${parseFloat(attendance?.percentage) >= 75 ? 'bg-emerald-400' : 'bg-red-400'}`}
+                                            style={{ width: `${attendance?.percentage}%` }}
+                                        ></div>
+                                    </div>
+                                    <p className="text-xs italic text-white/70 font-medium">
+                                        {parseFloat(attendance?.percentage) >= 75 ? "Excellent attendance sustained!" : "Attendance tracking below the required criteria."}
+                                    </p>
+                                </div>
+                            </div>
 
-            {/* Card 3: Recent Homework */}
-            <div style={{ ...styles.glassCard, minHeight: '280px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-                <div>
-                  <h4 style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Recent Homework</h4>
-                  <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>Active Assignments</p>
-                </div>
-                <span className="material-symbols-outlined" style={{ opacity: 0.3 }}>assignment</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {homework.length === 0 ? (
-                  <div style={{ padding: '40px 0', textAlign: 'center', opacity: 0.4, fontSize: '13px' }}>No homework assigned yet.</div>
-                ) : (
-                  homework.map((hw, idx) => (
-                    <div key={hw.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: '800', padding: '2px 8px', borderRadius: '9999px', backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', width: 'fit-content' }}>{hw.subject}</span>
-                        <span style={{ fontSize: '14px', fontWeight: '700' }}>{hw.title}</span>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <p style={{ fontSize: '9px', fontWeight: '800', opacity: 0.4, textTransform: 'uppercase', margin: 0 }}>Due Date</p>
-                        <p style={{ fontSize: '13px', fontWeight: '600', margin: 0 }}>{new Date(hw.due_date).toLocaleDateString()}</p>
-                      </div>
+                            {/* Card 2: Fee Status */}
+                            <div style={styles.glassCard} className="flex flex-col justify-between min-h-[300px]">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest">Fee Status</h4>
+                                        <p className="text-[10px] text-white/50 mt-1 uppercase font-bold">Financial Overview</p>
+                                    </div>
+                                    <span className="material-symbols-outlined opacity-30 text-white">payments</span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 mb-8 text-center">
+                                    <div className="p-3 bg-white/5 rounded-2xl">
+                                        <p className="text-lg font-black text-emerald-400 leading-none">₹{totalPaid.toLocaleString()}</p>
+                                        <p className="text-[8px] font-black text-white/30 uppercase mt-2">Paid</p>
+                                    </div>
+                                    <div className="p-3 bg-white/5 rounded-2xl">
+                                        <p className="text-lg font-black text-blue-400 leading-none">₹{totalPending.toLocaleString()}</p>
+                                        <p className="text-[8px] font-black text-white/30 uppercase mt-2">Pending</p>
+                                    </div>
+                                    <div className="p-3 bg-white/5 rounded-2xl">
+                                        <p className="text-lg font-black text-red-400 leading-none">₹{totalOverdue.toLocaleString()}</p>
+                                        <p className="text-[8px] font-black text-white/30 uppercase mt-2">Overdue</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    {fees?.records?.slice(0, 2).map((fee, idx) => (
+                                        <div key={fee.id || idx} className="bg-white/5 p-4 rounded-xl flex justify-between items-center border border-white/10">
+                                            <span className="text-xs font-bold text-white">{fee.month} {fee.fee_type}</span>
+                                            <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border ${fee.status === 'paid' ? 'border-emerald-400 text-emerald-400' : 'border-red-400 text-red-400'}`}>
+                                                {fee.status}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Card 3: Recent Homework */}
+                            <div style={styles.glassCard} className="min-h-[300px]">
+                                <div className="flex justify-between items-start mb-8">
+                                    <div>
+                                        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest">Homework</h4>
+                                        <p className="text-[10px] text-white/50 mt-1 uppercase font-bold">Active Assignments</p>
+                                    </div>
+                                    <span className="material-symbols-outlined opacity-30 text-white">assignment</span>
+                                </div>
+                                <div className="space-y-5">
+                                    {homework.length === 0 ? (
+                                        <div className="py-12 text-center text-white/30 text-sm font-bold uppercase tracking-widest">No homework assigned yet.</div>
+                                    ) : (
+                                        homework.map((hw, idx) => (
+                                            <div key={hw.id || idx} className="flex justify-between items-center group">
+                                                <div className="space-y-1">
+                                                    <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-white/10 text-white/90 uppercase tracking-widest border border-white/10">{hw.subject}</span>
+                                                    <h5 className="text-sm font-bold text-white m-0 group-hover:text-blue-400 transition-colors">{hw.title}</h5>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[8px] font-black text-white/30 uppercase m-0 leading-none">Due Date</p>
+                                                    <p className="text-xs font-bold text-white mt-1">{new Date(hw.due_date).toLocaleDateString()}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Card 4: Latest Results */}
+                            <div style={styles.glassCard} className="min-h-[300px]">
+                                <div className="flex justify-between items-start mb-8">
+                                    <div>
+                                        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest">Latest Results</h4>
+                                        <p className="text-[10px] text-white/50 mt-1 uppercase font-bold">Performance Overview</p>
+                                    </div>
+                                    <span className="material-symbols-outlined opacity-30 text-white">grade</span>
+                                </div>
+                                <div className="space-y-5">
+                                    {marks.length === 0 ? (
+                                        <div className="py-12 text-center text-white/30 text-sm font-bold uppercase tracking-widest">Await official evaluations...</div>
+                                    ) : (
+                                        marks.map((res, idx) => {
+                                            const grade = getGrade((res.marks_obtained / res.total_marks) * 100);
+                                            return (
+                                                <div key={res.id || idx} className="flex justify-between items-center p-3 rounded-2xl hover:bg-white/5 transition-colors">
+                                                    <div className="space-y-1">
+                                                        <h5 className="text-sm font-bold text-white m-0">{res.subject}</h5>
+                                                        <span className="text-[10px] text-white/50 font-medium uppercase tracking-tighter">{res.exam_type} • {res.marks_obtained}/{res.total_marks}</span>
+                                                    </div>
+                                                    <div className="w-12 h-12 rounded-xl flex items-center justify-center border font-black text-lg" style={{ borderColor: grade.color, backgroundColor: grade.bg, color: grade.color, boxShadow: `0 0 15px ${grade.shadow}` }}>
+                                                        {grade.label}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
-                  ))
-                )}
-              </div>
+                </Layout>
             </div>
-
-            {/* Card 4: Latest Results */}
-            <div style={{ ...styles.glassCard, minHeight: '280px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-                <div>
-                  <h4 style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Latest Results</h4>
-                  <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>Performance Overview</p>
-                </div>
-                <span className="material-symbols-outlined" style={{ opacity: 0.3 }}>grade</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {marks.length === 0 ? (
-                  <div style={{ padding: '40px 0', textAlign: 'center', opacity: 0.4, fontSize: '13px' }}>Await official evaluations...</div>
-                ) : (
-                  marks.map((res, idx) => {
-                    const grade = getGrade((res.marks_obtained / res.total_marks) * 100);
-                    return (
-                      <div key={res.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <span style={{ fontSize: '14px', fontWeight: '700' }}>{res.subject}</span>
-                          <span style={{ fontSize: '11px', opacity: 0.5 }}>{res.exam_type} • {res.marks_obtained}/{res.total_marks}</span>
-                        </div>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '12px', border: `1px solid ${grade.color}`, backgroundColor: grade.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 15px ${grade.shadow}` }}>
-                          <span style={{ fontSize: '18px', fontWeight: '800', color: grade.color }}>{grade.label}</span>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-          </div>
         </div>
-      </main>
-    </div>
-  );
+    );
 };
 
 export default ParentDashboard;
-

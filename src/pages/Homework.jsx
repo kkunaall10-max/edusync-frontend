@@ -3,15 +3,14 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
+import Layout from '../components/Layout';
 
 const API_BASE_URL = 'https://edusync.up.railway.app/api/homework';
 
-const Homework = () => {
-    const role = 'principal';
+const Homework = ({ role }) => {
     const [homework, setHomework] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
-    const [showDropdown, setShowDropdown] = useState(false);
     const [filters, setFilters] = useState({
         class: '',
         section: '',
@@ -49,86 +48,131 @@ const Homework = () => {
         fetchHomework();
     }, [filters.class, filters.section, filters.subject]);
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        navigate('/login');
-    };
-
-    const styles = {
-        wrapper: {display:'flex', minHeight:'100vh', backgroundColor:'#F9FAFB', fontFamily:'Inter, sans-serif'},
-        sidebar: {width:'240px', minHeight:'100vh', backgroundColor:'#FFFFFF', borderRight:'1px solid #E5E7EB', padding:'24px 16px', display:'flex', flexDirection:'column', position:'fixed', top:0, left:0},
-        navLink: {display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', borderRadius:'8px', color:'#6B7280', textDecoration:'none', fontSize:'14px', fontWeight:'500', marginBottom:'4px', cursor:'pointer'},
-        navLinkActive: {display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', borderRadius:'8px', color:'#2563EB', backgroundColor:'#EFF6FF', textDecoration:'none', fontSize:'14px', fontWeight:'600', marginBottom:'4px', cursor:'pointer'},
-        main: {marginLeft:'240px', flex:1},
-        header: {height:'64px', backgroundColor:'#FFFFFF', borderBottom:'1px solid #E5E7EB', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 32px', position:'sticky', top:0, zIndex:10},
-        content: {padding:'32px'},
-        pageTitle: {fontSize:'32px', fontWeight:'800', color:'#111827', margin:0},
-        filterRow: {display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:'24px', marginBottom:'32px'},
-        filterCard: {backgroundColor:'#FFFFFF', padding:'16px', borderRadius:'16px', border:'1px solid #E5E7EB', boxShadow:'0 1px 3px rgba(0,0,0,0.05)'},
-        label: {display:'block', fontSize:'11px', fontWeight:'700', color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'8px'},
-        select: {width:'100%', height:'40px', border:'none', backgroundColor:'#F9FAFB', borderRadius:'8px', padding:'0 12px', fontSize:'14px', fontWeight:'600', color:'#111827', outline:'none', cursor:'pointer'},
-        tableCard: {backgroundColor:'#FFFFFF', borderRadius:'24px', border:'1px solid #E5E7EB', overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,0.05)'},
-        th: {backgroundColor:'#F9FAFB', padding:'16px 24px', fontSize:'11px', fontWeight:'800', color:'#9CA3AF', textTransform:'uppercase', borderBottom:'1px solid #E5E7EB', textAlign: 'left'},
-        td: {padding:'16px 24px', fontSize:'14px', color:'#111827', borderBottom:'1px solid #F3F4F6'}
-    };
-
     return (
-        <div style={styles.wrapper}>
-            <aside style={styles.sidebar}>
-                <div style={{marginBottom:'32px'}}><h1 style={{fontSize:'22px', fontWeight:'700', color:'#2563EB', margin:0}}>EduSync</h1><p style={{fontSize:'11px', color:'#6B7280', textTransform:'uppercase', margin:0}}>Management Portal</p></div>
-                <nav style={{flex:1}}>
-                    <div onClick={() => navigate('/dashboard/principal')} style={styles.navLink}><span className="material-symbols-outlined">dashboard</span><span>Overview</span></div>
-                    <div onClick={() => navigate('/dashboard/students')} style={styles.navLink}><span className="material-symbols-outlined">group</span><span>Students</span></div>
-                    <div onClick={() => navigate('/dashboard/teachers')} style={styles.navLink}><span className="material-symbols-outlined">person</span><span>Teachers</span></div>
-                    <div onClick={() => navigate('/dashboard/attendance')} style={styles.navLink}><span className="material-symbols-outlined">calendar_today</span><span>Attendance</span></div>
-                    <div onClick={() => navigate('/dashboard/fees')} style={styles.navLink}><span className="material-symbols-outlined">payments</span><span>Fees</span></div>
-                    <div onClick={() => navigate('/dashboard/homework')} style={styles.navLinkActive}><span className="material-symbols-outlined">assignment</span><span>Homework</span></div>
-                    <div onClick={() => navigate('/dashboard/marks')} style={styles.navLink}><span className="material-symbols-outlined">grade</span><span>Marks</span></div>
-                    <div onClick={() => navigate('/dashboard/reports')} style={styles.navLink}><span className="material-symbols-outlined">assessment</span><span>Reports</span></div>
-                </nav>
-            </aside>
-            <div style={styles.main}>
-                <header style={styles.header}>
-                    <h2 style={{fontSize:'18px', fontWeight:'600', color:'#111827', margin:0}}>Institution Homework Log</h2>
-                    <div onClick={() => setShowDropdown(!showDropdown)} style={{display:'flex', alignItems:'center', gap:'12px', cursor:'pointer', position: 'relative'}}>
-                        <div style={{textAlign:'right'}}><p style={{fontSize:'13px', fontWeight:'600', color:'#111827', margin:0}}>{user?.email?.split('@')[0] || 'Administrator'}</p><p style={{fontSize:'10px', color:'#6B7280', margin:0}}>Principal</p></div>
-                        <div style={{width:'36px', height:'36px', backgroundColor:'#F3F4F6', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center'}}><span className="material-symbols-outlined">account_circle</span></div>
-                        {showDropdown && (
-                            <div style={{position:'absolute', top:'48px', right:0, backgroundColor:'#FFF', border:'1px solid #E5E7EB', borderRadius:'8px', padding:'8px', zIndex:100, minWidth:'140px'}}>
-                                <button onClick={handleLogout} style={{width:'100%', padding:'10px', textAlign:'left', background:'none', border:'none', color:'#DC2626', fontSize:'14px', fontWeight:'600', cursor:'pointer'}}>Logout</button>
-                            </div>
-                        )}
+        <Layout role={role}>
+            <div className="space-y-8">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight m-0 uppercase">Homework</h1>
+                        <p className="text-sm md:text-base text-slate-500 mt-1 font-medium italic">"Academic progress is measured in consistent effort."</p>
                     </div>
-                </header>
-                <main style={styles.content}>
-                    <div style={{marginBottom:'40px'}}><h2 style={styles.pageTitle}>Homework Oversight</h2><p style={{color:'#6B7280', margin:0}}>Review all assignments issued across academic streams.</p></div>
+                </div>
 
-                    <div style={styles.filterRow}>
-                        <div style={styles.filterCard}><label style={styles.label}>Class</label><select style={styles.select} value={filters.class} onChange={(e) => setFilters({...filters, class: e.target.value})}><option value="">All Classes</option>{SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                        <div style={styles.filterCard}><label style={styles.label}>Section</label><select style={styles.select} value={filters.section} onChange={(e) => setFilters({...filters, section: e.target.value})}><option value="">All Sections</option>{SCHOOL_SECTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}</select></div>
-                        <div style={styles.filterCard}><label style={styles.label}>Subject</label><input style={{...styles.select, border:'1px solid transparent'}} placeholder="Filter by Subject..." value={filters.subject} onChange={(e) => setFilters({...filters, subject: e.target.value})} /></div>
+                {/* Filters */}
+                <div className="bg-white p-4 md:p-6 rounded-3xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Class</label>
+                        <select 
+                            className="w-full h-11 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-900 outline-none cursor-pointer"
+                            value={filters.class}
+                            onChange={(e) => setFilters({...filters, class: e.target.value})}
+                        >
+                            <option value="">All Classes</option>
+                            {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
                     </div>
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Section</label>
+                        <select 
+                            className="w-full h-11 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-900 outline-none cursor-pointer"
+                            value={filters.section}
+                            onChange={(e) => setFilters({...filters, section: e.target.value})}
+                        >
+                            <option value="">All Sections</option>
+                            {SCHOOL_SECTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Subject</label>
+                        <input 
+                            type="text"
+                            placeholder="Filter by Subject..."
+                            className="w-full h-11 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-900 outline-none"
+                            value={filters.subject}
+                            onChange={(e) => setFilters({...filters, subject: e.target.value})}
+                        />
+                    </div>
+                </div>
 
-                    <div style={styles.tableCard}>
-                        <table style={{width:'100%', borderCollapse:'collapse'}}>
-                            <thead><tr><th style={styles.th}>Issue Date</th><th style={styles.th}>Assignment Details</th><th style={styles.th}>Target Group</th><th style={styles.th}>Due Date</th></tr></thead>
-                            <tbody>
-                                {loading ? (<tr><td colSpan="4" style={{padding:'64px', textAlign:'center', color:'#9CA3AF'}}>Synchronizing logs...</td></tr>) : homework.length === 0 ? (<tr><td colSpan="4" style={{padding:'64px', textAlign:'center', color:'#9CA3AF'}}>No assignments found for these filters.</td></tr>) : (
+                {/* Content */}
+                <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50/50 border-bottom border-slate-100">
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Issue Date</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Assignment Details</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Group</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Due Date</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {loading ? (
+                                    <tr><td colSpan="4" className="px-6 py-12 text-center text-slate-400 italic">Synchronizing logs...</td></tr>
+                                ) : homework.length === 0 ? (
+                                    <tr><td colSpan="4" className="px-6 py-20 text-center text-slate-400 font-bold">No assignments found for these filters.</td></tr>
+                                ) : (
                                     homework.map(hw => (
-                                        <tr key={hw.id}>
-                                            <td style={styles.td}>{new Date(hw.created_at).toLocaleDateString()}</td>
-                                            <td style={styles.td}><div style={{fontWeight:'700', color:'#111827'}}>{hw.title}</div><div style={{fontSize:'12px', color:'#6B7280'}}>{hw.description}</div></td>
-                                            <td style={styles.td}><span style={{padding:'4px 12px', backgroundColor:'#EFF6FF', color:'#2563EB', borderRadius:'999px', fontSize:'12px', fontWeight:'700'}}>{hw.class} - {hw.section} • {hw.subject}</span></td>
-                                            <td style={{...styles.td, fontWeight:'600', color:'#EF4444'}}>{new Date(hw.due_date).toLocaleDateString()}</td>
+                                        <tr key={hw.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className="px-6 py-4 text-sm font-bold text-slate-500 whitespace-nowrap">{new Date(hw.created_at).toLocaleDateString()}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm font-black text-slate-900 tracking-tight">{hw.title}</div>
+                                                <div className="text-xs text-slate-400 mt-0.5 line-clamp-1">{hw.description}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                                                    {hw.class} - {hw.section} • {hw.subject}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="text-[9px] font-black text-rose-300 uppercase tracking-widest mb-0.5">Deadline</div>
+                                                <div className="text-xs font-black text-rose-600">{new Date(hw.due_date).toLocaleDateString()}</div>
+                                            </td>
                                         </tr>
                                     ))
                                 )}
                             </tbody>
                         </table>
                     </div>
-                </main>
+
+                    {/* Mobile/Tablet Card View */}
+                    <div className="md:hidden divide-y divide-slate-100">
+                        {loading ? (
+                            <div className="p-8 text-center text-slate-400 italic font-medium">Syncing institutional records...</div>
+                        ) : homework.length === 0 ? (
+                            <div className="p-10 text-center text-slate-400 font-bold">No assignments matched filters.</div>
+                        ) : (
+                            homework.map(hw => (
+                                <div key={hw.id} className="p-5 space-y-4">
+                                    <div className="flex justify-between items-start gap-4">
+                                        <div className="flex-1">
+                                            <div className="inline-block px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-black uppercase tracking-widest mb-2 border border-blue-100">
+                                                {hw.class}-{hw.section} | {hw.subject}
+                                            </div>
+                                            <h4 className="text-sm font-black text-slate-900 leading-tight tracking-tight">{hw.title}</h4>
+                                            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed line-clamp-2">{hw.description}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest block">Issued</span>
+                                            <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap">{new Date(hw.created_at).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between bg-rose-50/50 p-3 rounded-xl border border-rose-100/50">
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-rose-500 text-lg">event_busy</span>
+                                            <span className="text-[10px] font-black text-rose-700 uppercase tracking-widest">Submission Deadline</span>
+                                        </div>
+                                        <span className="text-xs font-black text-rose-600">{new Date(hw.due_date).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
             </div>
-        </div>
+        </Layout>
     );
 };
 

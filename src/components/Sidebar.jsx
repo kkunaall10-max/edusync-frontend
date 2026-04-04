@@ -13,11 +13,12 @@ import {
   IndianRupee,
   BookOpen,
   Award,
-  School
+  School,
+  X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-const Sidebar = ({ role }) => {
+const Sidebar = ({ role, isOpen, onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -51,151 +52,87 @@ const Sidebar = ({ role }) => {
 
   const items = navItems[role] || [];
 
-  // Inline Styles
-  const styles = {
-    sidebar: {
-      position: 'fixed',
-      left: 0,
-      top: 0,
-      height: '100%',
-      width: '240px',
-      zIndex: 50,
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundColor: '#FFFFFF',
-      borderRight: '1px solid #E2E8F0',
-      fontFamily: "'Inter', sans-serif"
-    },
-    header: {
-      padding: '24px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px'
-    },
-    logoBox: {
-      width: '32px',
-      height: '32px',
-      backgroundColor: '#2563EB',
-      borderRadius: '4px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: '#FFFFFF'
-    },
-    logoText: {
-      fontSize: '20px',
-      fontWeight: '700',
-      color: '#1D4ED8',
-      lineHeight: '1',
-      margin: 0
-    },
-    logoSub: {
-      fontSize: '10px',
-      textTransform: 'uppercase',
-      letterSpacing: '0.1em',
-      color: '#64748B',
-      fontWeight: '600',
-      marginTop: '4px',
-      margin: 0
-    },
-    nav: {
-      flex: 1,
-      padding: '16px 12px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '4px',
-      overflowY: 'auto'
-    },
-    navItem: (isActive) => ({
-      width: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '12px 16px',
-      borderRadius: isActive ? '0 12px 12px 0' : '8px',
-      borderLeft: isActive ? '4px solid #2563EB' : 'none',
-      backgroundColor: isActive ? '#EFF6FF' : 'transparent',
-      color: isActive ? '#1D4ED8' : '#475569',
-      border: 'none',
-      cursor: 'pointer',
-      textAlign: 'left',
-      transition: 'all 0.2s'
-    }),
-    footer: {
-      padding: '16px 12px',
-      borderTop: '1px solid #F1F5F9',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '4px'
-    },
-    footerBtn: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '10px 16px',
-      color: '#475569',
-      fontSize: '14px',
-      fontWeight: '500',
-      backgroundColor: 'transparent',
-      border: 'none',
-      cursor: 'pointer',
-      borderRadius: '8px'
-    }
-  };
-
   return (
-    <aside style={styles.sidebar}>
-      {/* Sidebar Header */}
-      <div style={styles.header}>
-        <div style={styles.logoBox}>
-          <School size={18} />
-        </div>
-        <div>
-          <h1 style={styles.logoText}>EduSync</h1>
-          <p style={styles.logoSub}>Academic Atelier</p>
-        </div>
-      </div>
+    <>
+      {/* Mobile Overlay Backdrop */}
+      <div 
+        className={`fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[45] md:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
+        onClick={onClose}
+      />
 
-      {/* Navigation */}
-      <nav style={styles.nav}>
-        {items.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <button
-              key={item.name}
-              onClick={() => navigate(item.path)}
-              style={styles.navItem(isActive)}
-            >
-              <span style={{ color: isActive ? '#2563EB' : '#94A3B8' }}>
-                {item.icon}
-              </span>
-              <span style={{ fontSize: '14px', fontWeight: isActive ? '700' : '500' }}>
-                {item.name}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+      {/* Sidebar Container */}
+      <aside 
+        className={`fixed left-0 top-0 h-full w-[280px] md:w-[240px] bg-white border-r border-slate-200 z-50 flex flex-col transition-transform duration-300 ease-in-out font-['Inter'] ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+      >
+        {/* Sidebar Header */}
+        <div className="p-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white">
+              <School size={18} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-blue-700 leading-none m-0">EduSync</h1>
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mt-1 m-0">Academic Atelier</p>
+            </div>
+          </div>
+          
+          {/* Close button inside sidebar on mobile */}
+          <button 
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-slate-600 md:hidden bg-transparent border-none cursor-pointer"
+          >
+            <X size={24} />
+          </button>
+        </div>
 
-      {/* Sidebar Footer */}
-      <div style={styles.footer}>
-        <button style={styles.footerBtn}>
-          <Settings size={20} style={{ color: '#94A3B8' }} />
-          <span>Settings</span>
-        </button>
-        <button style={styles.footerBtn}>
-          <HelpCircle size={20} style={{ color: '#94A3B8' }} />
-          <span>Support</span>
-        </button>
-        <button 
-          onClick={handleLogout}
-          style={{ ...styles.footerBtn, color: '#DC2626' }}
-        >
-          <LogOut size={20} style={{ color: '#F87171' }} />
-          <span>Logout</span>
-        </button>
-      </div>
-    </aside>
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
+          {items.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <button
+                key={item.name}
+                onClick={() => {
+                  navigate(item.path);
+                  if (window.innerWidth < 768) onClose();
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 cursor-pointer text-left transition-all duration-200 border-none ${
+                    isActive 
+                    ? 'bg-blue-50 text-blue-700 border-l-4 border-l-blue-600 rounded-r-xl' 
+                    : 'bg-transparent text-slate-600 hover:bg-slate-50 rounded-lg'
+                }`}
+              >
+                <span className={`${isActive ? 'text-blue-600' : 'text-slate-400'}`}>
+                  {item.icon}
+                </span>
+                <span className={`text-sm ${isActive ? 'font-bold' : 'font-medium'}`}>
+                  {item.name}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-slate-100 flex flex-col gap-1">
+          <button className="flex items-center gap-3 px-4 py-2.5 text-slate-600 text-sm font-medium bg-transparent border-none cursor-pointer rounded-lg hover:bg-slate-50">
+            <Settings size={20} className="text-slate-400" />
+            <span>Settings</span>
+          </button>
+          <button className="flex items-center gap-3 px-4 py-2.5 text-slate-600 text-sm font-medium bg-transparent border-none cursor-pointer rounded-lg hover:bg-slate-50">
+            <HelpCircle size={20} className="text-slate-400" />
+            <span>Support</span>
+          </button>
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-2.5 text-red-600 text-sm font-medium bg-transparent border-none cursor-pointer rounded-lg hover:bg-red-50"
+          >
+            <LogOut size={20} className="text-red-400" />
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+    </>
   );
 };
 

@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Sidebar from './Sidebar';
-import { Search, Bell, Layout as Apps, User } from 'lucide-react';
+import { Search, Bell, Layout as Apps, User, Menu } from 'lucide-react';
 
 const Layout = ({ children, role }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   // Inline Styles
   const styles = {
     layout: {
@@ -13,13 +15,14 @@ const Layout = ({ children, role }) => {
     },
     main: {
       flex: 1,
-      marginLeft: '240px'
+      display: 'flex',
+      flexDirection: 'column',
+      minWidth: 0
     },
     header: {
       position: 'fixed',
       top: 0,
       right: 0,
-      left: '240px',
       height: '64px',
       zIndex: 40,
       backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -28,13 +31,12 @@ const Layout = ({ children, role }) => {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: '0 24px',
       boxSizing: 'border-box'
     },
     searchGroup: {
       display: 'flex',
       alignItems: 'center',
-      gap: '24px'
+      gap: '12px'
     },
     searchContainer: {
       position: 'relative'
@@ -54,7 +56,6 @@ const Layout = ({ children, role }) => {
       border: '1px solid #E2E8F0',
       borderRadius: '8px',
       fontSize: '14px',
-      width: '256px',
       outline: 'none',
       transition: 'all 0.2s'
     },
@@ -76,7 +77,7 @@ const Layout = ({ children, role }) => {
     actions: {
       display: 'flex',
       alignItems: 'center',
-      gap: '16px'
+      gap: '8px'
     },
     iconBtn: {
       padding: '8px',
@@ -104,7 +105,7 @@ const Layout = ({ children, role }) => {
       borderRadius: '9999px',
       overflow: 'hidden',
       border: '1px solid #E2E8F0',
-      marginLeft: '8px',
+      marginLeft: '4px',
       cursor: 'pointer',
       backgroundColor: '#F1F5F9',
       display: 'flex',
@@ -113,7 +114,6 @@ const Layout = ({ children, role }) => {
     },
     pageContent: {
       marginTop: '64px',
-      padding: '32px',
       minHeight: 'calc(100vh - 64px)',
       boxSizing: 'border-box'
     }
@@ -121,24 +121,38 @@ const Layout = ({ children, role }) => {
 
   return (
     <div style={styles.layout}>
-      <Sidebar role={role} />
+      <Sidebar 
+        role={role} 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
 
       {/* Main Content */}
-      <main style={styles.main}>
+      <main style={styles.main} className="md:ml-[240px]">
         {/* Top Navigation Bar */}
-        <header style={styles.header}>
+        <header style={styles.header} className="left-0 md:left-[240px] px-4 md:px-6">
           <div style={styles.searchGroup}>
-            <div style={styles.searchContainer}>
+            {/* Hamburger Menu Mobile */}
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg md:hidden"
+            >
+              <Menu size={24} />
+            </button>
+
+            <div style={styles.searchContainer} className="hidden sm:block">
               <span style={styles.searchIcon}>
                 <Search size={18} />
               </span>
               <input 
                 style={styles.searchInput}
-                placeholder="Search students, faculty..." 
+                className="w-48 lg:w-64 focus:w-64 lg:focus:w-80"
+                placeholder="Search..." 
                 type="text"
               />
             </div>
-            <nav style={styles.navLinks} className="hidden md:flex">
+            
+            <nav style={styles.navLinks} className="hidden lg:flex ml-4">
                 <a style={{ ...styles.navLink, ...styles.navLinkActive }} href="#">Academic Year</a>
                 <a style={styles.navLink} href="#">Term Schedule</a>
             </nav>
@@ -149,7 +163,7 @@ const Layout = ({ children, role }) => {
               <Bell size={20} />
               <span style={styles.notificationDot}></span>
             </button>
-            <button style={styles.iconBtn}>
+            <button style={styles.iconBtn} className="hidden sm:flex">
               <Apps size={20} />
             </button>
             <div style={styles.avatar}>
@@ -159,7 +173,7 @@ const Layout = ({ children, role }) => {
         </header>
 
         {/* Page Content */}
-        <div style={styles.pageContent}>
+        <div style={styles.pageContent} className="p-4 md:p-8">
           {children}
         </div>
       </main>
