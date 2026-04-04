@@ -1,0 +1,72 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        "outline-variant": "#c3c6d7",
+        "on-tertiary-fixed-variant": "#7d2d00",
+        "on-background": "#151c27",
+        "secondary-fixed-dim": "#b4c5ff",
+        "on-error": "#ffffff",
+        "primary-container": "#2563eb",
+        "on-secondary-fixed-variant": "#31447b",
+        "on-secondary-container": "#394c84",
+        "on-error-container": "#93000a",
+        "surface-tint": "#0053db",
+        "secondary-container": "#acbfff",
+        "secondary-fixed": "#dbe1ff",
+        "on-secondary-fixed": "#00174b",
+        "on-tertiary-container": "#ffede6",
+        "on-primary-fixed": "#00174b",
+        "error-container": "#ffdad6",
+        "surface-variant": "#dce2f3",
+        "primary-fixed-dim": "#b4c5ff",
+        "primary-fixed": "#dbe1ff",
+        "on-primary-container": "#eeefff",
+        "tertiary-fixed-dim": "#ffb596",
+        "error": "#ba1a1a",
+        "surface-dim": "#d3daea",
+        "surface": "#f9f9ff",
+        "outline": "#737686",
+        "surface-container-low": "#f0f3ff",
+        "on-secondary": "#ffffff",
+        "inverse-primary": "#b4c5ff",
+        "primary": "#004ac6",
+        "surface-container-high": "#e2e8f8",
+        "surface-container-lowest": "#ffffff",
+        "background": "#f9f9ff",
+        "on-surface": "#151c27",
+        "inverse-surface": "#2a313d",
+        "surface-container": "#e7eefe",
+        "surface-container-highest": "#dce2f3",
+        "on-primary-fixed-variant": "#003ea8",
+        "on-primary": "#ffffff",
+        "tertiary": "#943700",
+        "tertiary-fixed": "#ffdbcd",
+        "inverse-on-surface": "#ebf1ff",
+        "on-tertiary": "#ffffff",
+        "on-surface-variant": "#434655",
+        "on-tertiary-fixed": "#360f00",
+        "tertiary-container": "#bc4800",
+        "surface-bright": "#f9f9ff",
+        "secondary": "#495c95"
+      },
+      borderRadius: {
+        "DEFAULT": "0.125rem",
+        "lg": "0.25rem",
+        "xl": "0.5rem",
+        "full": "0.75rem"
+      },
+      fontFamily: {
+        "headline": ["Inter"],
+        "body": ["Inter"],
+        "label": ["Inter"]
+      }
+    },
+  },
+  plugins: [],
+}
