@@ -3,7 +3,7 @@ import axios from 'axios';
 import { X, ChevronDown } from 'lucide-react';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 
-const API_URL = 'https://web-production-d7c5e.up.railway.app/api/students';
+const API_URL = 'https://edusync.up.railway.app/api/students';
 
 const StudentForm = ({ isOpen, onClose, onSuccess, initialData }) => {
     const [formData, setFormData] = useState({

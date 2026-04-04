@@ -31,11 +31,11 @@ const PrincipalDashboard = () => {
                 overdueRes
             ] = await Promise.all([
                 supabase.auth.getUser(),
-                axios.get('https://web-production-d7c5e.up.railway.app/api/students'),
-                axios.get('https://web-production-d7c5e.up.railway.app/api/teachers'),
-                axios.get('https://web-production-d7c5e.up.railway.app/api/fees/stats'),
-                axios.get(`https://web-production-d7c5e.up.railway.app/api/attendance?date=${today}`),
-                axios.get('https://web-production-d7c5e.up.railway.app/api/fees?status=overdue')
+                axios.get('https://edusync.up.railway.app/api/students'),
+                axios.get('https://edusync.up.railway.app/api/teachers'),
+                axios.get('https://edusync.up.railway.app/api/fees/stats'),
+                axios.get(`https://edusync.up.railway.app/api/attendance?date=${today}`),
+                axios.get('https://edusync.up.railway.app/api/fees?status=overdue')
             ]);
 
             setUser(userRes.data.user);

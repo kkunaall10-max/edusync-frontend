@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import natureBg from '../assets/nature-bg.jpg';
 
-const API_BASE_URL = 'https://web-production-d7c5e.up.railway.app/api';
+const API_BASE_URL = 'https://edusync.up.railway.app/api';
 
 const MyStudents = () => {
     const [loading, setLoading] = useState(true);

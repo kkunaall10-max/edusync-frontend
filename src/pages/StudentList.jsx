@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 
-const API_BASE_URL = 'https://web-production-d7c5e.up.railway.app/api/students';
-const TEACHERS_API_URL = 'https://web-production-d7c5e.up.railway.app/api/teachers';
+const API_BASE_URL = 'https://edusync.up.railway.app/api/students';
+const TEACHERS_API_URL = 'https://edusync.up.railway.app/api/teachers';
 
 const StudentList = ({ role }) => {
     const [students, setStudents] = useState([]);

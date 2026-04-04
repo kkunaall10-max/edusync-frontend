@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 
-const MARKS_API_URL = 'https://web-production-d7c5e.up.railway.app/api/marks';
+const MARKS_API_URL = 'https://edusync.up.railway.app/api/marks';
 
 const Marks = () => {
     const role = 'principal';

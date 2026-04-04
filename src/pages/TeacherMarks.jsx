@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import natureBg from '../assets/nature-bg.jpg';
 
-const STUDENTS_API_URL = 'https://web-production-d7c5e.up.railway.app/api/students';
-const MARKS_API_URL = 'https://web-production-d7c5e.up.railway.app/api/marks';
-const TEACHERS_API_URL = 'https://web-production-d7c5e.up.railway.app/api/teachers';
+const STUDENTS_API_URL = 'https://edusync.up.railway.app/api/students';
+const MARKS_API_URL = 'https://edusync.up.railway.app/api/marks';
+const TEACHERS_API_URL = 'https://edusync.up.railway.app/api/teachers';
 
 const TeacherMarks = () => {
     const role = 'teacher';

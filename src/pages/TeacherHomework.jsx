@@ -5,8 +5,8 @@ import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 import natureBg from '../assets/nature-bg.jpg';
 
-const API_BASE_URL = 'https://web-production-d7c5e.up.railway.app/api/homework';
-const TEACHERS_API_URL = 'https://web-production-d7c5e.up.railway.app/api/teachers';
+const API_BASE_URL = 'https://edusync.up.railway.app/api/homework';
+const TEACHERS_API_URL = 'https://edusync.up.railway.app/api/teachers';
 
 const TeacherHomework = () => {
     const role = 'teacher';
