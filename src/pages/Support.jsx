@@ -41,7 +41,7 @@ const Support = () => {
     ];
 
     return (
-        <Layout role={role.toLowerCase()}>
+        <Layout role="principal">
             <div className="max-w-4xl mx-auto space-y-8">
                 <div className="flex justify-between items-end">
                     <div>

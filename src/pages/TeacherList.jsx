@@ -117,7 +117,7 @@ const TeacherList = ({ role }) => {
     };
 
     return (
-        <Layout role={role}>
+        <Layout role="principal">
             <div className="space-y-8">
                 {/* Page Title */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
