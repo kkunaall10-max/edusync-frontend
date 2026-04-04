@@ -64,7 +64,8 @@ export default {
       fontFamily: {
         "headline": ["Inter"],
         "body": ["Inter"],
-        "label": ["Inter"]
+        "label": ["Inter"],
+        "inter": ["Inter", "sans-serif"]
       }
     },
   },
