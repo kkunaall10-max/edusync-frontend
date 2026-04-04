@@ -5,9 +5,9 @@ import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 import natureBg from '../assets/nature-bg.jpg';
 
-const ATTENDANCE_API_URL = 'http://localhost:5000/api/attendance';
-const STUDENTS_API_URL = 'http://localhost:5000/api/students';
-const TEACHERS_API_URL = 'http://localhost:5000/api/teachers';
+const ATTENDANCE_API_URL = 'https://web-production-d7c5e.up.railway.app/api/attendance';
+const STUDENTS_API_URL = 'https://web-production-d7c5e.up.railway.app/api/students';
+const TEACHERS_API_URL = 'https://web-production-d7c5e.up.railway.app/api/teachers';
 
 const TeacherAttendance = () => {
     const role = 'teacher';
@@ -376,3 +376,4 @@ const TeacherAttendance = () => {
 };
 
 export default TeacherAttendance;
+

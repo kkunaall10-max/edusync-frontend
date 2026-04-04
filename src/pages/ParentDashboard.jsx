@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import parentBg from '../assets/parent-bg.jpg';
 
-const API_BASE_URL = 'http://localhost:5000/api/parent';
+const API_BASE_URL = 'https://web-production-d7c5e.up.railway.app/api/parent';
 
 const ParentDashboard = () => {
   const [child, setChild] = useState(null);
@@ -428,3 +428,4 @@ const ParentDashboard = () => {
 };
 
 export default ParentDashboard;
+

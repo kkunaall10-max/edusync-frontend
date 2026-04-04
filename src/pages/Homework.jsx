@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 
-const API_BASE_URL = 'http://localhost:5000/api/homework';
+const API_BASE_URL = 'https://web-production-d7c5e.up.railway.app/api/homework';
 
 const Homework = () => {
     const role = 'principal';
@@ -133,3 +133,4 @@ const Homework = () => {
 };
 
 export default Homework;
+

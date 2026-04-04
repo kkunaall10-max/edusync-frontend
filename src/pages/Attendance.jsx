@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 
-const ATTENDANCE_API_URL = 'http://localhost:5000/api/attendance';
-const STUDENTS_API_URL = 'http://localhost:5000/api/students';
+const ATTENDANCE_API_URL = 'https://web-production-d7c5e.up.railway.app/api/attendance';
+const STUDENTS_API_URL = 'https://web-production-d7c5e.up.railway.app/api/students';
 
 const Attendance = () => {
     const role = 'principal';
@@ -198,3 +198,4 @@ const Attendance = () => {
 };
 
 export default Attendance;
+
