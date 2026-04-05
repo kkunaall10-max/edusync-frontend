@@ -1,3 +1,7 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import { 
   Search, Bell, User, LayoutDashboard, LogOut, 
   Menu, X, TrendingUp, Calendar, CreditCard, 
