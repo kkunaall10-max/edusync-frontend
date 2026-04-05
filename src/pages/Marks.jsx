@@ -1,261 +1,226 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import LoadingScreen from '../components/LoadingScreen';
+import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
+import Layout from '../components/Layout';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  Cell
-} from 'recharts';
-import { 
-  Menu, X, Bell, Users, BookOpen, GraduationCap, 
-  ClipboardCheck, TrendingUp, Search, Award, TrendingDown, Target
+  GraduationCap, Search, Filter, Plus, Calendar, 
+  ChevronRight, ArrowRight, Download, BarChart2, Award, Target
 } from 'lucide-react';
 
-const API = 'https://edusync.up.railway.app';
+const API_BASE = 'https://edusync.up.railway.app/api';
 
-const Marks = ({ role = 'teacher' }) => {
-    const isTeacher = role === 'teacher';
+const Marks = () => {
     const [loading, setLoading] = useState(true);
-    const [teacherProfile, setTeacherProfile] = useState(null);
+    const [marks, setMarks] = useState([]);
     const [students, setStudents] = useState([]);
-    const [marksData, setMarksData] = useState([]);
-    
-    // FIX 2: Exactly specified exam types
+    const [filters, setFilters] = useState({
+        class: SCHOOL_CLASSES[4], // Default to Class 5
+        section: SCHOOL_SECTIONS[0],
+        exam_type: 'Unit Test',
+        subject: ''
+    });
+
     const EXAM_TYPES = ['Unit Test', 'Class Test', 'Mid Term', 'Half Yearly', 'Final Exam', 'Assignment'];
-    
-    const [selectedExam, setSelectedExam] = useState('Unit Test');
-    const [selectedSubject, setSelectedSubject] = useState('');
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [menuOpen, setMenuOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
 
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const fetchData = useCallback(async (cancelToken) => {
+    const fetchData = async () => {
+        setLoading(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { navigate('/login'); return; }
-
-            const teacherRes = await axios.get(`${API}/api/teachers/profile`, {
-                params: { email: user.email },
-                cancelToken
-            });
-            const profile = teacherRes.data;
-            setTeacherProfile(profile);
-            setSelectedSubject(profile.subject_assigned);
-
-            const [studentsRes, marksRes] = await Promise.all([
-                axios.get(`${API}/api/students`, { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
-                axios.get(`${API}/api/marks`, { params: { class: profile.class_assigned, section: profile.section_assigned, exam_type: selectedExam, subject: profile.subject_assigned }, cancelToken })
+            const [stdRes, marksRes] = await Promise.all([
+                axios.get(`${API_BASE}/students`, { params: { class: filters.class, section: filters.section } }),
+                axios.get(`${API_BASE}/marks`, { 
+                    params: { 
+                        class: filters.class, 
+                        section: filters.section,
+                        exam_type: filters.exam_type,
+                        subject: filters.subject 
+                    } 
+                })
             ]);
-
-            setStudents(studentsRes.data);
-            setMarksData(marksRes.data);
+            setStudents(stdRes.data);
+            setMarks(marksRes.data);
+        } catch (err) {
+            console.error('Error fetching marks:', err);
+        } finally {
             setLoading(false);
-        } catch (error) {
-            if (!axios.isCancel(error)) {
-                console.error("Marks Data Error:", error);
-                setLoading(false);
-            }
-        }
-    }, [selectedExam, navigate]);
-
-    useEffect(() => {
-        const source = axios.CancelToken.source();
-        fetchData(source.token);
-        return () => source.cancel();
-    }, [fetchData]);
-
-    const analytics = useMemo(() => {
-        const scores = marksData.map(m => (m.marks_obtained / m.total_marks) * 100);
-        const avg = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 0;
-        const highest = scores.length > 0 ? Math.max(...scores).toFixed(1) : 0;
-        const lowest = scores.length > 0 ? Math.min(...scores).toFixed(1) : 0;
-        return { avg, highest, lowest };
-    }, [marksData]);
-
-    const performanceData = useMemo(() => [
-        { range: '90-100', count: marksData.filter(m => (m.marks_obtained/m.total_marks)*100 >= 90).length },
-        { range: '80-89', count: marksData.filter(m => { const p = (m.marks_obtained/m.total_marks)*100; return p >= 80 && p < 90; }).length },
-        { range: '70-79', count: marksData.filter(m => { const p = (m.marks_obtained/m.total_marks)*100; return p >= 70 && p < 80; }).length },
-        { range: '60-69', count: marksData.filter(m => { const p = (m.marks_obtained/m.total_marks)*100; return p >= 60 && p < 70; }).length },
-        { range: '<60', count: marksData.filter(m => (m.marks_obtained/m.total_marks)*100 < 60).length },
-    ], [marksData]);
-
-    const styles = {
-        pageWrapper: {
-            position: 'relative', minHeight: '100vh', width: '100%',
-            overflow: 'hidden', fontFamily: "'Inter', sans-serif"
-        },
-        sidebar: {
-            position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
-            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
-            borderRight: '1px solid rgba(255,255,255,0.1)', padding: '28px 16px',
-            display: 'flex', flexDirection: 'column', zIndex: 100,
-            transform: isMobile ? (menuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
-            transition: '0.3s ease'
-        },
-        navbar: {
-            position: 'fixed', top: 0, left: isMobile ? 0 : '260px', right: 0, height: '80px',
-            background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)',
-            zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px'
-        },
-        glassCard: {
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
-            backdropFilter: 'blur(24px)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)',
-            boxShadow: '0 16px 40px rgba(0,0,0,0.2)', padding: '24px'
-        },
-        statCard: {
-          background: 'rgba(0,0,0,0.4)', borderRadius: '16px', padding: '24px',
-          border: '1px solid rgba(255,255,255,0.1)'
-        },
-        mainContent: {
-            marginLeft: isMobile ? 0 : '260px',
-            paddingTop: '100px',
-            padding: isMobile ? '100px 16px' : '100px 32px'
         }
     };
 
-    if (loading && isTeacher) return <LoadingScreen />;
+    useEffect(() => {
+        fetchData();
+    }, [filters.class, filters.section, filters.exam_type, filters.subject]);
+
+    const getMarks = (studentId) => {
+        const record = marks.find(m => m.student_id === studentId);
+        return record ? `${record.marks_obtained}/${record.total_marks}` : 'N/A';
+    };
+
+    const getPercentage = (studentId) => {
+        const record = marks.find(m => m.student_id === studentId);
+        if (!record) return 0;
+        return ((record.marks_obtained / record.total_marks) * 100).toFixed(1);
+    };
 
     return (
-        <div style={styles.pageWrapper}>
-            {/* FIX 6 consistency */}
-            <div style={{
-              position: 'fixed',
-              top: '-5%', left: '-5%',
-              width: '110vw', height: '110vh',
-              backgroundImage: 'url(/nature-bg.jpg)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              zIndex: -2,
-            }} />
-            
-            <div style={{
-              position: 'fixed',
-              top: 0, left: 0,
-              width: '100vw',
-              height: '100vh',
-              backgroundColor: 'rgba(0,0,0,0.35)',
-              zIndex: -1,
-            }} />
-
-            <aside style={styles.sidebar}>
-                {/* FIX 3 Sidebar Consistency */}
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:'40px', padding:'0 8px' }}>
-                  <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
-                  </div>
-                  <span style={{ color:'white', fontSize:18, fontWeight:800, letterSpacing:1 }}>EduSync</span>
+        <Layout role="principal">
+            <div className="space-y-8 animate-in fade-in duration-700">
+                {/* Header section with Premium White UI */}
+                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                    <div>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Academic Performance</h1>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1 italic">
+                            Institutional Scholastic Assessment Records
+                        </p>
+                    </div>
                 </div>
-                <nav style={{flex:1}}>
-                    {[
-                        { label: 'Overview', icon: <TrendingUp size={20} />, path: '/dashboard/teacher' },
-                        { label: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
-                        { label: 'Attendance', icon: <ClipboardCheck size={20} />, path: '/dashboard/teacher/attendance' },
-                        { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
-                        { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
-                    ].map(item => (
-                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
-                            {item.icon} {item.label}
+
+                {/* Filter Controls */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-white rounded-[32px] border border-slate-100 shadow-sm">
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Class</label>
+                        <select 
+                            className="h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10"
+                            value={filters.class} 
+                            onChange={(e) => setFilters({...filters, class: e.target.value})}
+                        >
+                            {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Section</label>
+                        <select 
+                            className="h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10"
+                            value={filters.section} 
+                            onChange={(e) => setFilters({...filters, section: e.target.value})}
+                        >
+                            {SCHOOL_SECTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Exam Cycle</label>
+                        <select 
+                            className="h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10"
+                            value={filters.exam_type} 
+                            onChange={(e) => setFilters({...filters, exam_type: e.target.value})}
+                        >
+                            {EXAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Export</label>
+                        <button className="h-12 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-[0.98]">
+                            <Download size={14} /> Merit Rankings
                         </button>
-                    ))}
-                </nav>
-            </aside>
-
-            <header style={styles.navbar}>
-                <div style={{display:'flex', alignItems:'center', gap:'16px'}}>
-                    {isMobile && <Menu size={24} onClick={() => setMenuOpen(true)} style={{cursor:'pointer', color:'white'}} />}
-                    <h2 style={{fontSize:'20px', fontWeight:'800', margin:0, color:'white'}}>Performance Management</h2>
+                    </div>
                 </div>
-                <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                    <select value={selectedExam} onChange={(e) => setSelectedExam(e.target.value)} style={{background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'12px', padding:'8px 12px', color:'white', outline:'none', fontSize:'13px', cursor:'pointer'}} >
-                        {EXAM_TYPES.map(type => (
-                            <option key={type} value={type} style={{color:'black'}}>{type}</option>
-                        ))}
-                    </select>
-                </div>
-            </header>
 
-            <main style={styles.mainContent}>
-                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:'20px', marginBottom:'32px'}}>
-                    {[
-                        { label: 'Class Average', value: `${analytics.avg}%`, icon: <Target size={24}/>, color: '#2563EB' },
-                        { label: 'Highest Score', value: `${analytics.highest}%`, icon: <Award size={24}/>, color: '#10B981' },
-                        { label: 'Lowest Score', value: `${analytics.lowest}%`, icon: <TrendingDown size={24}/>, color: '#EF4444' }
-                    ].map((s, i) => (
-                        <div key={i} style={styles.statCard}>
-                            <div style={{width:'48px', height:'48px', borderRadius:'14px', background:`${s.color}20`, display:'flex', alignItems:'center', justifyContent:'center', color:s.color, marginBottom:'16px'}}>{s.icon}</div>
-                            <h3 style={{fontSize:'28px', fontWeight:'800', margin:0, color:'white'}}>{s.value}</h3>
-                            <p style={{fontSize:'13px', opacity:0.6, margin:0, color:'white'}}>{s.label}</p>
+                {/* Performance Briefing */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm flex items-center gap-6">
+                        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center">
+                            <Target size={32} />
                         </div>
-                    ))}
-                </div>
-
-                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap:'24px'}}>
-                    <div style={styles.glassCard}>
-                        <h4 style={{fontSize:'18px', fontWeight:'800', margin:0, color:'white', marginBottom:'24px'}}>Grade Distribution</h4>
-                        <div style={{height:'300px', width:'100%', minWidth:0}}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={performanceData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                    <XAxis dataKey="range" stroke="rgba(255,255,255,0.4)" fontSize={12} axisLine={false} tickLine={false} />
-                                    <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} axisLine={false} tickLine={false} />
-                                    <Tooltip contentStyle={{background:'#000', border:'none', borderRadius:'12px'}} />
-                                    <Bar dataKey="count" fill="#2563EB" radius={[6,6,0,0]} barSize={40} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Cohort Average</p>
+                            <h2 className="text-3xl font-black text-slate-900">{marks.length > 0 ? (marks.reduce((a,b) => a + (b.marks_obtained/b.total_marks)*100, 0) / marks.length).toFixed(1) : 0}%</h2>
                         </div>
                     </div>
-
-                    <div style={styles.glassCard}>
-                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'24px'}}>
-                            <h4 style={{fontSize:'18px', fontWeight:'800', margin:0, color:'white'}}>Student Marks</h4>
-                            <Search size={16} style={{opacity:0.3, color:'white'}} />
+                    <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm flex items-center gap-6">
+                        <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center">
+                            <Award size={32} />
                         </div>
-                        <div style={{maxHeight:'350px', overflowY:'auto', paddingRight:'8px'}}>
-                            {students.map(student => {
-                                const record = marksData.find(m => m.student_id === student.id);
-                                return (
-                                    <div key={student.id} style={{display:'flex', items:'center', gap:'12px', padding:'12px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-                                        <div style={{flex:1}}>
-                                            <p style={{fontSize:'14px', fontWeight:'700', margin:0, color:'white'}}>{student.full_name}</p>
-                                            <p style={{fontSize:'10px', opacity:0.5, margin:0, color:'white'}}>Roll No: {student.roll_number}</p>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Peak Excellence</p>
+                            <h2 className="text-3xl font-black text-slate-900">{marks.length > 0 ? Math.max(...marks.map(m => (m.marks_obtained/m.total_marks)*100)).toFixed(1) : 0}%</h2>
+                        </div>
+                    </div>
+                    <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm flex items-center gap-6">
+                        <div className="w-16 h-16 bg-slate-900 text-white rounded-3xl flex items-center justify-center">
+                            <BarChart2 size={32} />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Assessments Tracked</p>
+                            <h2 className="text-3xl font-black text-slate-900">{marks.length}</h2>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Main Marks Table */}
+                <div className="bg-white rounded-[40px] border border-slate-100 shadow-2xl shadow-slate-200/40 overflow-hidden overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 border-bottom border-slate-100">
+                                <th className="p-6 text-[11px] font-black text-slate-400 uppercase tracking-widest">Scholar Identity</th>
+                                <th className="p-6 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Subject</th>
+                                <th className="p-6 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Score / Total</th>
+                                <th className="p-6 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Performance Rank</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="4" className="p-20 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Syncing Evaluation Metrics...</p>
                                         </div>
-                                        <input 
-                                            type="number" 
-                                            defaultValue={record?.marks_obtained}
-                                            onBlur={async (e) => {
-                                                try {
-                                                    await axios.post(`${API}/api/marks`, { 
-                                                      student_id: student.id, 
-                                                      class: teacherProfile.class_assigned, 
-                                                      section: teacherProfile.section_assigned, 
-                                                      exam_type: selectedExam, 
-                                                      subject: teacherProfile.subject_assigned, 
-                                                      marks_obtained: e.target.value, 
-                                                      total_marks: 100 
-                                                    });
-                                                } catch (err) { console.error(err); }
-                                            }}
-                                            style={{width:'65px', background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'10px', padding:'8px', color:'white', textAlign:'center', fontWeight:'700', outline:'none'}} 
-                                        />
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
+                                    </td>
+                                </tr>
+                            ) : students.length === 0 ? (
+                                <tr>
+                                    <td colSpan="4" className="p-20 text-center">
+                                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Cohort records not found</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                students.map((student) => {
+                                    const percentage = getPercentage(student.id);
+                                    const record = marks.find(m => m.student_id === student.id);
+                                    return (
+                                        <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group">
+                                            <td className="p-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-xs">
+                                                        {student.full_name?.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-sm font-black text-slate-900">{student.full_name}</h4>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Roll: {student.roll_number}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-6 text-center">
+                                                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                                                    {record?.subject || 'Pending'}
+                                                </span>
+                                            </td>
+                                            <td className="p-6 text-center">
+                                                <span className="text-sm font-black text-slate-900">{getMarks(student.id)}</span>
+                                            </td>
+                                            <td className="p-6 text-right">
+                                                <div className="flex items-center justify-end gap-3">
+                                                    <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div 
+                                                            className={`h-full rounded-full transition-all duration-1000 ${
+                                                                percentage >= 80 ? 'bg-emerald-500' :
+                                                                percentage >= 60 ? 'bg-blue-500' :
+                                                                percentage >= 40 ? 'bg-amber-500' : 'bg-rose-500'
+                                                            }`}
+                                                            style={{ width: `${percentage}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className="text-[11px] font-black text-slate-900 min-w-[40px] italic">{percentage}%</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            </main>
-        </div>
+            </div>
+        </Layout>
     );
 };
 
-export default React.memo(Marks);
+export default Marks;

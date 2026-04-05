@@ -1,286 +1,210 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import LoadingScreen from '../components/LoadingScreen';
+import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
+import Layout from '../components/Layout';
 import { 
-  Menu, X, Bell, Users, BookOpen, GraduationCap, 
-  Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Search
+  ClipboardCheck, Search, Users, Calendar, 
+  ChevronRight, ArrowRight, Download, Filter
 } from 'lucide-react';
 
-const API = 'https://edusync.up.railway.app';
+const API_BASE = 'https://edusync.up.railway.app/api';
 
-const Attendance = ({ role = 'teacher' }) => {
-    const isTeacher = role === 'teacher';
+const Attendance = () => {
     const [loading, setLoading] = useState(true);
-    const [teacherProfile, setTeacherProfile] = useState(null);
     const [students, setStudents] = useState([]);
-    const [attendance, setAttendance] = useState({});
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [menuOpen, setMenuOpen] = useState(false);
-    const navigate = useNavigate();
+    const [attendanceData, setAttendanceData] = useState([]);
+    const [filters, setFilters] = useState({
+        class: SCHOOL_CLASSES[4], // Default to Class 5
+        section: SCHOOL_SECTIONS[0],
+        date: new Date().toISOString().split('T')[0]
+    });
 
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const fetchInitialData = useCallback(async (cancelToken) => {
+    const fetchAttendance = async () => {
+        setLoading(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { navigate('/login'); return; }
-
-            const teacherRes = await axios.get(`${API}/api/teachers/profile`, {
-                params: { email: user.email },
-                cancelToken
-            });
-            const profile = teacherRes.data;
-            setTeacherProfile(profile);
-
-            const studentsRes = await axios.get(`${API}/api/students`, {
-                params: { class: profile.class_assigned, section: profile.section_assigned },
-                cancelToken
-            });
-            setStudents(studentsRes.data);
+            const [stdRes, attRes] = await Promise.all([
+                axios.get(`${API_BASE}/students`, { params: { class: filters.class, section: filters.section } }),
+                axios.get(`${API_BASE}/attendance`, { params: { class: filters.class, section: filters.section, date: filters.date } })
+            ]);
+            setStudents(stdRes.data);
+            setAttendanceData(attRes.data);
+        } catch (err) {
+            console.error('Error fetching attendance:', err);
+        } finally {
             setLoading(false);
-        } catch (error) {
-            if (!axios.isCancel(error)) {
-                console.error("Attendance Data Error:", error);
-                setLoading(false);
-            }
         }
-    }, [navigate]);
-
-    const fetchExistingAttendance = useCallback(async (date) => {
-        if (!teacherProfile) return;
-        try {
-            const res = await axios.get(`${API}/api/attendance`, {
-                params: { 
-                    class: teacherProfile.class_assigned, 
-                    section: teacherProfile.section_assigned, 
-                    date: date 
-                }
-            });
-            const existing = {};
-            res.data.forEach(record => {
-                existing[record.student_id] = record.status;
-            });
-            setAttendance(existing);
-        } catch (err) {
-            console.error("Error fetching existing attendance:", err);
-        }
-    }, [teacherProfile]);
+    };
 
     useEffect(() => {
-        const source = axios.CancelToken.source();
-        fetchInitialData(source.token);
-        return () => source.cancel();
-    }, [fetchInitialData]);
+        fetchAttendance();
+    }, [filters.class, filters.section, filters.date]);
 
-    useEffect(() => {
-        if (teacherProfile) {
-            fetchExistingAttendance(selectedDate);
-        }
-    }, [selectedDate, teacherProfile, fetchExistingAttendance]);
-
-    const markAttendance = (studentId, status) => {
-        setAttendance(prev => ({
-            ...prev,
-            [studentId]: prev[studentId] === status ? null : status
-        }));
+    const getStatus = (studentId) => {
+        const record = attendanceData.find(a => a.student_id === studentId);
+        return record ? record.status : 'N/A';
     };
 
-    const submitAttendance = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const records = students
-                .filter(s => attendance[s.id])
-                .map(s => ({
-                    student_id: s.id,
-                    class: teacherProfile.class_assigned,
-                    section: teacherProfile.section_assigned,
-                    date: selectedDate,
-                    status: attendance[s.id],
-                    marked_by: user.email
-                }));
-            
-            await axios.post(`${API}/api/attendance/mark`, { records });
-            alert('Attendance submitted successfully!');
-        } catch (err) {
-            console.error("Submit Attendance Error:", err);
-            alert('Failed to submit attendance');
-        }
+    const stats = {
+        total: students.length,
+        present: attendanceData.filter(a => a.status === 'present').length,
+        absent: attendanceData.filter(a => a.status === 'absent').length,
+        late: attendanceData.filter(a => a.status === 'late').length
     };
-
-    const stats = useMemo(() => {
-        const counts = { present: 0, absent: 0, late: 0 };
-        students.forEach(s => {
-            if (attendance[s.id]) counts[attendance[s.id]]++;
-        });
-        const total = students.length;
-        const percentage = total > 0 ? ((counts.present / total) * 100).toFixed(1) : 0;
-        return { ...counts, percentage };
-    }, [students, attendance]);
-
-    const styles = {
-        pageWrapper: {
-            position: 'relative', minHeight: '100vh', width: '100%',
-            overflow: 'hidden', fontFamily: "'Inter', sans-serif"
-        },
-        sidebar: {
-            position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
-            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
-            borderRight: '1px solid rgba(255,255,255,0.1)', padding: '28px 16px',
-            display: 'flex', flexDirection: 'column', zIndex: 100,
-            transform: isMobile ? (menuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
-            transition: '0.3s ease'
-        },
-        navbar: {
-            position: 'fixed', top: 0, left: isMobile ? 0 : '260px', right: 0, height: '80px',
-            background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)',
-            zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px'
-        },
-        mainContent: {
-            marginLeft: isMobile ? 0 : '260px',
-            paddingTop: '100px',
-            padding: isMobile ? '100px 16px' : '100px 32px'
-        },
-        statCard: {
-            background: 'rgba(0,0,0,0.4)', borderRadius: '16px', padding: '20px',
-            border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center'
-        },
-        glassCard: {
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
-            backdropFilter: 'blur(24px)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)',
-            boxShadow: '0 16px 40px rgba(0,0,0,0.2)', padding: '24px'
-        }
-    };
-
-    if (loading && isTeacher) return <LoadingScreen />;
 
     return (
-        <div style={styles.pageWrapper}>
-            {/* FIX 6 consistency */}
-            <div style={{
-              position: 'fixed',
-              top: '-5%', left: '-5%',
-              width: '110vw', height: '110vh',
-              backgroundImage: 'url(/nature-bg.jpg)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              zIndex: -2,
-            }} />
-            
-            <div style={{
-              position: 'fixed',
-              top: 0, left: 0,
-              width: '100vw',
-              height: '100vh',
-              backgroundColor: 'rgba(0,0,0,0.35)',
-              zIndex: -1,
-            }} />
-
-            <aside style={styles.sidebar}>
-                {/* FIX 3 Sidebar Consistency */}
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:'40px', padding:'0 8px' }}>
-                  <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
-                  </div>
-                  <span style={{ color:'white', fontSize:18, fontWeight:800, letterSpacing:1 }}>EduSync</span>
+        <Layout role="principal">
+            <div className="space-y-8 animate-in fade-in duration-700">
+                {/* Header section with Premium White UI */}
+                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                    <div>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Attendance Logs</h1>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1 italic">
+                            Institutional Presence Monitoring
+                        </p>
+                    </div>
                 </div>
-                <nav style={{flex:1}}>
-                    {[
-                        { label: 'Overview', icon: <TrendingUp size={20} />, path: '/dashboard/teacher' },
-                        { label: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
-                        { label: 'Attendance', icon: <ClipboardCheck size={20} />, path: '/dashboard/teacher/attendance' },
-                        { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
-                        { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
-                    ].map(item => (
-                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
-                            {item.icon} {item.label}
+
+                {/* Filter Controls */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-white rounded-[32px] border border-slate-100 shadow-sm">
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Class</label>
+                        <select 
+                            className="h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10"
+                            value={filters.class} 
+                            onChange={(e) => setFilters({...filters, class: e.target.value})}
+                        >
+                            {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Section</label>
+                        <select 
+                            className="h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10"
+                            value={filters.section} 
+                            onChange={(e) => setFilters({...filters, section: e.target.value})}
+                        >
+                            {SCHOOL_SECTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Date</label>
+                        <input 
+                            type="date"
+                            className="h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10"
+                            value={filters.date} 
+                            onChange={(e) => setFilters({...filters, date: e.target.value})}
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Actions</label>
+                        <button className="h-12 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-[0.98]">
+                            <Download size={14} /> Export CSV
                         </button>
-                    ))}
-                </nav>
-            </aside>
-
-            <header style={styles.navbar}>
-                <div style={{display:'flex', alignItems:'center', gap:'16px'}}>
-                    {isMobile && <Menu size={24} onClick={() => setMenuOpen(true)} style={{cursor:'pointer', color:'white'}} />}
-                    <h2 style={{fontSize:'20px', fontWeight:'800', margin:0, color:'white'}}>Roll Book: {teacherProfile?.class_assigned}-{teacherProfile?.section_assigned}</h2>
-                </div>
-                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} style={{background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'12px', padding:'10px 16px', color:'white', outline:'none', fontSize:'14px', cursor:'pointer'}} />
-            </header>
-
-            <main style={styles.mainContent}>
-                {/* Stats Row - FIX 4 */}
-                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap:'20px', marginBottom:'32px'}}>
-                    <div style={styles.statCard}>
-                        <p style={{fontSize:'12px', fontWeight:'700', opacity:0.6, margin:0, textTransform:'uppercase', color:'white'}}>Present</p>
-                        <h3 style={{fontSize:'24px', fontWeight:'900', margin:'8px 0 0 0', color:'#22C55E'}}>{stats.present}</h3>
-                    </div>
-                    <div style={styles.statCard}>
-                        <p style={{fontSize:'12px', fontWeight:'700', opacity:0.6, margin:0, textTransform:'uppercase', color:'white'}}>Absent</p>
-                        <h3 style={{fontSize:'24px', fontWeight:'900', margin:'8px 0 0 0', color:'#EF4444'}}>{stats.absent}</h3>
-                    </div>
-                    <div style={styles.statCard}>
-                        <p style={{fontSize:'12px', fontWeight:'700', opacity:0.6, margin:0, textTransform:'uppercase', color:'white'}}>Late</p>
-                        <h3 style={{fontSize:'24px', fontWeight:'900', margin:'8px 0 0 0', color:'#EAB308'}}>{stats.late}</h3>
-                    </div>
-                    <div style={styles.statCard}>
-                        <p style={{fontSize:'12px', fontWeight:'700', opacity:0.6, margin:0, textTransform:'uppercase', color:'white'}}>Overall %</p>
-                        <h3 style={{fontSize:'24px', fontWeight:'900', margin:'8px 0 0 0', color:'white'}}>{stats.percentage}%</h3>
                     </div>
                 </div>
 
-                <div style={styles.glassCard}>
-                    <div style={{overflowX: 'auto'}}>
-                        <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                            <thead>
-                                <tr style={{ background: 'rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
-                                    <th style={{ padding:'16px', textAlign:'left', color:'white', fontSize:12, fontWeight:700, letterSpacing:1 }}>ROLL NO</th>
-                                    <th style={{ padding:'16px', textAlign:'left', color:'white', fontSize:12, fontWeight:700, letterSpacing:1 }}>STUDENT NAME</th>
-                                    <th style={{ padding:'16px', textAlign:'center', color:'white', fontSize:12, fontWeight:700, letterSpacing:1 }}>PRESENT</th>
-                                    <th style={{ padding:'16px', textAlign:'center', color:'white', fontSize:12, fontWeight:700, letterSpacing:1 }}>ABSENT</th>
-                                    <th style={{ padding:'16px', textAlign:'center', color:'white', fontSize:12, fontWeight:700, letterSpacing:1 }}>LATE</th>
+                {/* Status Briefing */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm border-l-4 border-l-blue-600">
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enrolled Students</span>
+                            <Users size={16} className="text-blue-600" />
+                        </div>
+                        <h2 className="text-3xl font-black text-slate-900">{stats.total}</h2>
+                    </div>
+                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm border-l-4 border-l-emerald-500">
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Present Today</span>
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                        </div>
+                        <h2 className="text-3xl font-black text-slate-900">{stats.present}</h2>
+                    </div>
+                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm border-l-4 border-l-rose-500">
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Absent</span>
+                            <div className="w-2 h-2 rounded-full bg-rose-500"></div>
+                        </div>
+                        <h2 className="text-3xl font-black text-slate-900">{stats.absent}</h2>
+                    </div>
+                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm border-l-4 border-l-amber-500">
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Late Arrival</span>
+                            <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                        </div>
+                        <h2 className="text-3xl font-black text-slate-900">{stats.late}</h2>
+                    </div>
+                </div>
+
+                {/* Main Roll Sheet Table */}
+                <div className="bg-white rounded-[40px] border border-slate-100 shadow-2xl shadow-slate-200/40 overflow-hidden overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 border-bottom border-slate-100">
+                                <th className="p-6 text-[11px] font-black text-slate-400 uppercase tracking-widest">Student Identity</th>
+                                <th className="p-6 text-[11px] font-black text-slate-400 uppercase tracking-widest">Standard</th>
+                                <th className="p-6 text-[11px] font-black text-slate-400 uppercase tracking-widest">Roll No.</th>
+                                <th className="p-6 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="4" className="p-20 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Syncing Records...</p>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {students.map(student => (
-                                    <tr key={student.id} style={{
-                                        borderBottom: '1px solid rgba(255,255,255,0.08)',
-                                        background: attendance[student.id] === 'present' ? 'rgba(34,197,94,0.1)' 
-                                                  : attendance[student.id] === 'absent' ? 'rgba(239,68,68,0.1)'
-                                                  : attendance[student.id] === 'late' ? 'rgba(234,179,8,0.1)' : 'transparent',
-                                        transition: 'background 0.2s',
-                                    }}>
-                                        <td style={{ padding:'16px', color:'rgba(255,255,255,0.8)', fontSize:14, fontWeight:700 }}>{student.roll_number}</td>
-                                        <td style={{ padding:'16px', color:'white', fontSize:14, fontWeight:600 }}>{student.full_name}</td>
-                                        <td style={{ padding:'16px', textAlign:'center' }}>
-                                            <button onClick={() => markAttendance(student.id, 'present')} style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid', borderColor: attendance[student.id]==='present' ? '#22C55E' : 'rgba(255,255,255,0.3)', background: attendance[student.id]==='present' ? '#22C55E' : 'transparent', cursor: 'pointer', color: 'white', fontWeight: 800 }}>✓</button>
-                                        </td>
-                                        <td style={{ padding:'16px', textAlign:'center' }}>
-                                            <button onClick={() => markAttendance(student.id, 'absent')} style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid', borderColor: attendance[student.id]==='absent' ? '#EF4444' : 'rgba(255,255,255,0.3)', background: attendance[student.id]==='absent' ? '#EF4444' : 'transparent', cursor: 'pointer', color: 'white', fontWeight: 800 }}>✗</button>
-                                        </td>
-                                        <td style={{ padding:'16px', textAlign:'center' }}>
-                                            <button onClick={() => markAttendance(student.id, 'late')} style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid', borderColor: attendance[student.id]==='late' ? '#EAB308' : 'rgba(255,255,255,0.3)', background: attendance[student.id]==='late' ? '#EAB308' : 'transparent', cursor: 'pointer', color: 'white', fontWeight: 800 }}>L</button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <button 
-                        onClick={submitAttendance}
-                        style={{ width:'100%', padding:'16px', background:'#2563EB', color:'white', border:'none', borderRadius:'16px', fontWeight:'800', marginTop:'24px', cursor:'pointer' }}
-                    >
-                        Save Attendance Records
-                    </button>
+                            ) : students.length === 0 ? (
+                                <tr>
+                                    <td colSpan="4" className="p-20 text-center">
+                                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No scholars found in this division</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                students.map((student) => {
+                                    const status = getStatus(student.id);
+                                    return (
+                                        <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group">
+                                            <td className="p-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-xs">
+                                                        {student.full_name?.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-sm font-black text-slate-900">{student.full_name}</h4>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{student.parent_email || 'No Email'}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-6">
+                                                <span className="text-xs font-black text-slate-700">{student.class} - {student.section}</span>
+                                            </td>
+                                            <td className="p-6">
+                                                <span className="text-xs font-black text-slate-700">{student.roll_number}</span>
+                                            </td>
+                                            <td className="p-6 text-center">
+                                                <span className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                    status === 'present' ? 'bg-emerald-50 text-emerald-600' :
+                                                    status === 'absent' ? 'bg-rose-50 text-rose-600' :
+                                                    status === 'late' ? 'bg-amber-50 text-amber-600' :
+                                                    'bg-slate-100 text-slate-400'
+                                                }`}>
+                                                    {status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            </main>
-        </div>
+            </div>
+        </Layout>
     );
 };
 
-export default React.memo(Attendance);
+export default Attendance;

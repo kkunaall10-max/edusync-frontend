@@ -1,283 +1,282 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import Layout from '../components/Layout';
-import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
+import LoadingScreen from '../components/LoadingScreen';
+import { 
+  Menu, X, Bell, Users, BookOpen, GraduationCap, 
+  Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Search
+} from 'lucide-react';
 
-const ATTENDANCE_API_URL = 'https://edusync.up.railway.app/api/attendance';
-const STUDENTS_API_URL = 'https://edusync.up.railway.app/api/students';
-const TEACHERS_API_URL = 'https://edusync.up.railway.app/api/teachers';
+const API = 'https://edusync.up.railway.app';
 
 const TeacherAttendance = () => {
+    const [loading, setLoading] = useState(true);
+    const [teacherProfile, setTeacherProfile] = useState(null);
     const [students, setStudents] = useState([]);
     const [attendance, setAttendance] = useState({});
-    const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [user, setUser] = useState(null);
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [teacherProfile, setTeacherProfile] = useState(null);
-    const [filters, setFilters] = useState({
-        class: SCHOOL_CLASSES[3], 
-        section: SCHOOL_SECTIONS[0], 
-        date: new Date().toISOString().split('T')[0]
-    });
-    const [searchQuery, setSearchQuery] = useState('');
-
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [menuOpen, setMenuOpen] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchProfileData = async () => {
-            const { data: { user: currentUser } } = await supabase.auth.getUser();
-            setUser(currentUser);
-
-            if (currentUser) {
-                try {
-                    const res = await axios.get(TEACHERS_API_URL, { params: { email: currentUser.email } });
-                    if (res.data && res.data.length > 0) {
-                        const profile = res.data[0];
-                        setTeacherProfile(profile);
-                        setFilters(prev => ({ 
-                            ...prev, 
-                            class: profile.class_assigned || SCHOOL_CLASSES[3], 
-                            section: profile.section_assigned || SCHOOL_SECTIONS[0] 
-                        }));
-                    }
-                } catch (err) {
-                    console.error('Error fetching teacher profile:', err);
-                }
-            }
-        };
-        fetchProfileData();
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const fetchStudentsAndAttendance = async () => {
-        if (!filters.class || !filters.section) return;
-        setLoading(true);
+    const fetchInitialData = useCallback(async (cancelToken) => {
         try {
-            const studentsRes = await axios.get(STUDENTS_API_URL, { 
-                params: { class: filters.class, section: filters.section } 
-            });
-            const studentData = studentsRes.data;
-            setStudents(studentData);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { navigate('/login'); return; }
 
-            const attendanceRes = await axios.get(ATTENDANCE_API_URL, { 
-                params: { ...filters } 
+            const teacherRes = await axios.get(`${API}/api/teachers/profile`, {
+                params: { email: user.email },
+                cancelToken
             });
-            
-            const existingAttendance = {};
-            attendanceRes.data.forEach(record => {
-                existingAttendance[record.student_id] = record.status;
-            });
+            const profile = teacherRes.data;
+            setTeacherProfile(profile);
 
-            const initialAttendance = {};
-            studentData.forEach(student => {
-                initialAttendance[student.id] = existingAttendance[student.id] || 'present';
+            const studentsRes = await axios.get(`${API}/api/students`, {
+                params: { class: profile.class_assigned, section: profile.section_assigned },
+                cancelToken
             });
-            setAttendance(initialAttendance);
-        } catch (error) {
-            console.error('Error fetching student data:', error);
-        } finally {
+            setStudents(studentsRes.data);
             setLoading(false);
+        } catch (error) {
+            if (!axios.isCancel(error)) {
+                console.error("Attendance Data Error:", error);
+                setLoading(false);
+            }
         }
-    };
+    }, [navigate]);
+
+    const fetchExistingAttendance = useCallback(async (date) => {
+        if (!teacherProfile) return;
+        try {
+            const res = await axios.get(`${API}/api/attendance`, {
+                params: { 
+                    class: teacherProfile.class_assigned, 
+                    section: teacherProfile.section_assigned, 
+                    date: date 
+                }
+            });
+            const existing = {};
+            res.data.forEach(record => {
+                existing[record.student_id] = record.status;
+            });
+            setAttendance(existing);
+        } catch (err) {
+            console.error("Error fetching existing attendance:", err);
+        }
+    }, [teacherProfile]);
 
     useEffect(() => {
-        fetchStudentsAndAttendance();
-    }, [filters.class, filters.section, filters.date]);
+        const source = axios.CancelToken.source();
+        fetchInitialData(source.token);
+        return () => source.cancel();
+    }, [fetchInitialData]);
 
-    const handleStatusChange = (studentId, status) => {
-        setAttendance(prev => ({ ...prev, [studentId]: status }));
+    useEffect(() => {
+        if (teacherProfile) {
+            fetchExistingAttendance(selectedDate);
+        }
+    }, [selectedDate, teacherProfile, fetchExistingAttendance]);
+
+    const markAttendance = (studentId, status) => {
+        setAttendance(prev => ({
+            ...prev,
+            [studentId]: prev[studentId] === status ? null : status
+        }));
     };
 
-    const handleSubmit = async () => {
-        setSaving(true);
+    const submitAttendance = async () => {
         try {
-            const attendanceData = Object.entries(attendance).map(([studentId, status]) => ({
-                student_id: studentId,
-                status,
-                date: filters.date,
-                class: filters.class,
-                section: filters.section,
-                marked_by: user?.email || 'System'
-            }));
-
-            await axios.post(`${ATTENDANCE_API_URL}/mark`, { attendanceData });
-            setShowSuccess(true);
-            setTimeout(() => setShowSuccess(false), 3000);
-        } catch (error) {
-            alert('Error saving attendance: ' + (error.response?.data?.error || error.message));
-        } finally {
-            setSaving(false);
+            const { data: { user } } = await supabase.auth.getUser();
+            const records = students
+                .filter(s => attendance[s.id])
+                .map(s => ({
+                    student_id: s.id,
+                    class: teacherProfile.class_assigned,
+                    section: teacherProfile.section_assigned,
+                    date: selectedDate,
+                    status: attendance[s.id],
+                    marked_by: user.email
+                }));
+            
+            await axios.post(`${API}/api/attendance/mark`, { records });
+            alert('Attendance submitted successfully!');
+        } catch (err) {
+            console.error("Submit Attendance Error:", err);
+            alert('Failed to submit attendance');
         }
     };
 
-    const filteredStudents = students.filter(student => 
-        student.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.roll_number.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const stats = useMemo(() => {
+        const counts = { present: 0, absent: 0, late: 0 };
+        students.forEach(s => {
+            if (attendance[s.id]) counts[attendance[s.id]]++;
+        });
+        const total = students.length;
+        const percentage = total > 0 ? ((counts.present / total) * 100).toFixed(1) : 0;
+        return { ...counts, percentage };
+    }, [students, attendance]);
 
-    const counts = {
-        present: Object.values(attendance).filter(s => s === 'present').length,
-        absent: Object.values(attendance).filter(s => s === 'absent').length,
-        late: Object.values(attendance).filter(s => s === 'late').length
+    const styles = {
+        pageWrapper: {
+            position: 'relative', minHeight: '100vh', width: '100%',
+            overflow: 'hidden', fontFamily: "'Inter', sans-serif"
+        },
+        sidebar: {
+            position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
+            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+            borderRight: '1px solid rgba(255,255,255,0.1)', padding: '28px 16px',
+            display: 'flex', flexDirection: 'column', zIndex: 100,
+            transform: isMobile ? (menuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
+            transition: '0.3s ease'
+        },
+        navbar: {
+            position: 'fixed', top: 0, left: isMobile ? 0 : '260px', right: 0, height: '80px',
+            background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)',
+            zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px'
+        },
+        mainContent: {
+            marginLeft: isMobile ? 0 : '260px',
+            paddingTop: '100px',
+            padding: isMobile ? '100px 16px' : '100px 32px'
+        },
+        statCard: {
+            background: 'rgba(0,0,0,0.4)', borderRadius: '16px', padding: '20px',
+            border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center'
+        },
+        glassCard: {
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
+            backdropFilter: 'blur(24px)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)',
+            boxShadow: '0 16px 40px rgba(0,0,0,0.2)', padding: '24px'
+        }
     };
 
-    const getInitials = (name) => {
-        if (!name) return '??';
-        const parts = name.split(' ');
-        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-        return name[0].toUpperCase();
-    };
+    if (loading) return <LoadingScreen />;
 
     return (
-        <Layout role="teacher">
-            <div className="space-y-8">
-                {showSuccess && (
-                    <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center gap-3 text-emerald-700 animate-in fade-in slide-in-from-top-4">
-                        <span className="material-symbols-outlined">check_circle</span>
-                        <span className="font-bold">Attendance synchronized successfully.</span>
-                    </div>
-                )}
+        <div style={styles.pageWrapper}>
+            <div style={{
+              position: 'fixed',
+              top: '-5%', left: '-5%',
+              width: '110vw', height: '110vh',
+              backgroundImage: 'url(/nature-bg.jpg)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              zIndex: -2,
+            }} />
+            
+            <div style={{
+              position: 'fixed',
+              top: 0, left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(0,0,0,0.35)',
+              zIndex: -1,
+            }} />
 
-                <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-                    <div>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Attendance</h1>
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">
-                            Class {filters.class} — Section {filters.section}
-                        </p>
-                    </div>
+            <aside style={styles.sidebar}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:'40px', padding:'0 8px' }}>
+                  <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
+                  </div>
+                  <span style={{ color:'white', fontSize:18, fontWeight:800, letterSpacing:1 }}>EduSync</span>
+                </div>
+                <nav style={{flex:1}}>
+                    {[
+                        { label: 'Overview', icon: <TrendingUp size={20} />, path: '/dashboard/teacher' },
+                        { label: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
+                        { label: 'Attendance', icon: <ClipboardCheck size={20} />, path: '/dashboard/teacher/attendance' },
+                        { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
+                        { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
+                    ].map(item => (
+                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
+                            {item.icon} {item.label}
+                        </button>
+                    ))}
+                </nav>
+            </aside>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                        <div className="relative w-full sm:w-64">
-                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-                            <input 
-                                type="text" 
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search learner..." 
-                                className="w-full h-12 bg-white border border-slate-200 rounded-2xl pl-12 pr-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all shadow-sm"
-                            />
-                        </div>
-                        <input 
-                            type="date" 
-                            value={filters.date} 
-                            onChange={(e) => setFilters(prev => ({ ...prev, date: e.target.value }))}
-                            className="h-12 px-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none shadow-sm focus:ring-2 focus:ring-blue-600/10 transition-all"
-                        />
+            <header style={styles.navbar}>
+                <div style={{display:'flex', alignItems:'center', gap:'16px'}}>
+                    {isMobile && <Menu size={24} onClick={() => setMenuOpen(true)} style={{cursor:'pointer', color:'white'}} />}
+                    <h2 style={{fontSize:'20px', fontWeight:'800', margin:0, color:'white'}}>Roll Book: {teacherProfile?.class_assigned}-{teacherProfile?.section_assigned}</h2>
+                </div>
+                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} style={{background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'12px', padding:'10px 16px', color:'white', outline:'none', fontSize:'14px', cursor:'pointer'}} />
+            </header>
+
+            <main style={styles.mainContent}>
+                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap:'20px', marginBottom:'32px'}}>
+                    <div style={styles.statCard}>
+                        <p style={{fontSize:'12px', fontWeight:'700', opacity:0.6, margin:0, textTransform:'uppercase', color:'white'}}>Present</p>
+                        <h3 style={{fontSize:'24px', fontWeight:'900', margin:'8px 0 0 0', color:'#22C55E'}}>{stats.present}</h3>
+                    </div>
+                    <div style={styles.statCard}>
+                        <p style={{fontSize:'12px', fontWeight:'700', opacity:0.6, margin:0, textTransform:'uppercase', color:'white'}}>Absent</p>
+                        <h3 style={{fontSize:'24px', fontWeight:'900', margin:'8px 0 0 0', color:'#EF4444'}}>{stats.absent}</h3>
+                    </div>
+                    <div style={styles.statCard}>
+                        <p style={{fontSize:'12px', fontWeight:'700', opacity:0.6, margin:0, textTransform:'uppercase', color:'white'}}>Late</p>
+                        <h3 style={{fontSize:'24px', fontWeight:'900', margin:'8px 0 0 0', color:'#EAB308'}}>{stats.late}</h3>
+                    </div>
+                    <div style={styles.statCard}>
+                        <p style={{fontSize:'12px', fontWeight:'700', opacity:0.6, margin:0, textTransform:'uppercase', color:'white'}}>Overall %</p>
+                        <h3 style={{fontSize:'24px', fontWeight:'900', margin:'8px 0 0 0', color:'white'}}>{stats.percentage}%</h3>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                <div style={styles.glassCard}>
+                    <div style={{overflowX: 'auto'}}>
+                        <table style={{ width:'100%', borderCollapse:'collapse' }}>
                             <thead>
-                                <tr className="bg-slate-50/50">
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Roll</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Identity</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status Selection</th>
+                                <tr style={{ background: 'rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
+                                    <th style={{ padding:'16px', textAlign:'left', color:'white', fontSize:12, fontWeight:700, letterSpacing:1 }}>ROLL NO</th>
+                                    <th style={{ padding:'16px', textAlign:'left', color:'white', fontSize:12, fontWeight:700, letterSpacing:1 }}>STUDENT NAME</th>
+                                    <th style={{ padding:'16px', textAlign:'center', color:'white', fontSize:12, fontWeight:700, letterSpacing:1 }}>PRESENT</th>
+                                    <th style={{ padding:'16px', textAlign:'center', color:'white', fontSize:12, fontWeight:700, letterSpacing:1 }}>ABSENT</th>
+                                    <th style={{ padding:'16px', textAlign:'center', color:'white', fontSize:12, fontWeight:700, letterSpacing:1 }}>LATE</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan="3" className="px-8 py-20 text-center">
-                                            <div className="flex flex-col items-center gap-3">
-                                                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                                                <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Synchronizing Registry...</p>
-                                            </div>
+                            <tbody>
+                                {students.map(student => (
+                                    <tr key={student.id} style={{
+                                        borderBottom: '1px solid rgba(255,255,255,0.08)',
+                                        background: attendance[student.id] === 'present' ? 'rgba(34,197,94,0.1)' 
+                                                  : attendance[student.id] === 'absent' ? 'rgba(239,68,68,0.1)'
+                                                  : attendance[student.id] === 'late' ? 'rgba(234,179,8,0.1)' : 'transparent',
+                                        transition: 'background 0.2s',
+                                    }}>
+                                        <td style={{ padding:'16px', color:'rgba(255,255,255,0.8)', fontSize:14, fontWeight:700 }}>{student.roll_number}</td>
+                                        <td style={{ padding:'16px', color:'white', fontSize:14, fontWeight:600 }}>{student.full_name}</td>
+                                        <td style={{ padding:'16px', textAlign:'center' }}>
+                                            <button onClick={() => markAttendance(student.id, 'present')} style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid', borderColor: attendance[student.id]==='present' ? '#22C55E' : 'rgba(255,255,255,0.3)', background: attendance[student.id]==='present' ? '#22C55E' : 'transparent', cursor: 'pointer', color: 'white', fontWeight: 800 }}>✓</button>
+                                        </td>
+                                        <td style={{ padding:'16px', textAlign:'center' }}>
+                                            <button onClick={() => markAttendance(student.id, 'absent')} style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid', borderColor: attendance[student.id]==='absent' ? '#EF4444' : 'rgba(255,255,255,0.3)', background: attendance[student.id]==='absent' ? '#EF4444' : 'transparent', cursor: 'pointer', color: 'white', fontWeight: 800 }}>✗</button>
+                                        </td>
+                                        <td style={{ padding:'16px', textAlign:'center' }}>
+                                            <button onClick={() => markAttendance(student.id, 'late')} style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid', borderColor: attendance[student.id]==='late' ? '#EAB308' : 'rgba(255,255,255,0.3)', background: attendance[student.id]==='late' ? '#EAB308' : 'transparent', cursor: 'pointer', color: 'white', fontWeight: 800 }}>L</button>
                                         </td>
                                     </tr>
-                                ) : filteredStudents.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="3" className="px-8 py-20 text-center">
-                                            <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No learners found in this sector</p>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredStudents.map((student) => (
-                                        <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group">
-                                            <td className="px-8 py-6 text-sm font-black text-slate-900">{student.roll_number}</td>
-                                            <td className="px-8 py-6">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-xs shadow-lg shadow-slate-200">
-                                                        {getInitials(student.full_name)}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-black text-slate-900 leading-tight">{student.full_name}</p>
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{student.parent_email}</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <div className="flex items-center justify-center gap-3 text-white">
-                                                    <button 
-                                                        onClick={() => handleStatusChange(student.id, 'present')}
-                                                        className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                            attendance[student.id] === 'present' 
-                                                            ? 'bg-emerald-500 shadow-lg shadow-emerald-100 ring-2 ring-emerald-500 ring-offset-2' 
-                                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                                                        }`}
-                                                    >
-                                                        Present
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleStatusChange(student.id, 'absent')}
-                                                        className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                            attendance[student.id] === 'absent' 
-                                                            ? 'bg-rose-500 shadow-lg shadow-rose-100 ring-2 ring-rose-500 ring-offset-2' 
-                                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                                                        }`}
-                                                    >
-                                                        Absent
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleStatusChange(student.id, 'late')}
-                                                        className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                            attendance[student.id] === 'late' 
-                                                            ? 'bg-amber-500 shadow-lg shadow-amber-100 ring-2 ring-amber-500 ring-offset-2' 
-                                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                                                        }`}
-                                                    >
-                                                        Late
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
+                                ))}
                             </tbody>
                         </table>
                     </div>
-                </div>
-
-                <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-4">
-                    <div className="flex items-center gap-8 bg-white px-8 py-4 rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-                        <div className="flex items-center gap-3">
-                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Present: <span className="text-slate-900 ml-1">{counts.present}</span></span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
-                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Absent: <span className="text-slate-900 ml-1">{counts.absent}</span></span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
-                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Late: <span className="text-slate-900 ml-1">{counts.late}</span></span>
-                        </div>
-                    </div>
-                    
                     <button 
-                        onClick={handleSubmit} 
-                        disabled={saving || students.length === 0} 
-                        className="w-full md:w-auto h-16 px-12 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 text-white rounded-[24px] text-sm font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-100 transition-all hover:-translate-y-1 active:translate-y-0"
+                        onClick={submitAttendance}
+                        style={{ width:'100%', padding:'16px', background:'#2563EB', color:'white', border:'none', borderRadius:'16px', fontWeight:'800', marginTop:'24px', cursor:'pointer' }}
                     >
-                        {saving ? 'Synchronizing...' : 'Submit Attendance'}
+                        Save Attendance Records
                     </button>
                 </div>
-            </div>
-        </Layout>
+            </main>
+        </div>
     );
 };
 
-export default TeacherAttendance;
+export default React.memo(TeacherAttendance);

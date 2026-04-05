@@ -1,270 +1,147 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import LoadingScreen from '../components/LoadingScreen';
+import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
+import Layout from '../components/Layout';
 import { 
-  Menu, X, Bell, Users, BookOpen, GraduationCap, 
-  Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Plus
+  BookOpen, Search, Filter, Plus, Calendar, 
+  ChevronRight, ArrowRight, Download, Trash2, Edit
 } from 'lucide-react';
 
-const API = 'https://edusync.up.railway.app';
+const API_BASE = 'https://edusync.up.railway.app/api';
 
-const Homework = ({ role = 'teacher' }) => {
-    const isTeacher = role === 'teacher';
+const Homework = () => {
     const [loading, setLoading] = useState(true);
     const [homework, setHomework] = useState([]);
-    const [teacherProfile, setTeacherProfile] = useState(null);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    
-    // FIX 3: Homework Form State with Subject auto-fill logic
-    const [showForm, setShowForm] = useState(false);
-    const [newHomework, setNewHomework] = useState({
-        title: '',
-        description: '',
-        due_date: '',
+    const [filters, setFilters] = useState({
+        class: SCHOOL_CLASSES[4], // Default to Class 5
+        section: SCHOOL_SECTIONS[0],
         subject: ''
     });
 
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const fetchInitialData = useCallback(async (cancelToken) => {
+    const fetchHomework = async () => {
+        setLoading(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { navigate('/login'); return; }
-
-            const profileRes = await axios.get(`${API}/api/teachers/profile`, {
-                params: { email: user.email },
-                cancelToken
-            });
-            const profile = profileRes.data;
-            setTeacherProfile(profile);
-
-            const hwRes = await axios.get(`${API}/api/homework`, {
+            const res = await axios.get(`${API_BASE}/homework`, { 
                 params: { 
-                    class: profile.class_assigned, 
-                    section: profile.section_assigned 
-                },
-                cancelToken
+                    class: filters.class, 
+                    section: filters.section,
+                    subject: filters.subject 
+                } 
             });
-            setHomework(hwRes.data);
-            setLoading(false);
-        } catch (error) {
-            if (!axios.isCancel(error)) {
-                console.error("Homework Fetch Error:", error);
-                setLoading(false);
-            }
-        }
-    }, [navigate]);
-
-    useEffect(() => {
-        const source = axios.CancelToken.source();
-        fetchInitialData(source.token);
-        return () => source.cancel();
-    }, [fetchInitialData]);
-
-    // FIX 3: Auto-fill subject when teacher data loads
-    useEffect(() => {
-        if (teacherProfile?.subject_assigned) {
-            setNewHomework(prev => ({
-                ...prev,
-                subject: teacherProfile.subject_assigned
-            }));
-        }
-    }, [teacherProfile]);
-
-    const handleCreateHomework = async (e) => {
-        e.preventDefault();
-        try {
-            // FIX 3: Submit with teacher profile details
-            const payload = {
-                teacher_id: teacherProfile.id,
-                class: teacherProfile.class_assigned,
-                section: teacherProfile.section_assigned,
-                subject: teacherProfile.subject_assigned,
-                title: newHomework.title,
-                description: newHomework.description,
-                due_date: newHomework.due_date
-            };
-            await axios.post(`${API}/api/homework`, payload);
-            alert('Homework assigned successfully!');
-            setShowForm(false);
-            
-            // Refresh list
-            const hwRes = await axios.get(`${API}/api/homework`, {
-                params: { 
-                    class: teacherProfile.class_assigned, 
-                    section: teacherProfile.section_assigned 
-                }
-            });
-            setHomework(hwRes.data);
-            setNewHomework(prev => ({ ...prev, title: '', description: '', due_date: '' }));
+            setHomework(res.data);
         } catch (err) {
-            console.error("Post Homework Error:", err);
-            alert('Failed to assign homework');
+            console.error('Error fetching homework:', err);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const styles = {
-        pageWrapper: {
-            position: 'relative', minHeight: '100vh', width: '100%',
-            overflow: 'hidden', fontFamily: "'Inter', sans-serif"
-        },
-        sidebar: {
-            position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
-            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
-            borderRight: '1px solid rgba(255,255,255,0.1)', padding: '28px 16px',
-            display: 'flex', flexDirection: 'column', zIndex: 100,
-            transform: isMobile ? (isMobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
-            transition: '0.3s ease'
-        },
-        navbar: {
-            position: 'fixed', top: 0, left: isMobile ? 0 : '260px', right: 0, height: '80px',
-            background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)',
-            zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px'
-        },
-        mainContent: {
-            marginLeft: isMobile ? 0 : '260px',
-            paddingTop: '100px',
-            padding: isMobile ? '100px 16px' : '100px 32px'
-        },
-        glassCard: {
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
-            backdropFilter: 'blur(24px)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)',
-            boxShadow: '0 16px 40px rgba(0,0,0,0.2)', padding: '24px'
-        },
-        input: {
-            width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '12px', padding: '12px 16px', color: 'white', outline: 'none', marginBottom: '16px'
-        },
-        readOnlyInput: {
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: 12,
-            padding: '12px 16px',
-            color: 'rgba(255,255,255,0.6)',
-            width: '100%',
-            cursor: 'not-allowed',
-            marginBottom: '16px',
-            outline: 'none'
-        }
-    };
-
-    if (loading && isTeacher) return <LoadingScreen />;
+    useEffect(() => {
+        fetchHomework();
+    }, [filters.class, filters.section, filters.subject]);
 
     return (
-        <div style={styles.pageWrapper}>
-            <div style={{
-              position: 'fixed',
-              top: '-5%', left: '-5%',
-              width: '110vw', height: '110vh',
-              backgroundImage: 'url(/nature-bg.jpg)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              zIndex: -2,
-            }} />
-            
-            <div style={{
-              position: 'fixed',
-              top: 0, left: 0,
-              width: '100vw',
-              height: '100vh',
-              backgroundColor: 'rgba(0,0,0,0.35)',
-              zIndex: -1,
-            }} />
-
-            <aside style={styles.sidebar}>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:'40px', padding:'0 8px' }}>
-                  <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
-                  </div>
-                  <span style={{ color:'white', fontSize:18, fontWeight:800, letterSpacing:1 }}>EduSync</span>
-                </div>
-                <nav style={{flex:1}}>
-                    {[
-                        { label: 'Overview', icon: <TrendingUp size={20} />, path: '/dashboard/teacher' },
-                        { label: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
-                        { label: 'Attendance', icon: <ClipboardCheck size={20} />, path: '/dashboard/teacher/attendance' },
-                        { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
-                        { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
-                    ].map(item => (
-                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if(isMobile) setIsMobileMenuOpen(false); }}>
-                            {item.icon} {item.label}
-                        </button>
-                    ))}
-                </nav>
-            </aside>
-
-            <header style={styles.navbar}>
-                <div style={{display:'flex', alignItems:'center', gap:'16px'}}>
-                    {isMobile && <Menu size={24} onClick={() => setIsMobileMenuOpen(true)} style={{cursor:'pointer', color:'white'}} />}
-                    <h2 style={{fontSize:'20px', fontWeight:'800', margin:0, color:'white'}}>Homework Manager</h2>
-                </div>
-                <button 
-                    onClick={() => setShowForm(!showForm)}
-                    style={{background:'#2563EB', color:'white', border:'none', borderRadius:'12px', padding:'8px 16px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', gap:'8px'}}
-                >
-                    <Plus size={18} /> {showForm ? 'Cancel' : 'Assign Homework'}
-                </button>
-            </header>
-
-            <main style={styles.mainContent}>
-                {showForm && (
-                    <div style={{...styles.glassCard, marginBottom:'32px'}}>
-                        <h3 style={{fontSize:'18px', fontWeight:'800', marginBottom:'20px', margin:0, color:'white'}}>New Homework for Class {teacherProfile?.class_assigned}-{teacherProfile?.section_assigned}</h3>
-                        <form onSubmit={handleCreateHomework}>
-                            <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:'20px'}}>
-                                <div>
-                                    <label style={{fontSize:'12px', fontWeight:'600', opacity:0.6, display:'block', marginBottom:'8px', color:'white'}}>Homework Title</label>
-                                    <input style={styles.input} placeholder="e.g. Algebra Exercise 1" value={newHomework.title} onChange={e => setNewHomework({...newHomework, title: e.target.value})} required />
-                                </div>
-                                <div>
-                                    <label style={{fontSize:'12px', fontWeight:'600', opacity:0.6, display:'block', marginBottom:'8px', color:'white'}}>Subject</label>
-                                    <input style={styles.readOnlyInput} value={newHomework.subject} readOnly />
-                                </div>
-                            </div>
-                            <div>
-                                <label style={{fontSize:'12px', fontWeight:'600', opacity:0.6, display:'block', marginBottom:'8px', color:'white'}}>Due Date</label>
-                                <input type="date" style={styles.input} value={newHomework.due_date} onChange={e => setNewHomework({...newHomework, due_date: e.target.value})} required />
-                            </div>
-                            <div>
-                                <label style={{fontSize:'12px', fontWeight:'600', opacity:0.6, display:'block', marginBottom:'8px', color:'white'}}>Description / Instructions</label>
-                                <textarea style={{...styles.input, minHeight:'100px', resize:'none'}} value={newHomework.description} onChange={e => setNewHomework({...newHomework, description: e.target.value})} required />
-                            </div>
-                            <button type="submit" style={{width:'100%', padding:'14px', background:'#2563EB', color:'white', border:'none', borderRadius:'12px', fontWeight:'700', cursor:'pointer'}}>Post Assignment</button>
-                        </form>
+        <Layout role="principal">
+            <div className="space-y-8 animate-in fade-in duration-700">
+                {/* Header section with Premium White UI */}
+                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                    <div>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Curriculum Assignments</h1>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1 italic">
+                            Institutional Scholarly Task Management
+                        </p>
                     </div>
-                )}
+                </div>
 
-                <div style={{display:'flex', flexDirection:'column', gap:'16px'}}>
-                    {homework.map((hw) => (
-                        <div key={hw.id} style={styles.glassCard}>
-                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
-                                <div style={{flex:1}}>
-                                    <div style={{display:'inline-flex', padding:'4px 10px', background:'rgba(255,255,255,0.1)', borderRadius:'8px', fontSize:'11px', fontWeight:'800', textTransform:'uppercase', gap:'4px', marginBottom:'12px', color:'white'}}>
-                                        <span>{hw.subject}</span>
-                                    </div>
-                                    <h3 style={{fontSize:'20px', fontWeight:'800', margin:'0 0 8px 0', letterSpacing:'-0.5px', color:'white'}}>{hw.title}</h3>
-                                    <p style={{fontSize:'14px', opacity:0.6, margin:0, lineHeight:'1.6', color:'white'}}>{hw.description}</p>
-                                </div>
-                                <div style={{textAlign:'right', paddingLeft:'20px'}}>
-                                    <p style={{fontSize:'10px', fontWeight:'900', color:'rgba(255,255,255,0.3)', textTransform:'uppercase', margin:'0 0 4px 0'}}>Deadline</p>
-                                    <div style={{fontSize:'15px', fontWeight:'900', color:'#FCA5A5'}}>{new Date(hw.due_date).toLocaleDateString()}</div>
-                                </div>
+                {/* Filter Controls */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-white rounded-[32px] border border-slate-100 shadow-sm">
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Class</label>
+                        <select 
+                            className="h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10"
+                            value={filters.class} 
+                            onChange={(e) => setFilters({...filters, class: e.target.value})}
+                        >
+                            {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Section</label>
+                        <select 
+                            className="h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10"
+                            value={filters.section} 
+                            onChange={(e) => setFilters({...filters, section: e.target.value})}
+                        >
+                            {SCHOOL_SECTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Subject</label>
+                        <input 
+                            placeholder="All Subjects"
+                            className="h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10"
+                            value={filters.subject} 
+                            onChange={(e) => setFilters({...filters, subject: e.target.value})}
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Report</label>
+                        <button className="h-12 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-[0.98]">
+                            <Download size={14} /> Export Assignments
+                        </button>
+                    </div>
+                </div>
+
+                {/* Main Content Area */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {loading ? (
+                        <div className="col-span-full py-20 text-center">
+                            <div className="flex flex-col items-center gap-3">
+                                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Compiling Curricula...</p>
                             </div>
                         </div>
-                    ))}
+                    ) : homework.length === 0 ? (
+                        <div className="col-span-full py-20 bg-white rounded-[32px] border border-slate-100 text-center shadow-lg shadow-slate-200/40">
+                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Zero tasks issued for this division</p>
+                        </div>
+                    ) : (
+                        homework.map((hw) => (
+                            <div key={hw.id} className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-slate-200/50 transition-all group border-b-4 border-b-blue-600">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-black">
+                                       <BookOpen size={20} />
+                                    </div>
+                                    <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                        {hw.subject}
+                                    </div>
+                                </div>
+                                
+                                <h3 className="text-xl font-black text-slate-900 mb-3 tracking-tighter truncate">{hw.title}</h3>
+                                <p className="text-sm font-medium text-slate-500 line-clamp-3 mb-8 leading-relaxed italic border-l-2 border-slate-100 pl-4">
+                                    {hw.description}
+                                </p>
+                                
+                                <div className="space-y-4 pt-6 border-t border-slate-50">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Submission Window</span>
+                                        <div className="flex items-center gap-2 text-xs font-black text-rose-500">
+                                            <Calendar size={12} />
+                                            {new Date(hw.due_date).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Issued By</span>
+                                        <span className="text-xs font-black text-slate-900">Faculty Member</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
-            </main>
-        </div>
+            </div>
+        </Layout>
     );
 };
 
-export default React.memo(Homework);
+export default Homework;

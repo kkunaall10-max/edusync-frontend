@@ -7,9 +7,9 @@ import HomePage from './pages/HomePage';
 import PrincipalDashboard from './pages/PrincipalDashboard';
 import StudentList from './pages/StudentList';
 import TeacherList from './pages/TeacherList';
-import Attendance from './pages/Attendance';
-import Homework from './pages/Homework';
-import Marks from './pages/Marks';
+import PrincipalAttendance from './pages/Attendance';
+import PrincipalHomework from './pages/Homework';
+import PrincipalMarks from './pages/Marks';
 import FeeManagement from './pages/FeeManagement';
 import Reports from './pages/Reports';
 
@@ -83,7 +83,7 @@ function App() {
         path="/dashboard/attendance" 
         element={
           <ProtectedRoute allowedRoles={['principal']}>
-            <Attendance />
+            <PrincipalAttendance />
           </ProtectedRoute>
         } 
       />
@@ -91,7 +91,7 @@ function App() {
         path="/dashboard/homework" 
         element={
           <ProtectedRoute allowedRoles={['principal']}>
-            <Homework />
+            <PrincipalHomework />
           </ProtectedRoute>
         } 
       />
@@ -99,7 +99,7 @@ function App() {
         path="/dashboard/marks" 
         element={
           <ProtectedRoute allowedRoles={['principal']}>
-            <Marks />
+            <PrincipalMarks />
           </ProtectedRoute>
         } 
       />
@@ -143,7 +143,7 @@ function App() {
         path="/dashboard/teacher/attendance" 
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
-            <Attendance role="teacher" />
+            <TeacherAttendance />
           </ProtectedRoute>
         } 
       />
@@ -151,7 +151,7 @@ function App() {
         path="/dashboard/teacher/homework" 
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
-            <Homework role="teacher" />
+            <TeacherHomework />
           </ProtectedRoute>
         } 
       />
@@ -159,7 +159,7 @@ function App() {
         path="/dashboard/teacher/marks" 
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
-            <Marks role="teacher" />
+            <TeacherMarks />
           </ProtectedRoute>
         } 
       />

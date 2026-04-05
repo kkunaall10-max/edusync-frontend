@@ -1,267 +1,256 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import Layout from '../components/Layout';
+import LoadingScreen from '../components/LoadingScreen';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  Cell
+} from 'recharts';
+import { 
+  Menu, X, Bell, Users, BookOpen, GraduationCap, 
+  ClipboardCheck, TrendingUp, Search, Award, TrendingDown, Target
+} from 'lucide-react';
 
-const STUDENTS_API_URL = 'https://edusync.up.railway.app/api/students';
-const MARKS_API_URL = 'https://edusync.up.railway.app/api/marks';
-const TEACHERS_API_URL = 'https://edusync.up.railway.app/api/teachers';
+const API = 'https://edusync.up.railway.app';
 
 const TeacherMarks = () => {
-    const [activeTab, setActiveTab] = useState('enterMarks'); 
-    const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
     const [teacherProfile, setTeacherProfile] = useState(null);
-    const [marks, setMarks] = useState({});
-    const [previousResults, setPreviousResults] = useState([]);
-
-    const [examConfig, setExamConfig] = useState({
-        examType: 'Mid Term',
-        examDate: new Date().toISOString().split('T')[0],
-        totalMarks: 100
-    });
+    const [students, setStudents] = useState([]);
+    const [marksData, setMarksData] = useState([]);
+    
+    // Exactly specified exam types
+    const EXAM_TYPES = ['Unit Test', 'Class Test', 'Mid Term', 'Half Yearly', 'Final Exam', 'Assignment'];
+    
+    const [selectedExam, setSelectedExam] = useState('Unit Test');
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchAll = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                try {
-                    const tRes = await axios.get(TEACHERS_API_URL, { params: { email: user.email } });
-                    if (tRes.data && tRes.data.length > 0) {
-                        const profile = tRes.data[0];
-                        setTeacherProfile(profile);
-                        
-                        const sRes = await axios.get(STUDENTS_API_URL, { 
-                            params: { class: profile.class_assigned, section: profile.section_assigned } 
-                        });
-                        setStudents(sRes.data);
-                    }
-                } catch (err) { console.error(err); }
-                finally { setLoading(false); }
-            }
-        };
-        fetchAll();
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const fetchPreviousResults = async () => {
-        if (!teacherProfile) return;
-        setLoading(true);
+    const fetchData = useCallback(async (cancelToken) => {
         try {
-            const res = await axios.get(MARKS_API_URL, { 
-                params: { class: teacherProfile.class_assigned, section: teacherProfile.section_assigned } 
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { navigate('/login'); return; }
+
+            const teacherRes = await axios.get(`${API}/api/teachers/profile`, {
+                params: { email: user.email },
+                cancelToken
             });
-            setPreviousResults(res.data);
-        } catch (err) { console.error(err); }
-        finally { setLoading(false); }
+            const profile = teacherRes.data;
+            setTeacherProfile(profile);
+
+            const [studentsRes, marksRes] = await Promise.all([
+                axios.get(`${API}/api/students`, { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
+                axios.get(`${API}/api/marks`, { params: { class: profile.class_assigned, section: profile.section_assigned, exam_type: selectedExam, subject: profile.subject_assigned }, cancelToken })
+            ]);
+
+            setStudents(studentsRes.data);
+            setMarksData(marksRes.data);
+            setLoading(false);
+        } catch (error) {
+            if (!axios.isCancel(error)) {
+                console.error("Marks Data Error:", error);
+                setLoading(false);
+            }
+        }
+    }, [selectedExam, navigate]);
+
+    useEffect(() => {
+        const source = axios.CancelToken.source();
+        fetchData(source.token);
+        return () => source.cancel();
+    }, [fetchData]);
+
+    const analytics = useMemo(() => {
+        const scores = marksData.map(m => (m.marks_obtained / m.total_marks) * 100);
+        const avg = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 0;
+        const highest = scores.length > 0 ? Math.max(...scores).toFixed(1) : 0;
+        const lowest = scores.length > 0 ? Math.min(...scores).toFixed(1) : 0;
+        return { avg, highest, lowest };
+    }, [marksData]);
+
+    const performanceData = useMemo(() => [
+        { range: '90-100', count: marksData.filter(m => (m.marks_obtained/m.total_marks)*100 >= 90).length },
+        { range: '80-89', count: marksData.filter(m => { const p = (m.marks_obtained/m.total_marks)*100; return p >= 80 && p < 90; }).length },
+        { range: '70-79', count: marksData.filter(m => { const p = (m.marks_obtained/m.total_marks)*100; return p >= 70 && p < 80; }).length },
+        { range: '60-69', count: marksData.filter(m => { const p = (m.marks_obtained/m.total_marks)*100; return p >= 60 && p < 70; }).length },
+        { range: '<60', count: marksData.filter(m => (m.marks_obtained/m.total_marks)*100 < 60).length },
+    ], [marksData]);
+
+    const styles = {
+        pageWrapper: {
+            position: 'relative', minHeight: '100vh', width: '100%',
+            overflow: 'hidden', fontFamily: "'Inter', sans-serif"
+        },
+        sidebar: {
+            position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
+            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+            borderRight: '1px solid rgba(255,255,255,0.1)', padding: '28px 16px',
+            display: 'flex', flexDirection: 'column', zIndex: 100,
+            transform: isMobile ? (menuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
+            transition: '0.3s ease'
+        },
+        navbar: {
+            position: 'fixed', top: 0, left: isMobile ? 0 : '260px', right: 0, height: '80px',
+            background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)',
+            zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px'
+        },
+        glassCard: {
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
+            backdropFilter: 'blur(24px)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)',
+            boxShadow: '0 16px 40px rgba(0,0,0,0.2)', padding: '24px'
+        },
+        statCard: {
+          background: 'rgba(0,0,0,0.4)', borderRadius: '16px', padding: '24px',
+          border: '1px solid rgba(255,255,255,0.1)'
+        },
+        mainContent: {
+            marginLeft: isMobile ? 0 : '260px',
+            paddingTop: '100px',
+            padding: isMobile ? '100px 16px' : '100px 32px'
+        }
     };
 
-    useEffect(() => { if (activeTab === 'previousResults') fetchPreviousResults(); }, [activeTab]);
-
-    const handleMarkChange = (studentId, value) => {
-        const numValue = Math.min(examConfig.totalMarks, Math.max(0, parseInt(value) || 0));
-        setMarks(prev => ({ ...prev, [studentId]: numValue }));
-    };
-
-    const calculateGrade = (score, total) => {
-        const percentage = (score / total) * 100;
-        if (percentage >= 90) return 'A+';
-        if (percentage >= 80) return 'A';
-        if (percentage >= 70) return 'B';
-        if (percentage >= 60) return 'C';
-        if (percentage >= 40) return 'D';
-        return 'F';
-    };
-
-    const handleSave = async () => {
-        setSaving(true);
-        try {
-            const marksData = Object.entries(marks).map(([studentId, score]) => ({
-                student_id: studentId,
-                exam_type: examConfig.examType,
-                subject: teacherProfile?.subject_assigned,
-                marks_obtained: score,
-                total_marks: examConfig.totalMarks,
-                exam_date: examConfig.examDate,
-                grade: calculateGrade(score, examConfig.totalMarks)
-            }));
-            await axios.post(`${MARKS_API_URL}/bulk`, { marksData });
-            alert('Academic records synchronized.');
-            setMarks({});
-        } catch (err) { alert('Synchronization failed.'); }
-        finally { setSaving(false); }
-    };
-
-    const getInitials = (name) => {
-        if (!name) return '??';
-        const parts = name.split(' ');
-        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-        return name[0].toUpperCase();
-    };
+    if (loading) return <LoadingScreen />;
 
     return (
-        <Layout role="teacher">
-            <div className="space-y-8">
-                <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-                    <div>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Performance Portal</h1>
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Scholastic evaluation and grading</p>
-                    </div>
-                    <div className="bg-slate-100 p-1.5 rounded-2xl flex gap-1">
-                        <button 
-                            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'enterMarks' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                            onClick={() => setActiveTab('enterMarks')}
-                        >
-                            Enter Marks
+        <div style={styles.pageWrapper}>
+            <div style={{
+              position: 'fixed',
+              top: '-5%', left: '-5%',
+              width: '110vw', height: '110vh',
+              backgroundImage: 'url(/nature-bg.jpg)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              zIndex: -2,
+            }} />
+            
+            <div style={{
+              position: 'fixed',
+              top: 0, left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(0,0,0,0.35)',
+              zIndex: -1,
+            }} />
+
+            <aside style={styles.sidebar}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:'40px', padding:'0 8px' }}>
+                  <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
+                  </div>
+                  <span style={{ color:'white', fontSize:18, fontWeight:800, letterSpacing:1 }}>EduSync</span>
+                </div>
+                <nav style={{flex:1}}>
+                    {[
+                        { label: 'Overview', icon: <TrendingUp size={20} />, path: '/dashboard/teacher' },
+                        { label: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
+                        { label: 'Attendance', icon: <ClipboardCheck size={20} />, path: '/dashboard/teacher/attendance' },
+                        { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
+                        { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
+                    ].map(item => (
+                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
+                            {item.icon} {item.label}
                         </button>
-                        <button 
-                            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'previousResults' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                            onClick={() => setActiveTab('previousResults')}
-                        >
-                            History
-                        </button>
-                    </div>
+                    ))}
+                </nav>
+            </aside>
+
+            <header style={styles.navbar}>
+                <div style={{display:'flex', alignItems:'center', gap:'16px'}}>
+                    {isMobile && <Menu size={24} onClick={() => setMenuOpen(true)} style={{cursor:'pointer', color:'white'}} />}
+                    <h2 style={{fontSize:'20px', fontWeight:'800', margin:0, color:'white'}}>Performance Management</h2>
+                </div>
+                <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                    <select value={selectedExam} onChange={(e) => setSelectedExam(e.target.value)} style={{background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'12px', padding:'8px 12px', color:'white', outline:'none', fontSize:'13px', cursor:'pointer'}} >
+                        {EXAM_TYPES.map(type => (
+                            <option key={type} value={type} style={{color:'black'}}>{type}</option>
+                        ))}
+                    </select>
+                </div>
+            </header>
+
+            <main style={styles.mainContent}>
+                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:'20px', marginBottom:'32px'}}>
+                    {[
+                        { label: 'Class Average', value: `${analytics.avg}%`, icon: <Target size={24}/>, color: '#2563EB' },
+                        { label: 'Highest Score', value: `${analytics.highest}%`, icon: <Award size={24}/>, color: '#10B981' },
+                        { label: 'Lowest Score', value: `${analytics.lowest}%`, icon: <TrendingDown size={24}/>, color: '#EF4444' }
+                    ].map((s, i) => (
+                        <div key={i} style={styles.statCard}>
+                            <div style={{width:'48px', height:'48px', borderRadius:'14px', background:`${s.color}20`, display:'flex', alignItems:'center', justifyContent:'center', color:s.color, marginBottom:'16px'}}>{s.icon}</div>
+                            <h3 style={{fontSize:'28px', fontWeight:'800', margin:0, color:'white'}}>{s.value}</h3>
+                            <p style={{fontSize:'13px', opacity:0.6, margin:0, color:'white'}}>{s.label}</p>
+                        </div>
+                    ))}
                 </div>
 
-                {activeTab === 'enterMarks' ? (
-                    <div className="space-y-6">
-                        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Exam Category</label>
-                                <select 
-                                    className="w-full h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10 transition-all appearance-none"
-                                    value={examConfig.examType} 
-                                    onChange={(e) => setExamConfig({ ...examConfig, examType: e.target.value })}
-                                >
-                                    <option>Mid Term</option>
-                                    <option>Final Exam</option>
-                                    <option>Unit Test</option>
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Assessment Date</label>
-                                <input 
-                                    type="date" 
-                                    className="w-full h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
-                                    value={examConfig.examDate} 
-                                    onChange={(e) => setExamConfig({ ...examConfig, examDate: e.target.value })} 
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Maximum Score</label>
-                                <input 
-                                    type="number" 
-                                    className="w-full h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
-                                    value={examConfig.totalMarks} 
-                                    onChange={(e) => setExamConfig({ ...examConfig, totalMarks: parseInt(e.target.value) })} 
-                                />
-                            </div>
-                            <button 
-                                onClick={handleSave} 
-                                disabled={saving || students.length === 0} 
-                                className="h-12 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all hover:-translate-y-1"
-                            >
-                                {saving ? 'Syncing...' : 'Bulk Sync'}
-                            </button>
+                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap:'24px'}}>
+                    <div style={styles.glassCard}>
+                        <h4 style={{fontSize:'18px', fontWeight:'800', margin:0, color:'white', marginBottom:'24px'}}>Grade Distribution</h4>
+                        <div style={{height:'300px', width:'100%', minWidth:0}}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={performanceData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                    <XAxis dataKey="range" stroke="rgba(255,255,255,0.4)" fontSize={12} axisLine={false} tickLine={false} />
+                                    <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} axisLine={false} tickLine={false} />
+                                    <Tooltip contentStyle={{background:'#000', border:'none', borderRadius:'12px'}} />
+                                    <Bar dataKey="count" fill="#2563EB" radius={[6,6,0,0]} barSize={40} />
+                                </BarChart>
+                            </ResponsiveContainer>
                         </div>
+                    </div>
 
-                        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="bg-slate-50/50">
-                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Identify</th>
-                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance Score</th>
-                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Grade</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    {loading ? (
-                                        <tr><td colSpan="3" className="px-8 py-20 text-center text-sm font-black text-slate-400 uppercase tracking-widest">Compiling Records...</td></tr>
-                                    ) : students.length === 0 ? (
-                                        <tr><td colSpan="3" className="px-8 py-20 text-center text-sm font-black text-slate-400 uppercase tracking-widest">No learners found</td></tr>
-                                    ) : (
-                                        students.map(s => (
-                                            <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
-                                                <td className="px-8 py-6">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-xs shadow-lg shadow-slate-200">
-                                                            {getInitials(s.full_name)}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-black text-slate-900 leading-tight">{s.full_name}</p>
-                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Roll: {s.roll_number}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <div className="flex items-center gap-3">
-                                                        <input 
-                                                            type="number" 
-                                                            className="w-24 h-10 bg-slate-50 border-none rounded-xl px-3 text-sm font-black text-slate-900 text-center outline-none focus:ring-2 focus:ring-blue-600/10 transition-all"
-                                                            value={marks[s.id] || ''} 
-                                                            onChange={(e) => handleMarkChange(s.id, e.target.value)} 
-                                                        />
-                                                        <span className="text-xs font-black text-slate-300">/ {examConfig.totalMarks}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6 text-center">
-                                                    <span className={`inline-flex px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                                        calculateGrade(marks[s.id] || 0, examConfig.totalMarks) === 'F' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
-                                                    }`}>
-                                                        {calculateGrade(marks[s.id] || 0, examConfig.totalMarks)}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                    <div style={styles.glassCard}>
+                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'24px'}}>
+                            <h4 style={{fontSize:'18px', fontWeight:'800', margin:0, color:'white'}}>Student Marks</h4>
+                            <Search size={16} style={{opacity:0.3, color:'white'}} />
+                        </div>
+                        <div style={{maxHeight:'350px', overflowY:'auto', paddingRight:'8px'}}>
+                            {students.map(student => {
+                                const record = marksData.find(m => m.student_id === student.id);
+                                return (
+                                    <div key={student.id} style={{display:'flex', items:'center', gap:'12px', padding:'12px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
+                                        <div style={{flex:1}}>
+                                            <p style={{fontSize:'14px', fontWeight:'700', margin:0, color:'white'}}>{student.full_name}</p>
+                                            <p style={{fontSize:'10px', opacity:0.5, margin:0, color:'white'}}>Roll No: {student.roll_number}</p>
+                                        </div>
+                                        <input 
+                                            type="number" 
+                                            defaultValue={record?.marks_obtained}
+                                            onBlur={async (e) => {
+                                                try {
+                                                    await axios.post(`${API}/api/marks`, { 
+                                                      student_id: student.id, 
+                                                      class: teacherProfile.class_assigned, 
+                                                      section: teacherProfile.section_assigned, 
+                                                      exam_type: selectedExam, 
+                                                      subject: teacherProfile.subject_assigned, 
+                                                      marks_obtained: e.target.value, 
+                                                      total_marks: 100 
+                                                    });
+                                                } catch (err) { console.error(err); }
+                                            }}
+                                            style={{width:'65px', background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'10px', padding:'8px', color:'white', textAlign:'center', fontWeight:'700', outline:'none'}} 
+                                        />
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
-                ) : (
-                    <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-slate-50/50">
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Student</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Subject</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Performance</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Grade</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {loading ? (
-                                    <tr><td colSpan="5" className="px-8 py-20 text-center text-sm font-black text-slate-400 uppercase tracking-widest">Retrieving History...</td></tr>
-                                ) : previousResults.length === 0 ? (
-                                    <tr><td colSpan="5" className="px-8 py-20 text-center text-sm font-black text-slate-400 uppercase tracking-widest">No previous records found</td></tr>
-                                ) : (
-                                    previousResults.map(r => (
-                                        <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-8 py-6 text-sm font-black text-slate-900">{r.student_name}</td>
-                                            <td className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{r.exam_type}</td>
-                                            <td className="px-8 py-6 text-xs font-bold text-slate-600">{r.subject}</td>
-                                            <td className="px-8 py-6 text-right font-black text-slate-900">{r.marks_obtained} <span className="text-slate-300">/ {r.total_marks}</span></td>
-                                            <td className="px-8 py-6 text-center">
-                                                <span className={`inline-flex px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                                    r.grade === 'F' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
-                                                }`}>
-                                                    {r.grade}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-        </Layout>
+                </div>
+            </main>
+        </div>
     );
 };
 
-export default TeacherMarks;
+export default React.memo(TeacherMarks);
