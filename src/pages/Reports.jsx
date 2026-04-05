@@ -28,11 +28,11 @@ const Reports = () => {
     const [studentReport, setStudentReport] = useState(null);
     const [allStudents, setAllStudents] = useState([]);
     const [selectedStudent, setSelectedStudent] = useState('');
+    const [attSection, setAttSection] = useState('A');
 
     // Filters
     const [attFilters, setAttFilters] = useState({ 
         class: SCHOOL_CLASSES[3] || 'Class 1', 
-        section: 'A', 
         month: (new Date().getMonth() + 1).toString(), 
         year: '2026' 
     });
@@ -60,7 +60,9 @@ const Reports = () => {
     const fetchAttendanceReport = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_BASE_URL}/attendance-summary`, { params: attFilters });
+            const res = await axios.get(`${API_BASE_URL}/attendance-summary`, { 
+                params: { ...attFilters, section: attSection } 
+            });
             const result = res.data;
             setData(result);
             setAttendanceData(Array.isArray(result) ? result : (result.data || result.students || result.breakdown || []));
@@ -131,7 +133,7 @@ const Reports = () => {
         if (activeTab === 'fee') fetchFeeReport();
         if (activeTab === 'academic') fetchAcademicReport();
         if (activeTab === 'report-card' && selectedStudent) fetchStudentReportCard(selectedStudent);
-    }, [activeTab, attFilters, feeFilters, academicFilters, selectedStudent]);
+    }, [activeTab, attFilters, attSection, feeFilters, academicFilters, selectedStudent]);
 
     const handlePrint = () => {
         window.print();
@@ -192,7 +194,7 @@ const Reports = () => {
                                     <div className="space-y-2">
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Section</label>
                                         <select className="w-full h-12 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-xl px-4 text-sm font-bold text-slate-900 outline-none appearance-none cursor-pointer"
-                                            value={attFilters.section} onChange={(e)=>setAttFilters({...attFilters, section: e.target.value})}>
+                                            value={attSection} onChange={(e)=>setAttSection(e.target.value)}>
                                             {SCHOOL_SECTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
                                     </div>
@@ -275,21 +277,47 @@ const Reports = () => {
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Aggregating Scholastic Data...</p>
                     </div>
                 ) : data ? (
-                    <>
-                        {activeTab === 'attendance' && (
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                    {[
-                                        { label: 'Total Enrolment', value: data.totalStudents, color: 'text-slate-900' },
-                                        { label: 'Institutional Avg', value: `${data.classAvg}%`, color: 'text-blue-600' },
-                                        { label: 'Critical Variance', value: data.below75Count, color: 'text-rose-600' }
-                                    ].map((stat, i) => (
-                                        <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                                            <p className={`text-3xl font-black ${stat.color}`}>{stat.value}</p>
+                    (() => {
+                        const uniqueAttendance = (attendanceData || [])
+                          .filter((record, index, self) => 
+                            index === self.findIndex(r => 
+                              r.student_id === record.student_id && 
+                              r.date === record.date
+                            )
+                          );
+
+                        const presentCount = uniqueAttendance.filter(r => r.status === 'present').length;
+                        const totalCount = uniqueAttendance.length;
+                        const avgPercent = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+
+                        // Advanced Student Stats
+                        const studentMetrics = uniqueAttendance.reduce((acc, curr) => {
+                            const id = curr.student_id;
+                            if(!acc[id]) acc[id] = { present: 0, total: 0 };
+                            acc[id].total++;
+                            if(curr.status === 'present') acc[id].present++;
+                            return acc;
+                        }, {});
+                        const totalEnrolled = Object.keys(studentMetrics).length;
+                        const atRiskCount = Object.values(studentMetrics).filter(s => (s.present/s.total)*100 < 75).length;
+
+                        return (
+                            <>
+                                {activeTab === 'attendance' && (
+                                    <div className="space-y-6">
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                            {[
+                                                { label: 'Total Enrolment', value: totalEnrolled, color: 'text-slate-900' },
+                                                { label: 'Institutional Avg', value: `${avgPercent}%`, color: 'text-blue-600' },
+                                                { label: 'Critical Variance', value: atRiskCount, color: 'text-rose-600' }
+                                            ].map((stat, i) => (
+                                                <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                                                    <p className={`text-3xl font-black ${stat.color}`}>{stat.value}</p>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
+                                        {/* Table logic starts here */}
 
                                 {/* Desktop Table */}
                                 <div className="hidden lg:block bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
@@ -298,21 +326,25 @@ const Reports = () => {
                                             <tr className="bg-slate-50/50">
                                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Index</th>
                                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Subject Identity</th>
-                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Ratio</th>
-                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Achievement</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Protocol</th>
                                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Audit Status</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-50">
-                                            {(attendanceData || []).map(s => (
+                                            {(uniqueAttendance || []).map(s => (
                                                 <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
                                                     <td className="px-6 py-4 text-xs font-bold text-slate-400">#{s.roll_number || s.students?.roll_number}</td>
                                                     <td className="px-6 py-4 text-sm font-black text-slate-900">{s.full_name || s.students?.full_name}</td>
-                                                    <td className="px-6 py-4 text-sm font-bold text-slate-600">{s.present || '-'} / {s.total || '-'}</td>
-                                                    <td className="px-6 py-4 text-sm font-black text-blue-600">{s.percentage || '0'}%</td>
+                                                    <td className="px-6 py-4 text-sm font-bold text-slate-600">
+                                                        {new Date(s.date).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm font-black text-blue-600 uppercase tracking-widest">
+                                                        {s.status}
+                                                    </td>
                                                     <td className="px-6 py-4 text-right">
-                                                        <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${s.percentage >= 75 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                                                            {s.status || (s.percentage >= 75 ? 'Good' : 'Low')}
+                                                        <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${s.status === 'present' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                            {s.status}
                                                         </span>
                                                     </td>
                                                 </tr>
@@ -323,25 +355,25 @@ const Reports = () => {
 
                                 {/* Mobile Cards */}
                                 <div className="lg:hidden space-y-4">
-                                    {(attendanceData || []).map(s => (
+                                    {(uniqueAttendance || []).map(s => (
                                         <div key={s.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3">
                                             <div className="flex justify-between items-start">
                                                 <div>
                                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">#{s.roll_number || s.students?.roll_number}</p>
                                                     <h3 className="text-base font-black text-slate-900">{s.full_name || s.students?.full_name}</h3>
                                                 </div>
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${s.percentage >= 75 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                                                    {s.status || (s.percentage >= 75 ? 'Good' : 'Low')}
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${s.status === 'present' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                    {s.status}
                                                 </span>
                                             </div>
                                             <div className="flex justify-between items-center pt-2 border-t border-slate-50">
                                                 <div className="text-center">
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ratio</p>
-                                                    <p className="text-sm font-bold text-slate-600">{s.present || '-'} / {s.total || '-'}</p>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</p>
+                                                    <p className="text-sm font-bold text-slate-600">{new Date(s.date).toLocaleDateString()}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Achievement</p>
-                                                    <p className="text-sm font-black text-blue-600">{s.percentage || '0'}%</p>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Protocol</p>
+                                                    <p className="text-sm font-black text-blue-600 uppercase">{s.status}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -590,7 +622,9 @@ const Reports = () => {
                                 </div>
                             </div>
                         )}
-                    </>
+                            </>
+                        );
+                    })()
                 ) : (
                     <div className="flex flex-col items-center justify-center py-32 text-center space-y-6">
                         <div className="w-24 h-24 bg-slate-50 rounded-[40px] flex items-center justify-center text-slate-200">
