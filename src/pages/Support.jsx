@@ -15,7 +15,7 @@ const Support = () => {
         fetchUser();
     }, []);
 
-    const role = user?.user_metadata?.role || 'User';
+    const role = user?.user_metadata?.role || 'principal';
 
     const faqs = [
         {
@@ -41,7 +41,7 @@ const Support = () => {
     ];
 
     return (
-        <Layout role="principal">
+        <Layout role={role}>
             <div className="max-w-4xl mx-auto space-y-8">
                 <div className="flex justify-between items-end">
                     <div>

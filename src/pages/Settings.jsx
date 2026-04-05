@@ -16,10 +16,12 @@ const Settings = () => {
         fetchUser();
     }, []);
 
-    const role = user?.user_metadata?.role || 'User';
+    const role = user?.user_metadata?.role || 'principal';
+
+    if (loading) return null;
 
     return (
-        <Layout role="principal">
+        <Layout role={role}>
             <div className="max-w-4xl mx-auto space-y-6">
                 <div>
                     <h1 className="text-2xl font-black text-slate-900 tracking-tight">Settings</h1>

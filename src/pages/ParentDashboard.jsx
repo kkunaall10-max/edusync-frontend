@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import Layout from '../components/Layout';
-// Using root-relative path for Vercel
-const parentBg = '/parent-bg.jpg';
+import { 
+  Search, Bell, User, LayoutDashboard, LogOut, 
+  Menu, X, TrendingUp, Calendar, CreditCard, 
+  CheckCircle2, AlertCircle, BookOpen, GraduationCap
+} from 'lucide-react';
+import parentBg from '../assets/parent-bg.jpg';
 
 const API_BASE_URL = 'https://edusync.up.railway.app/api/parent';
 
@@ -16,6 +15,10 @@ const ParentDashboard = () => {
     const [marks, setMarks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [showAccountDropdown, setShowAccountDropdown] = useState(false);
+    const [userEmail, setUserEmail] = useState('');
     const navigate = useNavigate();
 
     const fetchDashboardData = async () => {
@@ -24,6 +27,7 @@ const ParentDashboard = () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("No logged in user found");
+            setUserEmail(user.email);
 
             const childRes = await axios.get(`${API_BASE_URL}/child`, { 
                 params: { parent_email: user.email } 
@@ -70,38 +74,45 @@ const ParentDashboard = () => {
     };
 
     const styles = {
+        pageWrapper: {
+            position: 'relative', minHeight: '100vh', width: '100%',
+            overflow: 'hidden', fontFamily: "'Inter', sans-serif"
+        },
+        sidebar: {
+            position: 'fixed', left: 0, top: 0, width: '240px', height: '100vh',
+            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+            borderRight: '1px solid rgba(255,255,255,0.2)', padding: '24px 16px',
+            display: 'flex', flexDirection: 'column', zIndex: 100,
+            transform: window.innerWidth < 1024 ? (menuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
+            transition: '0.3s ease'
+        },
+        navbar: {
+            height: '64px', backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)',
+            borderBottom: '1px solid rgba(255,255,255,0.2)', display: 'flex',
+            alignItems: 'center', justifyContent: 'space-between', padding: '0 24px',
+            position: 'sticky', top: 0, zIndex: 50
+        },
+        mainContent: {
+            marginLeft: window.innerWidth < 1024 ? 0 : '240px', paddingTop: '0px',
+            minHeight: '100vh'
+        },
         glassCard: {
-            backgroundColor: 'rgba(0, 0, 0, 0.45)',
-            backdropFilter: 'blur(25px)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRadius: '20px',
-            padding: '24px'
+            backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.3)',
+            borderRadius: '16px', padding: '24px'
         },
         avatar: {
-            width: '64px',
-            height: '64px',
-            borderRadius: '16px',
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '20px',
-            fontWeight: '800',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            flexShrink: 0
+            width: '64px', height: '64px', borderRadius: '16px',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '20px', fontWeight: '800', border: '1px solid rgba(255, 255, 255, 0.2)',
+            flexShrink: 0, color: 'white'
         },
         badge: {
-            padding: '6px 12px',
-            borderRadius: '9999px',
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            color: '#FFFFFF',
-            fontSize: '10px',
-            fontWeight: '700',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
+            padding: '6px 12px', borderRadius: '9999px',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)', color: '#FFFFFF',
+            fontSize: '10px', fontWeight: '700', display: 'flex',
+            alignItems: 'center', gap: '6px', border: '1px solid rgba(255, 255, 255, 0.1)'
         }
     };
 
@@ -164,184 +175,254 @@ const ParentDashboard = () => {
     const totalPending = fees?.records?.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0) || 0;
     const totalOverdue = fees?.records?.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0) || 0;
 
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigate('/login');
+    };
+
     return (
-        <div style={{ minHeight: '100vh', width: '100%', position: 'relative', background: 'none' }} className="font-['Inter'] overflow-x-hidden">
-            <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100vw',
-                height: '100vh',
-                backgroundImage: `url(${parentBg})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                zIndex: -1,
-                opacity: 0.5
-            }} />
-            
-            <div className="relative z-10">
-                <Layout role="parent">
-                    <div className="max-w-6xl mx-auto space-y-8">
-                        {/* Hero Card */}
-                        <section style={styles.glassCard} className="flex flex-col md:flex-row items-center justify-between gap-6">
-                            <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-                                <div style={styles.avatar}>{getInitials(child.full_name)}</div>
-                                <div>
-                                    <h3 className="text-3xl md:text-4xl font-black text-white m-0 tracking-tight leading-none">{child.full_name}</h3>
-                                    <div className="flex flex-wrap justify-center md:justify-start gap-4 text-white/70 text-sm font-bold mt-3">
-                                        <span className="flex items-center gap-2"><span className="material-symbols-outlined text-sm">badge</span> Roll: {child.roll_number}</span>
-                                        <span className="flex items-center gap-2"><span className="material-symbols-outlined text-sm">school</span> Class {child.class}-{child.section}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex flex-wrap justify-center gap-3">
-                                <div style={styles.badge}>
-                                    <span className={`w-2 h-2 rounded-full ${parseFloat(attendance?.percentage) >= 75 ? 'bg-emerald-400' : 'bg-red-400'}`}></span>
-                                    Attendance {attendance?.percentage}%
-                                </div>
-                                <div style={styles.badge}>
-                                    <span className={`w-2 h-2 rounded-full ${fees?.summary?.overdueCount > 0 ? 'bg-red-400' : 'bg-emerald-400'}`}></span>
-                                    Fees: {fees?.summary?.overdueCount > 0 ? 'Action Required' : 'Up to date'}
-                                </div>
-                            </div>
-                        </section>
+        <div style={styles.pageWrapper}>
+            {/* Background Layer */}
+            <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundImage: `url(${parentBg})`, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 }} />
+            <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.25)', zIndex: 1 }} />
 
-                        {/* Responsive Grid */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
-                            
-                            {/* Card 1: Attendance */}
-                            <div style={styles.glassCard} className="flex flex-col justify-between min-h-[300px]">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div>
-                                        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest">Attendance</h4>
-                                        <p className="text-[10px] text-white/50 mt-1 uppercase font-bold">Academic Statistics</p>
-                                    </div>
-                                    <span className="material-symbols-outlined opacity-30 text-white">calendar_month</span>
-                                </div>
-                                <div className="flex items-baseline gap-4 mb-8">
-                                    <span className="text-7xl md:text-8xl font-black text-white leading-none tracking-tighter">{attendance?.total}</span>
-                                    <span className="text-lg font-bold text-white/40 uppercase">Total Days</span>
-                                </div>
-                                <div className="space-y-4">
-                                    <div className="flex justify-between text-xs font-black text-white/90">
-                                        <div className="flex items-center gap-2">
-                                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Present: {attendance?.present}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="w-2.5 h-2.5 rounded-full bg-red-400"></span> Absent: {attendance?.absent}
-                                        </div>
-                                    </div>
-                                    <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
-                                        <div 
-                                            className={`h-full transition-all duration-1000 ease-out ${parseFloat(attendance?.percentage) >= 75 ? 'bg-emerald-400' : 'bg-red-400'}`}
-                                            style={{ width: `${attendance?.percentage}%` }}
-                                        ></div>
-                                    </div>
-                                    <p className="text-xs italic text-white/70 font-medium">
-                                        {parseFloat(attendance?.percentage) >= 75 ? "Excellent attendance sustained!" : "Attendance tracking below the required criteria."}
-                                    </p>
-                                </div>
-                            </div>
+            {/* Content Layer */}
+            <div style={{ position: 'relative', zIndex: 10, minHeight: '100vh', display: 'flex' }}>
+                {/* Sidebar */}
+                <aside style={styles.sidebar}>
+                    <div style={{ padding: '0 8px', marginBottom: '40px' }}>
+                        <h1 style={{ color: 'white', fontSize: '24px', fontWeight: '900', fontStyle: 'italic', margin: 0, letterSpacing: '-1px' }}>EduSync</h1>
+                        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', tracking: '2px', marginTop: '4px' }}>Parental Portal</p>
+                    </div>
 
-                            {/* Card 2: Fee Status */}
-                            <div style={styles.glassCard} className="flex flex-col justify-between min-h-[300px]">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div>
-                                        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest">Fee Status</h4>
-                                        <p className="text-[10px] text-white/50 mt-1 uppercase font-bold">Financial Overview</p>
-                                    </div>
-                                    <span className="material-symbols-outlined opacity-30 text-white">payments</span>
-                                </div>
-                                <div className="grid grid-cols-3 gap-2 mb-8 text-center">
-                                    <div className="p-3 bg-white/5 rounded-2xl">
-                                        <p className="text-lg font-black text-emerald-400 leading-none">₹{totalPaid.toLocaleString()}</p>
-                                        <p className="text-[8px] font-black text-white/30 uppercase mt-2">Paid</p>
-                                    </div>
-                                    <div className="p-3 bg-white/5 rounded-2xl">
-                                        <p className="text-lg font-black text-blue-400 leading-none">₹{totalPending.toLocaleString()}</p>
-                                        <p className="text-[8px] font-black text-white/30 uppercase mt-2">Pending</p>
-                                    </div>
-                                    <div className="p-3 bg-white/5 rounded-2xl">
-                                        <p className="text-lg font-black text-red-400 leading-none">₹{totalOverdue.toLocaleString()}</p>
-                                        <p className="text-[8px] font-black text-white/30 uppercase mt-2">Overdue</p>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    {fees?.records?.slice(0, 2).map((fee, idx) => (
-                                        <div key={fee.id || idx} className="bg-white/5 p-4 rounded-xl flex justify-between items-center border border-white/10">
-                                            <span className="text-xs font-bold text-white">{fee.month} {fee.fee_type}</span>
-                                            <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border ${fee.status === 'paid' ? 'border-emerald-400 text-emerald-400' : 'border-red-400 text-red-400'}`}>
-                                                {fee.status}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                    <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <button 
+                            onClick={() => navigate('/dashboard/parent')} 
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', 
+                                border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: '700', cursor: 'pointer', textAlign: 'left' 
+                            }}
+                        >
+                            <LayoutDashboard size={20} /> Overview
+                        </button>
+                    </nav>
 
-                            {/* Card 3: Recent Homework */}
-                            <div style={styles.glassCard} className="min-h-[300px]">
-                                <div className="flex justify-between items-start mb-8">
-                                    <div>
-                                        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest">Homework</h4>
-                                        <p className="text-[10px] text-white/50 mt-1 uppercase font-bold">Active Assignments</p>
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
+                        <button 
+                            onClick={handleLogout} 
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', 
+                                border: 'none', background: 'transparent', color: '#ff4d4d', fontWeight: '700', cursor: 'pointer', textAlign: 'left', width: '100%' 
+                            }}
+                        >
+                            <LogOut size={20} /> Logout
+                        </button>
+                    </div>
+                </aside>
+
+                <main style={styles.mainContent} className="flex-1">
+                    {/* Navbar */}
+                    <header style={styles.navbar}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            {window.innerWidth < 1024 && <Menu size={24} color="white" onClick={() => setMenuOpen(true)} style={{ cursor: 'pointer' }} />}
+                            <div style={{ position: 'relative' }}>
+                                <Search size={18} color="rgba(255,255,255,0.5)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search child's progress..." 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    style={{ 
+                                        background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', 
+                                        padding: '10px 16px 10px 40px', color: 'white', fontSize: '14px', outline: 'none', width: '280px' 
+                                    }} 
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', items: 'center', gap: '20px' }}>
+                            <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'white', position: 'relative' }} onClick={() => alert('No new notifications')}>
+                                <Bell size={22} />
+                                <span style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, background: '#ff4d4d', borderRadius: '50%', border: '2px solid rgba(0,0,0,0.3)' }} />
+                            </button>
+                            <div style={{ position: 'relative' }}>
+                                <button 
+                                    style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '6px', cursor: 'pointer', color: 'white' }} 
+                                    onClick={() => setShowAccountDropdown(!showAccountDropdown)}
+                                >
+                                    <User size={22} />
+                                </button>
+                                {showAccountDropdown && (
+                                    <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '12px', width: '220px', background: 'rgba(20,20,20,0.9)', backdropFilter: 'blur(20px)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', padding: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+                                        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', margin: '0 0 4px 0', textTransform: 'uppercase', fontWeight: 700 }}>Logged in as</p>
+                                        <p style={{ color: 'white', fontSize: '13px', margin: '0 0 16px 0', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{userEmail}</p>
+                                        <button onClick={handleLogout} style={{ width: '100%', padding: '10px', background: 'rgba(255,77,77,0.15)', color: '#ff4d4d', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>Logout</button>
                                     </div>
-                                    <span className="material-symbols-outlined opacity-30 text-white">assignment</span>
+                                )}
+                            </div>
+                        </div>
+                    </header>
+
+                    <div style={{ padding: '32px' }}>
+                        <div className="max-w-6xl mx-auto space-y-8">
+                            {/* Hero Card */}
+                            <section style={styles.glassCard} className="flex flex-col md:flex-row items-center justify-between gap-6">
+                                <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+                                    <div style={styles.avatar}>{getInitials(child.full_name)}</div>
+                                    <div>
+                                        <h3 className="text-3xl md:text-4xl font-black text-white m-0 tracking-tight leading-none">{child.full_name}</h3>
+                                        <div className="flex flex-wrap justify-center md:justify-start gap-4 text-white/50 text-sm font-bold mt-3">
+                                            <span className="flex items-center gap-2"><div style={{ width:20, height:20, background:'rgba(255,255,255,0.1)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}><TrendingUp size={12}/></div> Roll: {child.roll_number}</span>
+                                            <span className="flex items-center gap-2"><div style={{ width:20, height:20, background:'rgba(255,255,255,0.1)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}><GraduationCap size={12}/></div> Class {child.class}-{child.section}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="space-y-5">
-                                    {homework.length === 0 ? (
-                                        <div className="py-12 text-center text-white/30 text-sm font-bold uppercase tracking-widest">No homework assigned yet.</div>
-                                    ) : (
-                                        homework.map((hw, idx) => (
-                                            <div key={hw.id || idx} className="flex justify-between items-center group">
-                                                <div className="space-y-1">
-                                                    <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-white/10 text-white/90 uppercase tracking-widest border border-white/10">{hw.subject}</span>
-                                                    <h5 className="text-sm font-bold text-white m-0 group-hover:text-blue-400 transition-colors">{hw.title}</h5>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-[8px] font-black text-white/30 uppercase m-0 leading-none">Due Date</p>
-                                                    <p className="text-xs font-bold text-white mt-1">{new Date(hw.due_date).toLocaleDateString()}</p>
+                                <div className="flex flex-wrap justify-center gap-3">
+                                    <div style={styles.badge}>
+                                        <span className={`w-2 h-2 rounded-full ${parseFloat(attendance?.percentage) >= 75 ? 'bg-emerald-400' : 'bg-red-400'}`}></span>
+                                        Attendance {attendance?.percentage}%
+                                    </div>
+                                    <div style={styles.badge}>
+                                        <span className={`w-2 h-2 rounded-full ${fees?.summary?.overdueCount > 0 ? 'bg-red-400' : 'bg-emerald-400'}`}></span>
+                                        Fees: {fees?.summary?.overdueCount > 0 ? 'Action Required' : 'Up to date'}
+                                    </div>
+                                </div>
+                            </section>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
+                                {/* Card 1: Attendance */}
+                                <div style={styles.glassCard} className="flex flex-col justify-between min-h-[300px]">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div>
+                                            <h4 style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Attendance</h4>
+                                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', marginTop: '4px', textTransform: 'uppercase', fontWeight: '700' }}>Academic Statistics</p>
+                                        </div>
+                                        <Calendar size={20} style={{ opacity: 0.3, color: 'white' }} />
+                                    </div>
+                                    <div className="flex items-baseline gap-4 mb-8">
+                                        <span style={{ fontSize: '72px', fontWeight: '900', color: 'white', lineHeight: 1, letterSpacing: '-4px' }}>{attendance?.total}</span>
+                                        <span style={{ fontSize: '18px', fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Total Days</span>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between text-xs font-black text-white/90">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Present: {attendance?.present}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-red-400"></span> Absent: {attendance?.absent}
+                                            </div>
+                                        </div>
+                                        <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+                                            <div 
+                                                className={`h-full transition-all duration-1000 ease-out ${parseFloat(attendance?.percentage) >= 75 ? 'bg-emerald-400' : 'bg-red-400'}`}
+                                                style={{ width: `${attendance?.percentage}%` }}
+                                            ></div>
+                                        </div>
+                                        <p style={{ fontSize: '12px', fontStyle: 'italic', color: 'rgba(255,255,255,0.7)', fontWeight: '500' }}>
+                                            {parseFloat(attendance?.percentage) >= 75 ? "Excellent attendance sustained!" : "Attendance tracking below the required criteria."}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Card 2: Fee Status */}
+                                <div style={styles.glassCard} className="flex flex-col justify-between min-h-[300px]">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div>
+                                            <h4 style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Fee Status</h4>
+                                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', marginTop: '4px', textTransform: 'uppercase', fontWeight: '700' }}>Financial Overview</p>
+                                        </div>
+                                        <CreditCard size={20} style={{ opacity: 0.3, color: 'white' }} />
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 mb-8 text-center">
+                                        <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
+                                            <p className="text-lg font-black text-emerald-400 leading-none">₹{totalPaid.toLocaleString()}</p>
+                                            <p style={{ fontSize: '8px', fontWeight: '900', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: '8px' }}>Paid</p>
+                                        </div>
+                                        <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
+                                            <p className="text-lg font-black text-blue-400 leading-none">₹{totalPending.toLocaleString()}</p>
+                                            <p style={{ fontSize: '8px', fontWeight: '900', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: '8px' }}>Pending</p>
+                                        </div>
+                                        <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
+                                            <p className="text-lg font-black text-red-400 leading-none">₹{totalOverdue.toLocaleString()}</p>
+                                            <p style={{ fontSize: '8px', fontWeight: '900', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: '8px' }}>Overdue</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {fees?.records?.slice(0, 2).map((fee, idx) => (
+                                            <div key={fee.id || idx} style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                                <span style={{ fontSize: '12px', fontWeight: '700', color: 'white' }}>{fee.month} {fee.fee_type}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {fee.status === 'paid' ? <CheckCircle2 size={12} color="#10b981" /> : <AlertCircle size={12} color="#ef4444" />}
+                                                    <span style={{ fontSize: '9px', fontWeight: '900', color: fee.status === 'paid' ? '#10b981' : '#ef4444', textTransform: 'uppercase', letterSpacing: '1px' }}>{fee.status}</span>
                                                 </div>
                                             </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Card 4: Latest Results */}
-                            <div style={styles.glassCard} className="min-h-[300px]">
-                                <div className="flex justify-between items-start mb-8">
-                                    <div>
-                                        <h4 className="text-[10px] font-black text-white/90 uppercase tracking-widest">Latest Results</h4>
-                                        <p className="text-[10px] text-white/50 mt-1 uppercase font-bold">Performance Overview</p>
+                                        ))}
                                     </div>
-                                    <span className="material-symbols-outlined opacity-30 text-white">grade</span>
                                 </div>
-                                <div className="space-y-5">
-                                    {marks.length === 0 ? (
-                                        <div className="py-12 text-center text-white/30 text-sm font-bold uppercase tracking-widest">Await official evaluations...</div>
-                                    ) : (
-                                        marks.map((res, idx) => {
-                                            const grade = getGrade((res.marks_obtained / res.total_marks) * 100);
-                                            return (
-                                                <div key={res.id || idx} className="flex justify-between items-center p-3 rounded-2xl hover:bg-white/5 transition-colors">
-                                                    <div className="space-y-1">
-                                                        <h5 className="text-sm font-bold text-white m-0">{res.subject}</h5>
-                                                        <span className="text-[10px] text-white/50 font-medium uppercase tracking-tighter">{res.exam_type} • {res.marks_obtained}/{res.total_marks}</span>
+
+                                {/* Card 3: Recent Homework */}
+                                <div style={styles.glassCard} className="min-h-[300px]">
+                                    <div className="flex justify-between items-start mb-8">
+                                        <div>
+                                            <h4 style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Homework</h4>
+                                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', marginTop: '4px', textTransform: 'uppercase', fontWeight: '700' }}>Active Assignments</p>
+                                        </div>
+                                        <BookOpen size={20} style={{ opacity: 0.3, color: 'white' }} />
+                                    </div>
+                                    <div className="space-y-5">
+                                        {homework.length === 0 ? (
+                                            <div style={{ padding: '48px 0', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>No homework assigned yet.</div>
+                                        ) : (
+                                            homework.map((hw, idx) => (
+                                                <div key={hw.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <span style={{ fontSize: '8px', fontWeight: '900', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.1)', color: 'white', textTransform: 'uppercase', width: 'fit-content' }}>{hw.subject}</span>
+                                                        <h5 style={{ fontSize: '14px', fontWeight: '700', color: 'white', margin: 0 }}>{hw.title}</h5>
                                                     </div>
-                                                    <div className="w-12 h-12 rounded-xl flex items-center justify-center border font-black text-lg" style={{ borderColor: grade.color, backgroundColor: grade.bg, color: grade.color, boxShadow: `0 0 15px ${grade.shadow}` }}>
-                                                        {grade.label}
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <p style={{ fontSize: '8px', fontWeight: '900', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', margin: 0 }}>Due Date</p>
+                                                        <p style={{ fontSize: '12px', fontWeight: '700', color: 'white', marginTop: '4px', margin: 0 }}>{new Date(hw.due_date).toLocaleDateString()}</p>
                                                     </div>
                                                 </div>
-                                            );
-                                        })
-                                    )}
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Card 4: Latest Results */}
+                                <div style={styles.glassCard} className="min-h-[300px]">
+                                    <div className="flex justify-between items-start mb-8">
+                                        <div>
+                                            <h4 style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Latest Results</h4>
+                                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', marginTop: '4px', textTransform: 'uppercase', fontWeight: '700' }}>Performance Overview</p>
+                                        </div>
+                                        <TrendingUp size={20} style={{ opacity: 0.3, color: 'white' }} />
+                                    </div>
+                                    <div className="space-y-5">
+                                        {marks.length === 0 ? (
+                                            <div style={{ padding: '48px 0', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>Await official evaluations...</div>
+                                        ) : (
+                                            marks.map((res, idx) => {
+                                                const grade = getGrade((res.marks_obtained / res.total_marks) * 100);
+                                                return (
+                                                    <div key={res.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: '16px', background: 'rgba(255,255,255,0.03)' }}>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                            <h5 style={{ fontSize: '14px', fontWeight: '700', color: 'white', margin: 0 }}>{res.subject}</h5>
+                                                            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', fontWeight: '500', textTransform: 'uppercase' }}>{res.exam_type} • {res.marks_obtained}/{res.total_marks}</span>
+                                                        </div>
+                                                        <div style={{ width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${grade.color}`, backgroundColor: grade.bg, color: grade.color, fontWeight: '900', fontSize: '16px' }}>
+                                                            {grade.label}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-
                         </div>
                     </div>
-                </Layout>
+                </main>
             </div>
         </div>
     );
