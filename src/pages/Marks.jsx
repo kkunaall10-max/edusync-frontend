@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -6,148 +6,105 @@ import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 import Layout from '../components/Layout';
 import LoadingScreen from '../components/LoadingScreen';
 import { 
-  Menu, X, Bell, Users, BookOpen, GraduationCap, 
-  Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Award, AlertTriangle, BarChart as BarChartIcon
-} from 'lucide-react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  LineChart, Line, AreaChart, Area, Cell, PieChart, Pie
 } from 'recharts';
+import { 
+  Menu, X, Bell, Users, BookOpen, GraduationCap, 
+  Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Filter, Search, Award, TrendingDown, Target
+} from 'lucide-react';
 
-const API_BASE_URL = 'https://edusync.up.railway.app/api';
+const API_BASE_URL = 'https://edusync.up.railway.app/api/marks';
 
-const Marks = ({ role = 'principal' }) => {
+const Marks = ({ role = 'teacher' }) => {
     const isTeacher = role === 'teacher';
-    const [marks, setMarks] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [minTimeDone, setMinTimeDone] = useState(false);
+    const [dataReady, setDataReady] = useState(false);
+
     const [teacherProfile, setTeacherProfile] = useState(null);
+    const [students, setStudents] = useState([]);
+    const [marksData, setMarksData] = useState([]);
+    const [selectedClass, setSelectedClass] = useState('');
+    const [selectedSection, setSelectedSection] = useState('');
+    const [selectedExam, setSelectedExam] = useState('Half Yearly');
+    const [selectedSubject, setSelectedSubject] = useState('Mathematics');
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    
-    const [filters, setFilters] = useState({
-        class: SCHOOL_CLASSES[0],
-        section: SCHOOL_SECTIONS[0],
-        subject: '',
-        examType: 'Mid Term'
-    });
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const navigate = useNavigate();
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
         window.addEventListener('resize', handleResize);
-        
-        const initPortal = async () => {
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Force minimum 10 second loading
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setMinTimeDone(true);
+        }, 10000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    useEffect(() => {
+        if (minTimeDone && dataReady) {
+            setLoading(false);
+        }
+    }, [minTimeDone, dataReady]);
+
+    const fetchData = useCallback(async (cancelToken) => {
+        try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { navigate('/login'); return; }
 
-            if (isTeacher) {
-                try {
-                    const profileRes = await axios.get(`${API_BASE_URL}/teachers/profile`, { params: { email: user.email } });
-                    const profile = profileRes.data;
-                    setTeacherProfile(profile);
-                    setFilters(prev => ({ 
-                        ...prev, 
-                        class: profile.class_assigned, 
-                        section: profile.section_assigned 
-                    }));
-                } catch (err) {
-                    console.error("Error fetching teacher profile:", err);
-                }
-            }
-        };
-        initPortal();
-        return () => window.removeEventListener('resize', handleResize);
-    }, [isTeacher, navigate]);
+            const teacherRes = await axios.get('https://edusync.up.railway.app/api/teachers/profile', {
+                params: { email: user.email },
+                cancelToken
+            });
+            const profile = teacherRes.data;
+            setTeacherProfile(profile);
+            setSelectedClass(profile.class_assigned);
+            setSelectedSection(profile.section_assigned);
 
-    const fetchMarks = useCallback(async (cancelToken) => {
-        setLoading(true);
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const params = {
-                class: filters.class || undefined,
-                section: filters.section || undefined,
-                subject: filters.subject || undefined,
-                exam_type: filters.examType,
-                teacher_email: isTeacher ? user?.email : undefined
-            };
-            const res = await axios.get(`${API_BASE_URL}/marks`, { params, cancelToken });
-            setMarks(res.data);
-        } catch (err) {
-            if (axios.isCancel(err)) return;
-            console.error('Error fetching marks:', err);
-        } finally {
-            setLoading(false);
+            const [studentsRes, marksRes] = await Promise.all([
+                axios.get('https://edusync.up.railway.app/api/students', { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
+                axios.get(API_BASE_URL, { params: { class: profile.class_assigned, section: profile.section_assigned, exam_type: selectedExam, subject: selectedSubject }, cancelToken })
+            ]);
+
+            setStudents(studentsRes.data);
+            setMarksData(marksRes.data);
+            setDataReady(true);
+        } catch (error) {
+            if (axios.isCancel(error)) return;
+            console.error("Marks Data Error:", error);
+            setDataReady(true);
         }
-    }, [filters, isTeacher]);
+    }, [selectedExam, selectedSubject, navigate]);
 
     useEffect(() => {
         const source = axios.CancelToken.source();
-        if (filters.class && filters.section) {
-            fetchMarks(source.token);
-        }
-        return () => source.cancel("Operation canceled due to filter update");
-    }, [fetchMarks, filters.class, filters.section]);
+        fetchData(source.token);
+        return () => source.cancel("Operation canceled due to filter update.");
+    }, [fetchData]);
 
-    // --- Chart & Analytics Data ---
-    const averagePerExam = useMemo(() => {
-        const exams = ['Unit Test', 'Mid Term', 'Final Exam'];
-        return exams.map(exam => {
-            const examMarks = marks.filter(m => m.exam_type === exam);
-            const avg = examMarks.length > 0 
-                ? Math.round(examMarks.reduce((sum, m) => sum + (m.marks_obtained / m.total_marks * 100), 0) / examMarks.length)
-                : 0;
-            return { name: exam, average: avg };
-        });
-    }, [marks]);
+    const analytics = useMemo(() => {
+        const scores = marksData.map(m => (m.marks_obtained / m.total_marks) * 100);
+        const avg = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 0;
+        const highest = scores.length > 0 ? Math.max(...scores).toFixed(1) : 0;
+        const lowest = scores.length > 0 ? Math.min(...scores).toFixed(1) : 0;
+        return { avg, highest, lowest };
+    }, [marksData]);
 
-    const topPerformers = useMemo(() => {
-        const studentAverages = {};
-        marks.forEach(m => {
-            const studentId = m.student_id;
-            if (!studentAverages[studentId]) {
-                studentAverages[studentId] = { 
-                    name: m.students?.full_name || 'Student', 
-                    total: 0, 
-                    count: 0 
-                };
-            }
-            studentAverages[studentId].total += (m.marks_obtained / m.total_marks * 100);
-            studentAverages[studentId].count += 1;
-        });
-        return Object.values(studentAverages)
-            .map(s => ({ name: s.name, average: Math.round(s.total / s.count) }))
-            .sort((a, b) => b.average - a.average)
-            .slice(0, 3);
-    }, [marks]);
-
-    const lowPerformers = useMemo(() => {
-        return marks.filter(m => (m.marks_obtained / m.total_marks) < 0.4)
-            .map(m => ({ 
-                name: m.students?.full_name, 
-                subject: m.subject, 
-                score: Math.round(m.marks_obtained / m.total_marks * 100) 
-            }));
-    }, [marks]);
-
-    const subjectPerformance = useMemo(() => {
-        const subjects = {};
-        marks.forEach(m => {
-            if (!subjects[m.subject]) subjects[m.subject] = { total: 0, count: 0 };
-            subjects[m.subject].total += (m.marks_obtained / m.total_marks * 100);
-            subjects[m.subject].count += 1;
-        });
-        return Object.entries(subjects).map(([name, data]) => ({
-            name,
-            average: Math.round(data.total / data.count)
-        }));
-    }, [marks]);
-
-    const glass = {
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
-        backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-        borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.15)', color: '#ffffff'
-    };
+    const performanceData = useMemo(() => [
+        { range: '90-100', count: marksData.filter(m => (m.marks_obtained/m.total_marks)*100 >= 90).length },
+        { range: '80-89', count: marksData.filter(m => { const p = (m.marks_obtained/m.total_marks)*100; return p >= 80 && p < 90; }).length },
+        { range: '70-79', count: marksData.filter(m => { const p = (m.marks_obtained/m.total_marks)*100; return p >= 70 && p < 80; }).length },
+        { range: '60-69', count: marksData.filter(m => { const p = (m.marks_obtained/m.total_marks)*100; return p >= 60 && p < 70; }).length },
+        { range: '<60', count: marksData.filter(m => (m.marks_obtained/m.total_marks)*100 < 60).length },
+    ], [marksData]);
 
     const styles = {
         pageWrapper: {
@@ -157,71 +114,61 @@ const Marks = ({ role = 'principal' }) => {
             background: 'none',
             paddingBottom: '50px'
         },
-        mainContent: {
-            marginLeft: isMobile ? 0 : '260px',
-            paddingTop: '80px',
-            padding: isMobile ? '80px 16px 16px' : '80px 24px 24px'
-        },
         sidebar: {
             position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
-            background: isTeacher ? 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%)' : 'white',
-            backdropFilter: isTeacher ? 'blur(30px)' : 'none', zIndex: 100,
-            transform: isMobile ? (isMobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
-            transition: '0.3s ease', padding: '24px 16px', boxSizing: 'border-box'
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%)',
+            backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+            borderRight: '1px solid rgba(255,255,255,0.1)', padding: '28px 16px',
+            display: 'flex', flexDirection: 'column', zIndex: 100,
+            transform: isMobile ? (menuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
+            transition: '0.3s ease'
         },
         navbar: {
-            position: 'fixed', top: 0, left: isMobile ? 0 : '260px', right: 0, height: '64px',
-            background: isTeacher ? 'rgba(0,0,0,0.15)' : 'white', backdropFilter: 'blur(20px)',
-            borderBottom: '1px solid rgba(255,255,255,0.08)', zIndex: 40,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px'
+            position: 'fixed', top: 0, left: isMobile ? 0 : '260px', right: 0, height: '80px',
+            background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)',
+            zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px'
         },
-        navLink: {
-            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px',
-            color: isTeacher ? 'rgba(255,255,255,0.7)' : '#64748B', textDecoration: 'none', fontSize: '14px', fontWeight: '500', border: 'none', background: 'none', width: '100%', cursor: 'pointer', textAlign: 'left'
+        glassCard: {
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
+            backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+            borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)',
+            boxShadow: '0 16px 40px rgba(0,0,0,0.2), inset 0 1px 0 0 rgba(255,255,255,0.3)',
+            padding: '24px', willChange: 'transform', transform: 'translateZ(0)'
         },
-        activeLink: { background: isTeacher ? 'rgba(255,255,255,0.2)' : '#EFF6FF', color: isTeacher ? 'white' : '#2563EB' },
-        card: { ...glass, padding: '20px' }
+        mainContent: {
+            marginLeft: isMobile ? 0 : '260px',
+            paddingTop: '100px',
+            padding: isMobile ? '100px 16px' : '100px 32px'
+        }
     };
 
     if (loading) return <LoadingScreen />;
 
-    if (!isTeacher) {
-        return <Layout role="principal">Marks Management for Principal (Implementation preserved)</Layout>;
-    }
-
     return (
         <div style={styles.pageWrapper}>
-            {isTeacher && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100vw',
-                    height: '100vh',
-                    backgroundImage: 'url(/nature-bg.jpg)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    zIndex: -1,
-                }} />
-            )}
-            {isMobile && isMobileMenuOpen && (
-                <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:99}} onClick={() => setIsMobileMenuOpen(false)} />
+            <div style={{
+                position: 'fixed', inset: 0, backgroundImage: 'url(/nature-bg.jpg)',
+                backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', zIndex: -1
+            }} />
+
+            {isMobile && menuOpen && (
+                <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:99}} onClick={() => setMenuOpen(false)} />
             )}
 
             <aside style={styles.sidebar}>
-                <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'40px', padding:'0 5px', color:'white'}}>
-                    <GraduationCap size={24} /> <span style={{fontSize:'20px', fontWeight:'800'}}>EduSync</span>
+                <div style={{display:'flex', alignItems:'center', gap:'12px', marginBottom:'40px', padding:'0 8px'}}>
+                    <GraduationCap size={32} />
+                    <span style={{fontSize:'24px', fontWeight:'800'}}>EduSync</span>
                 </div>
                 <nav style={{flex:1}}>
                     {[
-                        { label: 'Overview', icon: <TrendingUp size={18} />, path: '/dashboard/teacher' },
-                        { label: 'My Students', icon: <Users size={18} />, path: '/dashboard/teacher/students' },
-                        { label: 'Attendance', icon: <ClipboardCheck size={18} />, path: '/dashboard/teacher/attendance' },
-                        { label: 'Homework', icon: <BookOpen size={18} />, path: '/dashboard/teacher/homework' },
-                        { label: 'Marks Entry', icon: <GraduationCap size={18} />, path: '/dashboard/teacher/marks' },
+                        { label: 'Overview', icon: <TrendingUp size={20} />, path: '/dashboard/teacher' },
+                        { label: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
+                        { label: 'Attendance', icon: <ClipboardCheck size={20} />, path: '/dashboard/teacher/attendance' },
+                        { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
+                        { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
                     ].map(item => (
-                        <button key={item.label} style={{...styles.navLink, ...(window.location.pathname === item.path ? styles.activeLink : {})}} onClick={() => { navigate(item.path); if(isMobile) setIsMobileMenuOpen(false); }}>
+                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: (window.location.pathname === item.path ? '#fff' : 'rgba(255,255,255,0.5)'), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
                             {item.icon} {item.label}
                         </button>
                     ))}
@@ -229,144 +176,90 @@ const Marks = ({ role = 'principal' }) => {
             </aside>
 
             <header style={styles.navbar}>
-                <div style={{display:'flex', alignItems:'center', gap:'15px', color:'white'}}>
-                    {isMobile && <Menu size={24} onClick={() => setIsMobileMenuOpen(true)} style={{cursor:'pointer'}} />}
-                    <h2 style={{fontSize:'18px', fontWeight:'700', margin:0}}>Performance Registry</h2>
+                <div style={{display:'flex', alignItems:'center', gap:'16px'}}>
+                    {isMobile && <Menu size={24} onClick={() => setMenuOpen(true)} style={{cursor:'pointer'}} />}
+                    <h2 style={{fontSize:'20px', fontWeight:'800', margin:0}}>Performance Portal</h2>
                 </div>
-                <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
-                    <Bell size={20} style={{color:'white', opacity:0.8}} />
-                    <div style={{width:'36px', height:'36px', borderRadius:'12px', background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700', color:'white', border:'1px solid rgba(255,255,255,0.1)'}}>
-                        {teacherProfile?.full_name?.charAt(0)}
-                    </div>
+                <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                    <select value={selectedExam} onChange={(e) => setSelectedExam(e.target.value)} style={{background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'12px', padding:'8px 12px', color:'white', outline:'none', fontSize:'13px', cursor:'pointer'}} >
+                        <option value="Half Yearly" style={{color:'black'}}>Half Yearly</option>
+                        <option value="Finals" style={{color:'black'}}>Finals</option>
+                    </select>
                 </div>
             </header>
 
             <main style={styles.mainContent}>
-                {/* Filters Locked */}
-                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap:'16px', marginBottom:'24px'}}>
-                    <div style={styles.card}>
-                        <div style={{fontSize:'10px', opacity:0.6, fontWeight:'800', marginBottom:'4px'}}>EXAM CYCLE</div>
-                        <select style={{background:'none', border:'none', color:'white', fontSize:'14px', fontWeight:'700', outline:'none', width:'100%'}} value={filters.examType} onChange={(e) => setFilters({...filters, examType: e.target.value})}>
-                            <option style={{color:'black'}}>Unit Test</option>
-                            <option style={{color:'black'}}>Mid Term</option>
-                            <option style={{color:'black'}}>Final Exam</option>
-                        </select>
-                    </div>
-                    <div style={styles.card}>
-                        <div style={{fontSize:'10px', opacity:0.6, fontWeight:'800', marginBottom:'4px'}}>SUBJECT</div>
-                        <input type="text" placeholder="Filter subject..." style={{background:'none', border:'none', color:'white', fontSize:'14px', fontWeight:'700', outline:'none', width:'100%'}} value={filters.subject} onChange={(e) => setFilters({...filters, subject: e.target.value})} />
-                    </div>
-                    <div style={styles.card}>
-                        <div style={{fontSize:'10px', opacity:0.6, fontWeight:'800', marginBottom:'4px'}}>CLASS</div>
-                        <div style={{fontSize:'14px', fontWeight:'700'}}>{filters.class}</div>
-                    </div>
-                    <div style={styles.card}>
-                        <div style={{fontSize:'10px', opacity:0.6, fontWeight:'800', marginBottom:'4px'}}>SECTION</div>
-                        <div style={{fontSize:'14px', fontWeight:'700'}}>Section {filters.section}</div>
-                    </div>
+                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:'20px', marginBottom:'32px'}}>
+                    {[
+                        { label: 'Class Average', value: `${analytics.avg}%`, icon: <Target size={24}/>, color: '#2563EB' },
+                        { label: 'Highest Score', value: `${analytics.highest}%`, icon: <Award size={24}/>, color: '#10B981' },
+                        { label: 'Lowest Score', value: `${analytics.lowest}%`, icon: <TrendingDown size={24}/>, color: '#EF4444' }
+                    ].map((s, i) => (
+                        <div key={i} style={styles.glassCard}>
+                            <div style={{width:'48px', height:'48px', borderRadius:'14px', background:`${s.color}20`, display:'flex', alignItems:'center', justifyContent:'center', color:s.color, marginBottom:'16px'}}>{s.icon}</div>
+                            <h3 style={{fontSize:'28px', fontWeight:'800', margin:0}}>{s.value}</h3>
+                            <p style={{fontSize:'13px', opacity:0.6, margin:0}}>{s.label}</p>
+                        </div>
+                    ))}
                 </div>
 
-                {/* Top Section Charts */}
-                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1.5fr 1fr', gap:'16px', marginBottom:'24px'}}>
-                    <div style={{...styles.card}}>
-                        <h3 style={{fontSize:'18px', fontWeight:'800', marginBottom:'20px'}}>Class Average per Exam</h3>
-                        <div style={{ width: '100%', height: 280, minWidth: 0, overflow: 'hidden' }}>
+                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap:'24px'}}>
+                    <div style={styles.glassCard}>
+                        <div style={{display:'flex', justifyContent:'space-between', items:'center', marginBottom:'24px'}}>
+                            <h4 style={{fontSize:'18px', fontWeight:'800', margin:0}}>Class Grade Distribution</h4>
+                            <span style={{fontSize:'12px', opacity:0.5}}>{selectedSubject}</span>
+                        </div>
+                        <div style={{height:'300px', width:'100%', minWidth:0}}>
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={averagePerExam}>
+                                <BarChart data={performanceData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 11}} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 11}} unit="%" />
-                                    <Tooltip contentStyle={{background:'rgba(0,0,0,0.8)', border:'none', borderRadius:'12px'}} />
-                                    <Bar dataKey="average" fill="rgba(255,255,255,0.6)" radius={[8, 8, 0, 0]} />
+                                    <XAxis dataKey="range" stroke="rgba(255,255,255,0.4)" fontSize={12} axisLine={false} tickLine={false} />
+                                    <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} axisLine={false} tickLine={false} />
+                                    <Tooltip contentStyle={{background:'#000', border:'none', borderRadius:'12px'}} />
+                                    <Bar dataKey="count" fill="url(#colorBar)" radius={[6,6,0,0]} barSize={40}>
+                                        <defs>
+                                            <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#2563EB" />
+                                                <stop offset="100%" stopColor="#7C3AED" />
+                                            </linearGradient>
+                                        </defs>
+                                    </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
-                    <div style={styles.card}>
-                        <h3 style={{fontSize:'18px', fontWeight:'800', marginBottom:'20px'}}>Top 3 Performers</h3>
-                        <div style={{display:'flex', flexDirection:'column', gap:'16px'}}>
-                            {topPerformers.map((s, i) => (
-                                <div key={i} style={{display:'flex', alignItems:'center', gap:'12px', padding:'12px', background:'rgba(255,255,255,0.05)', borderRadius:'16px', border:'1px solid rgba(255,255,255,0.1)'}}>
-                                    <div style={{width:'40px', height:'40px', borderRadius:'12px', background:'rgba(74, 222, 128, 0.2)', display:'flex', alignItems:'center', justifyContent:'center'}}><Award size={20} color="#4ade80" /></div>
-                                    <div style={{flex:1}}>
-                                        <div style={{fontSize:'14px', fontWeight:'700'}}>{s.name}</div>
-                                        <div style={{fontSize:'12px', opacity:0.5}}>Average Mastery: {s.average}%</div>
+                    <div style={styles.glassCard}>
+                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'24px'}}>
+                            <h4 style={{fontSize:'18px', fontWeight:'800', margin:0}}>Student Marks</h4>
+                            <div style={{position:'relative', width:'120px'}}>
+                                <Search size={14} style={{position:'absolute', left:'8px', top:'50%', transform:'translateY(-50%)', opacity:0.3}} />
+                                <input type="text" placeholder="Roll..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{width:'100%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', padding:'6px 12px 6px 28px', color:'white', outline:'none', fontSize:'11px'}} />
+                            </div>
+                        </div>
+                        <div style={{maxHeight:'350px', overflowY:'auto', paddingRight:'8px'}}>
+                            {students.filter(s => s.roll_number.toLowerCase().includes(searchTerm.toLowerCase())).map(student => {
+                                const record = marksData.find(m => m.student_id === student.id);
+                                return (
+                                    <div key={student.id} style={{display:'flex', items:'center', gap:'12px', padding:'12px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
+                                        <div style={{flex:1}}>
+                                            <p style={{fontSize:'14px', fontWeight:'700', margin:0}}>{student.full_name}</p>
+                                            <p style={{fontSize:'10px', opacity:0.5, margin:0}}>Roll No: {student.roll_number}</p>
+                                        </div>
+                                        <input 
+                                            type="number" 
+                                            defaultValue={record?.marks_obtained}
+                                            onBlur={async (e) => {
+                                                try {
+                                                    await axios.post(API_BASE_URL, { student_id: student.id, class: selectedClass, section: selectedSection, exam_type: selectedExam, subject: selectedSubject, marks_obtained: e.target.value, total_marks: 100 });
+                                                } catch (err) { console.error(err); }
+                                            }}
+                                            style={{width:'60px', background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', padding:'6px', color:'white', textAlign:'center', fontWeight:'700'}} 
+                                        />
                                     </div>
-                                    {i === 0 && <span style={{fontSize:'20px'}}>🥇</span>}
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
-                    </div>
-                </div>
-
-                {/* Subject Wise Performance */}
-                <div style={{...styles.card, marginBottom:'24px'}}>
-                    <h3 style={{fontSize:'18px', fontWeight:'800', marginBottom:'20px'}}>Subject-wise Mastery</h3>
-                    <div style={{ width: '100%', height: 280, minWidth: 0, overflow: 'hidden' }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={subjectPerformance}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 11}} />
-                                <YAxis axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 11}} unit="%" />
-                                <Tooltip contentStyle={{background:'rgba(0,0,0,0.8)', border:'none', borderRadius:'12px'}} />
-                                <Bar dataKey="average" fill="rgba(96, 165, 250, 0.7)" radius={[8, 8, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                {/* Below 40% Alerts */}
-                {lowPerformers.length > 0 && (
-                    <div style={{...styles.card, background:'rgba(248, 113, 113, 0.1)', border:'1px solid rgba(248, 113, 113, 0.2)', marginBottom:'24px'}}>
-                        <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'16px', color:'#f87171'}}>
-                            <AlertTriangle size={20} /> <h3 style={{fontSize:'16px', fontWeight:'800', margin:0}}>Performance Alerts (Below 40%)</h3>
-                        </div>
-                        <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:'12px'}}>
-                            {lowPerformers.slice(0, 6).map((low, i) => (
-                                <div key={i} style={{background: 'rgba(0,0,0,0.2)', padding:'12px', borderRadius:'12px', border:'1px solid rgba(248, 113, 113, 0.1)'}}>
-                                    <div style={{fontSize:'13px', fontWeight:'700'}}>{low.name}</div>
-                                    <div style={{fontSize:'11px', opacity:0.6}}>{low.subject}: {low.score}%</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Full List */}
-                <div style={{...styles.card, padding:0, overflow:'hidden'}}>
-                    <div style={{padding:'20px', borderBottom:'1px solid rgba(255,255,255,0.1)', display:'flex', alignItems:'center', gap:'10px'}}>
-                        <BarChartIcon size={20} /> <h3 style={{fontSize:'16px', fontWeight:'800', margin:0}}>Detailed Achievement Registry</h3>
-                    </div>
-                    <div style={{overflowX:'auto'}}>
-                        <table style={{width:'100%', borderCollapse:'collapse'}}>
-                            <thead>
-                                <tr style={{background:'rgba(255,255,255,0.05)', fontSize:'11px', textTransform:'uppercase', opacity:0.6}}>
-                                    <th style={{padding:'16px', textAlign:'left'}}>Student Identity</th>
-                                    <th style={{padding:'16px', textAlign:'left'}}>Subject Unit</th>
-                                    <th style={{padding:'16px', textAlign:'right'}}>Score</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {marks.map(r => (
-                                    <tr key={r.id} style={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-                                        <td style={{padding:'16px'}}>
-                                            <div style={{fontSize:'14px', fontWeight:'700'}}>{r.students?.full_name}</div>
-                                            <div style={{fontSize:'11px', opacity:0.5}}>{r.exam_type} Cycle</div>
-                                        </td>
-                                        <td style={{padding:'16px'}}>
-                                            <div style={{fontSize:'13px', fontWeight:'600'}}>{r.subject}</div>
-                                        </td>
-                                        <td style={{padding:'16px', textAlign:'right'}}>
-                                            <div style={{fontSize:'14px', fontWeight:'800', color: (r.marks_obtained/r.total_marks) > 0.7 ? '#4ade80' : (r.marks_obtained/r.total_marks) < 0.4 ? '#f87171' : 'white'}}>
-                                                {Math.round(r.marks_obtained/r.total_marks*100)}%
-                                            </div>
-                                            <div style={{fontSize:'10px', opacity:0.4}}>{r.marks_obtained}/{r.total_marks}</div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
                     </div>
                 </div>
             </main>
@@ -374,4 +267,4 @@ const Marks = ({ role = 'principal' }) => {
     );
 };
 
-export default Marks;
+export default React.memo(Marks);

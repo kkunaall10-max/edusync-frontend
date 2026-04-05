@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -6,166 +6,124 @@ import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 import Layout from '../components/Layout';
 import LoadingScreen from '../components/LoadingScreen';
 import { 
-  Menu, X, Bell, Users, BookOpen, GraduationCap, 
-  Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Activity, Target
-} from 'lucide-react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  LineChart, Line, AreaChart, Area, Cell, PieChart, Pie
 } from 'recharts';
+import { 
+  Menu, X, Bell, Users, BookOpen, GraduationCap, 
+  Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Filter, Search, UserCheck, UserX, Clock
+} from 'lucide-react';
 
-const API_BASE_URL = 'https://edusync.up.railway.app/api';
+const API_BASE_URL = 'https://edusync.up.railway.app/api/attendance';
 
 const Attendance = ({ role = 'principal' }) => {
     const isTeacher = role === 'teacher';
-    const [students, setStudents] = useState([]);
-    const [attendance, setAttendance] = useState({});
-    const [allAttendance, setAllAttendance] = useState([]); // For charts
-    const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [minTimeDone, setMinTimeDone] = useState(false);
+    const [dataReady, setDataReady] = useState(false);
+
     const [teacherProfile, setTeacherProfile] = useState(null);
+    const [students, setStudents] = useState([]);
+    const [attendanceRecords, setAttendanceRecords] = useState([]);
+    const [selectedClass, setSelectedClass] = useState('');
+    const [selectedSection, setSelectedSection] = useState('');
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    
-    const [filters, setFilters] = useState({
-        class: SCHOOL_CLASSES[0], 
-        section: SCHOOL_SECTIONS[0], 
-        date: new Date().toISOString().split('T')[0]
-    });
+    const [searchTerm, setSearchTerm] = useState('');
 
     const navigate = useNavigate();
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
         window.addEventListener('resize', handleResize);
-        
-        const initPortal = async () => {
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Force minimum 10 second loading
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setMinTimeDone(true);
+        }, 10000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    useEffect(() => {
+        if (minTimeDone && dataReady) {
+            setLoading(false);
+        }
+    }, [minTimeDone, dataReady]);
+
+    const fetchInitialData = useCallback(async (cancelToken) => {
+        try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { navigate('/login'); return; }
 
             if (isTeacher) {
-                try {
-                    const profileRes = await axios.get(`${API_BASE_URL}/teachers/profile`, { params: { email: user.email } });
-                    const profile = profileRes.data;
-                    setTeacherProfile(profile);
-                    setFilters(prev => ({ 
-                        ...prev, 
-                        class: profile.class_assigned, 
-                        section: profile.section_assigned 
-                    }));
-                } catch (err) {
-                    console.error("Error fetching teacher profile:", err);
-                }
+                const teacherRes = await axios.get('https://edusync.up.railway.app/api/teachers/profile', {
+                    params: { email: user.email },
+                    cancelToken
+                });
+                const profile = teacherRes.data;
+                setTeacherProfile(profile);
+                setSelectedClass(profile.class_assigned);
+                setSelectedSection(profile.section_assigned);
+
+                const studentsRes = await axios.get('https://edusync.up.railway.app/api/students', {
+                    params: { class: profile.class_assigned, section: profile.section_assigned },
+                    cancelToken
+                });
+                setStudents(studentsRes.data);
             }
-        };
-        initPortal();
-        return () => window.removeEventListener('resize', handleResize);
-    }, [isTeacher, navigate]);
-
-    const fetchStudentsAndAttendance = useCallback(async (cancelToken) => {
-        if (!filters.class || !filters.section) return;
-        setLoading(true);
-        try {
-            const [studentsRes, dailyRes] = await Promise.all([
-                axios.get(`${API_BASE_URL}/students`, { 
-                    params: { class: filters.class, section: filters.section },
-                    cancelToken
-                }),
-                axios.get(`${API_BASE_URL}/attendance`, { 
-                    params: { ...filters },
-                    cancelToken
-                })
-            ]);
-
-            const studentData = studentsRes.data;
-            setStudents(studentData);
-
-            // Fetch historical attendance for charts (last 30 days)
-            const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const endDate = new Date().toISOString().split('T')[0];
-            const historyRes = await axios.get(`${API_BASE_URL}/attendance`, { 
-                params: { class: filters.class, section: filters.section, startDate, endDate },
-                cancelToken
-            });
-            setAllAttendance(historyRes.data);
-
-            const existingAttendance = {};
-            dailyRes.data.forEach(record => {
-                existingAttendance[record.student_id] = record.status;
-            });
-
-            const initialAttendance = {};
-            studentData.forEach(student => {
-                initialAttendance[student.id] = existingAttendance[student.id] || 'present';
-            });
-            setAttendance(initialAttendance);
+            setDataReady(true);
         } catch (error) {
             if (axios.isCancel(error)) return;
-            console.error('Error fetching student data:', error);
-        } finally {
-            setLoading(false);
+            console.error("Attendance Data Error:", error);
+            setDataReady(true);
         }
-    }, [filters]);
+    }, [isTeacher, navigate]);
 
     useEffect(() => {
         const source = axios.CancelToken.source();
-        fetchStudentsAndAttendance(source.token);
-        return () => source.cancel("Operation canceled due to component update");
-    }, [fetchStudentsAndAttendance]);
+        fetchInitialData(source.token);
+        return () => source.cancel("Cleanup");
+    }, [fetchInitialData]);
 
-    const handleStatusChange = (studentId, status) => {
-        setAttendance(prev => ({ ...prev, [studentId]: status }));
-    };
-
-    const handleSubmit = async () => {
-        setSaving(true);
+    const fetchAttendance = useCallback(async (cancelToken) => {
+        if (!selectedClass || !selectedSection || !selectedDate) return;
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const attendanceData = Object.entries(attendance).map(([studentId, status]) => ({
-                student_id: studentId,
-                status,
-                date: filters.date,
-                class: filters.class,
-                section: filters.section,
-                marked_by: user?.email || 'Teacher'
-            }));
-
-            await axios.post(`${API_BASE_URL}/attendance/mark`, { attendanceData });
-            alert('Attendance records updated successfully.');
-            // Re-fetch without cancel token for simplicity as it's a mutation callback
-            fetchStudentsAndAttendance();
+            const res = await axios.get(API_BASE_URL, {
+                params: { class: selectedClass, section: selectedSection, date: selectedDate },
+                cancelToken
+            });
+            setAttendanceRecords(res.data);
         } catch (error) {
-            alert('Error saving: ' + (error.response?.data?.error || error.message));
-        } finally {
-            setSaving(false);
+            if (!axios.isCancel(error)) console.error("Error fetching attendance:", error);
         }
-    };
+    }, [selectedClass, selectedSection, selectedDate]);
 
-    // --- Chart Data Calculation ---
-    const chartData = useMemo(() => {
-        return students.map(s => {
-            const sHistory = allAttendance.filter(a => a.student_id === s.id);
-            const presentCount = sHistory.filter(a => a.status === 'present').length;
-            const pct = sHistory.length > 0 ? Math.round((presentCount / sHistory.length) * 100) : 100;
-            return { name: s.full_name.split(' ')[0], percentage: pct };
-        });
-    }, [students, allAttendance]);
+    useEffect(() => {
+        const source = axios.CancelToken.source();
+        fetchAttendance(source.token);
+        return () => source.cancel("Cleanup Filters");
+    }, [fetchAttendance]);
 
     const stats = useMemo(() => {
-        const dailyValues = Object.values(attendance);
+        const present = attendanceRecords.filter(r => r.status === 'present').length;
+        const absent = attendanceRecords.filter(r => r.status === 'absent').length;
+        const total = students.length;
         return {
-            present: dailyValues.filter(v => v === 'present').length,
-            absent: dailyValues.filter(v => v === 'absent').length,
-            late: dailyValues.filter(v => v === 'late').length,
-            overall: dailyValues.length > 0 ? Math.round((dailyValues.filter(v => v === 'present').length / dailyValues.length) * 100) : 0
+            present, absent, 
+            pending: total - (present + absent),
+            percentage: total > 0 ? ((present / total) * 100).toFixed(1) : 0
         };
-    }, [attendance]);
+    }, [attendanceRecords, students]);
 
-    const glass = {
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
-        backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-        borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.15)', color: '#ffffff'
-    };
+    const chartData = useMemo(() => [
+        { name: 'Present', value: stats.present, color: '#10B981' },
+        { name: 'Absent', value: stats.absent, color: '#EF4444' },
+        { name: 'Pending', value: stats.pending, color: 'rgba(255,255,255,0.1)' }
+    ], [stats]);
 
     const styles = {
         pageWrapper: {
@@ -175,73 +133,72 @@ const Attendance = ({ role = 'principal' }) => {
             background: 'none',
             paddingBottom: '50px'
         },
-        mainContent: {
-            marginLeft: isMobile ? 0 : '260px',
-            paddingTop: '80px',
-            padding: isMobile ? '80px 16px 16px' : '80px 24px 24px'
-        },
         sidebar: {
             position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
-            background: isTeacher ? 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%)' : 'white',
-            backdropFilter: isTeacher ? 'blur(30px)' : 'none', zIndex: 100,
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%)',
+            backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+            borderRight: '1px solid rgba(255,255,255,0.1)', padding: '28px 16px',
+            display: 'flex', flexDirection: 'column', zIndex: 100,
             transform: isMobile ? (isMobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
-            transition: '0.3s ease', padding: '24px 16px', boxSizing: 'border-box'
+            transition: '0.3s ease'
         },
         navbar: {
-            position: 'fixed', top: 0, left: isMobile ? 0 : '260px', right: 0, height: '64px',
-            background: isTeacher ? 'rgba(0,0,0,0.15)' : 'white', backdropFilter: 'blur(20px)',
-            borderBottom: '1px solid rgba(255,255,255,0.08)', zIndex: 40,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px'
+            position: 'fixed', top: 0, left: isMobile ? 0 : '260px', right: 0, height: '80px',
+            background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)',
+            zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px'
         },
-        navLink: {
-            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px',
-            color: isTeacher ? 'rgba(255,255,255,0.7)' : '#64748B', textDecoration: 'none', fontSize: '14px', fontWeight: '500', border: 'none', background: 'none', width: '100%', cursor: 'pointer', textAlign: 'left'
+        glassCard: {
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
+            backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+            borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)',
+            boxShadow: '0 16px 40px rgba(0,0,0,0.2), inset 0 1px 0 0 rgba(255,255,255,0.3)',
+            padding: '24px', willChange: 'transform', transform: 'translateZ(0)'
         },
-        activeLink: { background: isTeacher ? 'rgba(255,255,255,0.2)' : '#EFF6FF', color: isTeacher ? 'white' : '#2563EB' },
-        statCard: { ...glass, padding: '20px', textAlign: 'center' }
+        mainContent: {
+            marginLeft: isMobile ? 0 : '260px',
+            paddingTop: '100px',
+            padding: isMobile ? '100px 16px' : '100px 32px'
+        }
     };
 
     if (loading) return <LoadingScreen />;
 
-    const navItems = [
-        { label: 'Overview', icon: <TrendingUp size={18} />, path: '/dashboard/teacher' },
-        { label: 'My Students', icon: <Users size={18} />, path: '/dashboard/teacher/students' },
-        { label: 'Attendance', icon: <ClipboardCheck size={18} />, path: '/dashboard/teacher/attendance' },
-        { label: 'Homework', icon: <BookOpen size={18} />, path: '/dashboard/teacher/homework' },
-        { label: 'Marks Entry', icon: <GraduationCap size={18} />, path: '/dashboard/teacher/marks' },
-    ];
-
     if (!isTeacher) {
-        return <Layout role="principal">Attendance Management for Principal (Current implementation preserved)</Layout>;
+        return (
+            <Layout role="principal">
+                <div className="space-y-4">
+                    <h2 className="text-2xl font-bold">Attendance Records</h2>
+                    {/* Principal specific logic preserved */}
+                </div>
+            </Layout>
+        );
     }
 
     return (
         <div style={styles.pageWrapper}>
-            {isTeacher && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100vw',
-                    height: '100vh',
-                    backgroundImage: 'url(/nature-bg.jpg)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    zIndex: -1,
-                }} />
-            )}
+            <div style={{
+                position: 'fixed', inset: 0, backgroundImage: 'url(/nature-bg.jpg)',
+                backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', zIndex: -1
+            }} />
+
             {isMobile && isMobileMenuOpen && (
                 <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:99}} onClick={() => setIsMobileMenuOpen(false)} />
             )}
 
             <aside style={styles.sidebar}>
-                <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'40px', padding:'0 5px', color:'white'}}>
-                    <GraduationCap size={24} /> <span style={{fontSize:'20px', fontWeight:'800'}}>EduSync</span>
+                <div style={{display:'flex', alignItems:'center', gap:'12px', marginBottom:'40px', padding:'0 8px'}}>
+                    <GraduationCap size={32} />
+                    <span style={{fontSize:'24px', fontWeight:'800'}}>EduSync</span>
                 </div>
                 <nav style={{flex:1}}>
-                    {navItems.map(item => (
-                        <button key={item.label} style={{...styles.navLink, ...(window.location.pathname === item.path ? styles.activeLink : {})}} onClick={() => { navigate(item.path); if(isMobile) setIsMobileMenuOpen(false); }}>
+                    {[
+                        { label: 'Overview', icon: <TrendingUp size={20} />, path: '/dashboard/teacher' },
+                        { label: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
+                        { label: 'Attendance', icon: <ClipboardCheck size={20} />, path: '/dashboard/teacher/attendance' },
+                        { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
+                        { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
+                    ].map(item => (
+                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: (window.location.pathname === item.path ? '#fff' : 'rgba(255,255,255,0.5)'), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px'}} onClick={() => { navigate(item.path); if(isMobile) setIsMobileMenuOpen(false); }}>
                             {item.icon} {item.label}
                         </button>
                     ))}
@@ -249,103 +206,88 @@ const Attendance = ({ role = 'principal' }) => {
             </aside>
 
             <header style={styles.navbar}>
-                <div style={{display:'flex', alignItems:'center', gap:'15px', color:'white'}}>
+                <div style={{display:'flex', alignItems:'center', gap:'16px'}}>
                     {isMobile && <Menu size={24} onClick={() => setIsMobileMenuOpen(true)} style={{cursor:'pointer'}} />}
-                    <h2 style={{fontSize:'18px', fontWeight:'700', margin:0}}>Daily Registry</h2>
+                    <h2 style={{fontSize:'20px', fontWeight:'800', margin:0}}>Daily Attendance</h2>
                 </div>
-                <button onClick={handleSubmit} disabled={saving} style={{background: 'rgba(255,255,255,0.2)', color: 'white', padding: '8px 20px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', fontSize: '13px', fontWeight: '700', cursor: 'pointer'}}>
-                    {saving ? 'Syncing...' : 'Submit Registry'}
-                </button>
+                <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                    <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} style={{background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'12px', padding:'8px 12px', color:'white', outline:'none', fontSize:'13px'}} />
+                </div>
             </header>
 
             <main style={styles.mainContent}>
-                {/* Stats Row */}
-                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap:'16px', marginBottom:'24px'}}>
-                    <div style={styles.statCard}>
-                        <div style={{fontSize:'11px', opacity:0.6, fontWeight:'700', textTransform:'uppercase'}}>Present</div>
-                        <div style={{fontSize:'24px', fontWeight:'800', color:'#4ade80'}}>{stats.present}</div>
+                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap:'24px', marginBottom:'32px'}}>
+                    <div style={styles.glassCard}>
+                        <h4 style={{fontSize:'16px', fontWeight:'800', marginBottom:'16px', margin:0}}>Summary</h4>
+                        <div style={{height:'180px', width:'100%', minWidth:0}}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie data={chartData} innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
+                                        {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                                    </Pie>
+                                    <Tooltip contentStyle={{background:'#000', border:'none', borderRadius:'8px', fontSize:'12px'}} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginTop:'16px'}}>
+                            <div style={{padding:'12px', background:'rgba(16, 185, 129, 0.1)', borderRadius:'14px', border:'1px solid rgba(16, 185, 129, 0.2)'}}>
+                                <p style={{fontSize:'10px', opacity:0.6, margin:0, textTransform:'uppercase'}}>Present</p>
+                                <p style={{fontSize:'18px', fontWeight:'800', margin:0, color:'#10B981'}}>{stats.present}</p>
+                            </div>
+                            <div style={{padding:'12px', background:'rgba(239, 68, 68, 0.1)', borderRadius:'14px', border:'1px solid rgba(239, 68, 68, 0.2)'}}>
+                                <p style={{fontSize:'10px', opacity:0.6, margin:0, textTransform:'uppercase'}}>Absent</p>
+                                <p style={{fontSize:'18px', fontWeight:'800', margin:0, color:'#EF4444'}}>{stats.absent}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div style={styles.statCard}>
-                        <div style={{fontSize:'11px', opacity:0.6, fontWeight:'700', textTransform:'uppercase'}}>Absent</div>
-                        <div style={{fontSize:'24px', fontWeight:'800', color:'#f87171'}}>{stats.absent}</div>
-                    </div>
-                    <div style={styles.statCard}>
-                        <div style={{fontSize:'11px', opacity:0.6, fontWeight:'700', textTransform:'uppercase'}}>Late</div>
-                        <div style={{fontSize:'24px', fontWeight:'800', color:'#fbbf24'}}>{stats.late}</div>
-                    </div>
-                    <div style={styles.statCard}>
-                        <div style={{fontSize:'11px', opacity:0.6, fontWeight:'700', textTransform:'uppercase'}}>Overall Rate</div>
-                        <div style={{fontSize:'24px', fontWeight:'800'}}>{stats.overall}%</div>
-                    </div>
-                </div>
 
-                {/* Filters (Locked for Teacher) */}
-                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:'16px', marginBottom:'24px'}}>
-                    <div style={{...styles.statCard, textAlign:'left'}}>
-                        <div style={{fontSize:'10px', opacity:0.6, fontWeight:'800', marginBottom:'4px'}}>CLASS UNIT</div>
-                        <div style={{fontSize:'14px', fontWeight:'700', color:'rgba(255,255,255,0.9)'}}>{filters.class} (Assigned)</div>
-                    </div>
-                    <div style={{...styles.statCard, textAlign:'left'}}>
-                        <div style={{fontSize:'10px', opacity:0.6, fontWeight:'800', marginBottom:'4px'}}>SECTION</div>
-                        <div style={{fontSize:'14px', fontWeight:'700', color:'rgba(255,255,255,0.9)'}}>Section {filters.section} (Assigned)</div>
-                    </div>
-                    <div style={{...styles.statCard, textAlign:'left'}}>
-                        <div style={{fontSize:'10px', opacity:0.6, fontWeight:'800', marginBottom:'4px'}}>REGISTRY DATE</div>
-                        <input type="date" value={filters.date} onChange={(e) => setFilters({...filters, date: e.target.value})} style={{background:'none', border:'none', color:'white', fontSize:'14px', fontWeight:'700', outline:'none', width:'100%'}} />
-                    </div>
-                </div>
+                    <div style={styles.glassCard}>
+                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'24px'}}>
+                            <h4 style={{fontSize:'16px', fontWeight:'800', margin:0}}>Student List ({students.length})</h4>
+                            <div style={{position:'relative', width:'200px'}}>
+                                <Search size={14} style={{position:'absolute', left:'10px', top:'50%', transform:'translateY(-50%)', opacity:0.5}} />
+                                <input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{width:'100%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'10px', padding:'6px 12px 6px 32px', color:'white', outline:'none', fontSize:'12px'}} />
+                            </div>
+                        </div>
 
-                {/* Attendance Table */}
-                <div style={{...glass, padding:'0', overflow:'hidden', marginBottom:'24px'}}>
-                    <table style={{width:'100%', borderCollapse:'collapse'}}>
-                        <thead>
-                            <tr style={{borderBottom:'1px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.05)'}}>
-                                <th style={{padding:'16px', textAlign:'left', fontSize:'12px', opacity:0.6}}>STUDENT IDENTITY</th>
-                                <th style={{padding:'16px', textAlign:'right', fontSize:'12px', opacity:0.6}}>STATUS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {students.map(s => (
-                                <tr key={s.id} style={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-                                    <td style={{padding:'16px'}}>
-                                        <div style={{fontSize:'14px', fontWeight:'700'}}>{s.full_name}</div>
-                                        <div style={{fontSize:'11px', opacity:0.5}}>Roll: {s.roll_number}</div>
-                                    </td>
-                                    <td style={{padding:'16px', textAlign:'right'}}>
-                                        <div style={{display:'flex', justifyContent:'flex-end', gap:'8px'}}>
-                                            {['present', 'absent', 'late'].map(st => (
-                                                <button key={st} onClick={() => handleStatusChange(s.id, st)} style={{
-                                                    background: attendance[s.id] === st ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.05)',
-                                                    color:'white', padding:'6px 12px', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', fontSize:'10px', fontWeight:'800', cursor:'pointer', textTransform:'uppercase'
-                                                }}>
-                                                    {st}
-                                                </button>
-                                            ))}
+                        <div style={{maxHeight:'400px', overflowY:'auto', paddingRight:'8px'}}>
+                            {students.filter(s => s.full_name.toLowerCase().includes(searchTerm.toLowerCase())).map(student => {
+                                const record = attendanceRecords.find(r => r.student_id === student.id);
+                                return (
+                                    <div key={student.id} style={{display:'flex', alignItems:'center', gap:'16px', padding:'12px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
+                                        <div style={{width:'36px', height:'36px', borderRadius:'10px', background:'rgba(255,255,255,0.1)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', fontWeight:'700'}}>{student.full_name.charAt(0)}</div>
+                                        <div style={{flex:1}}>
+                                            <p style={{fontSize:'14px', fontWeight:'700', margin:0}}>{student.full_name}</p>
+                                            <p style={{fontSize:'11px', opacity:0.5, margin:0}}>Roll: {student.roll_number}</p>
                                         </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Monthly Chart */}
-                <div style={{...glass, padding:'24px'}}>
-                    <h3 style={{fontSize:'18px', fontWeight:'800', marginBottom:'20px'}}>Monthly Attendance Summary (30 Days)</h3>
-                    <div style={{ width: '100%', height: 280, minWidth: 0, overflow: 'hidden' }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
-                                <YAxis axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} unit="%" />
-                                <Tooltip contentStyle={{background: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '12px'}} />
-                                <Bar dataKey="percentage">
-                                    {chartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.percentage > 75 ? 'rgba(74, 222, 128, 0.7)' : 'rgba(248, 113, 113, 0.7)'} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
+                                        <div style={{display:'flex', gap:'8px'}}>
+                                            <button 
+                                                onClick={async () => {
+                                                    try {
+                                                        await axios.post(API_BASE_URL, { student_id: student.id, class: selectedClass, section: selectedSection, date: selectedDate, status: 'present', marked_by: teacherProfile.email });
+                                                        fetchAttendance();
+                                                    } catch (e) { console.error(e); }
+                                                }}
+                                                style={{width:'32px', height:'32px', borderRadius:'8px', border:'none', background: record?.status === 'present' ? '#10B981' : 'rgba(255,255,255,0.05)', color: record?.status === 'present' ? '#fff' : 'rgba(255,255,255,0.3)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}
+                                            >
+                                                <UserCheck size={16} />
+                                            </button>
+                                            <button 
+                                                onClick={async () => {
+                                                    try {
+                                                        await axios.post(API_BASE_URL, { student_id: student.id, class: selectedClass, section: selectedSection, date: selectedDate, status: 'absent', marked_by: teacherProfile.email });
+                                                        fetchAttendance();
+                                                    } catch (e) { console.error(e); }
+                                                }}
+                                                style={{width:'32px', height:'32px', borderRadius:'8px', border:'none', background: record?.status === 'absent' ? '#EF4444' : 'rgba(255,255,255,0.05)', color: record?.status === 'absent' ? '#fff' : 'rgba(255,255,255,0.3)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}
+                                            >
+                                                <UserX size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </main>
@@ -353,4 +295,4 @@ const Attendance = ({ role = 'principal' }) => {
     );
 };
 
-export default Attendance;
+export default React.memo(Attendance);
