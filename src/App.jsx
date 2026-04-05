@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import HomePage from './pages/HomePage';
+import LoadingScreen from './components/LoadingScreen';
 
 // Principal Pages (White UI)
 import PrincipalDashboard from './pages/PrincipalDashboard';
@@ -14,11 +15,11 @@ import FeeManagement from './pages/FeeManagement';
 import Reports from './pages/Reports';
 
 // Teacher Pages (Nature/Glassmorphism UI)
-import TeacherDashboard from './pages/TeacherDashboard';
-import MyStudents from './pages/MyStudents';
-import TeacherAttendance from './pages/TeacherAttendance';
-import TeacherHomework from './pages/TeacherHomework';
-import TeacherMarks from './pages/TeacherMarks';
+import TeacherDashboard from './pages/teacher/Dashboard';
+import MyStudents from './pages/teacher/MyStudents';
+import TeacherAttendance from './pages/teacher/Attendance';
+import TeacherHomework from './pages/teacher/Homework';
+import TeacherMarks from './pages/teacher/Marks';
 
 // Extra Pages
 import ParentDashboard from './pages/ParentDashboard';
@@ -37,6 +38,20 @@ const DashboardRedirect = ({ role }) => {
 };
 
 function App() {
+  const [appReady, setAppReady] = useState(false);
+
+  useEffect(() => {
+    // FIX 6: 3 second loading screen on first render
+    const timer = setTimeout(() => {
+      setAppReady(true);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!appReady) {
+    return <LoadingScreen />;
+  }
+
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
@@ -135,7 +150,7 @@ function App() {
         path="/dashboard/teacher/students" 
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
-            <StudentList role="teacher" />
+            <MyStudents />
           </ProtectedRoute>
         } 
       />
