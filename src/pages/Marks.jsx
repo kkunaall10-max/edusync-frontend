@@ -2,31 +2,30 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
-import Layout from '../components/Layout';
 import LoadingScreen from '../components/LoadingScreen';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, AreaChart, Area, Cell, PieChart, Pie
+  Cell
 } from 'recharts';
 import { 
   Menu, X, Bell, Users, BookOpen, GraduationCap, 
-  Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Filter, Search, Award, TrendingDown, Target
+  ClipboardCheck, TrendingUp, Search, Award, TrendingDown, Target
 } from 'lucide-react';
 
-const API_BASE_URL = 'https://edusync.up.railway.app/api/marks';
+const API = 'https://edusync.up.railway.app';
 
 const Marks = ({ role = 'teacher' }) => {
     const isTeacher = role === 'teacher';
     const [loading, setLoading] = useState(true);
-
     const [teacherProfile, setTeacherProfile] = useState(null);
     const [students, setStudents] = useState([]);
     const [marksData, setMarksData] = useState([]);
-    const [selectedClass, setSelectedClass] = useState('');
-    const [selectedSection, setSelectedSection] = useState('');
-    const [selectedExam, setSelectedExam] = useState('Half Yearly');
-    const [selectedSubject, setSelectedSubject] = useState('Mathematics');
+    
+    // FIX 2: Exactly specified exam types
+    const EXAM_TYPES = ['Unit Test', 'Class Test', 'Mid Term', 'Half Yearly', 'Final Exam', 'Assignment'];
+    
+    const [selectedExam, setSelectedExam] = useState('Unit Test');
+    const [selectedSubject, setSelectedSubject] = useState('');
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [menuOpen, setMenuOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -44,18 +43,17 @@ const Marks = ({ role = 'teacher' }) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { navigate('/login'); return; }
 
-            const teacherRes = await axios.get('https://edusync.up.railway.app/api/teachers/profile', {
+            const teacherRes = await axios.get(`${API}/api/teachers/profile`, {
                 params: { email: user.email },
                 cancelToken
             });
             const profile = teacherRes.data;
             setTeacherProfile(profile);
-            setSelectedClass(profile.class_assigned);
-            setSelectedSection(profile.section_assigned);
+            setSelectedSubject(profile.subject_assigned);
 
             const [studentsRes, marksRes] = await Promise.all([
-                axios.get('https://edusync.up.railway.app/api/students', { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
-                axios.get(API_BASE_URL, { params: { class: profile.class_assigned, section: profile.section_assigned, exam_type: selectedExam, subject: selectedSubject }, cancelToken })
+                axios.get(`${API}/api/students`, { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
+                axios.get(`${API}/api/marks`, { params: { class: profile.class_assigned, section: profile.section_assigned, exam_type: selectedExam, subject: profile.subject_assigned }, cancelToken })
             ]);
 
             setStudents(studentsRes.data);
@@ -67,12 +65,12 @@ const Marks = ({ role = 'teacher' }) => {
                 setLoading(false);
             }
         }
-    }, [selectedExam, selectedSubject, navigate]);
+    }, [selectedExam, navigate]);
 
     useEffect(() => {
         const source = axios.CancelToken.source();
         fetchData(source.token);
-        return () => source.cancel("Operation canceled due to filter update.");
+        return () => source.cancel();
     }, [fetchData]);
 
     const analytics = useMemo(() => {
@@ -93,16 +91,12 @@ const Marks = ({ role = 'teacher' }) => {
 
     const styles = {
         pageWrapper: {
-            position: 'relative',
-            minHeight: '100vh',
-            width: '100%',
-            overflow: 'hidden',
-            fontFamily: "'Inter', sans-serif"
+            position: 'relative', minHeight: '100vh', width: '100%',
+            overflow: 'hidden', fontFamily: "'Inter', sans-serif"
         },
         sidebar: {
             position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
-            background: 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%)',
-            backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
             borderRight: '1px solid rgba(255,255,255,0.1)', padding: '28px 16px',
             display: 'flex', flexDirection: 'column', zIndex: 100,
             transform: isMobile ? (menuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
@@ -115,10 +109,12 @@ const Marks = ({ role = 'teacher' }) => {
         },
         glassCard: {
             background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
-            backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-            borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)',
-            boxShadow: '0 16px 40px rgba(0,0,0,0.2), inset 0 1px 0 0 rgba(255,255,255,0.3)',
-            padding: '24px', willChange: 'transform', transform: 'translateZ(0)'
+            backdropFilter: 'blur(24px)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)',
+            boxShadow: '0 16px 40px rgba(0,0,0,0.2)', padding: '24px'
+        },
+        statCard: {
+          background: 'rgba(0,0,0,0.4)', borderRadius: '16px', padding: '24px',
+          border: '1px solid rgba(255,255,255,0.1)'
         },
         mainContent: {
             marginLeft: isMobile ? 0 : '260px',
@@ -131,23 +127,17 @@ const Marks = ({ role = 'teacher' }) => {
 
     return (
         <div style={styles.pageWrapper}>
-            {/* oversized background pattern */}
+            {/* FIX 6 consistency */}
             <div style={{
               position: 'fixed',
-              top: '-10%',
-              left: '-10%',
-              width: '120vw',
-              height: '120vh',
+              top: '-5%', left: '-5%',
+              width: '110vw', height: '110vh',
               backgroundImage: 'url(/nature-bg.jpg)',
               backgroundSize: 'cover',
-              backgroundPosition: 'center center',
-              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center',
               zIndex: -2,
-              transform: 'translateZ(0)',
-              willChange: 'transform',
             }} />
             
-            {/* dark overlay */}
             <div style={{
               position: 'fixed',
               top: 0, left: 0,
@@ -157,14 +147,13 @@ const Marks = ({ role = 'teacher' }) => {
               zIndex: -1,
             }} />
 
-            {isMobile && menuOpen && (
-                <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:99}} onClick={() => setMenuOpen(false)} />
-            )}
-
             <aside style={styles.sidebar}>
-                <div style={{display:'flex', alignItems:'center', gap:'12px', marginBottom:'40px', padding:'0 8px'}}>
-                    <GraduationCap size={32} />
-                    <span style={{fontSize:'24px', fontWeight:'800'}}>EduSync</span>
+                {/* FIX 3 Sidebar Consistency */}
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:'40px', padding:'0 8px' }}>
+                  <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
+                  </div>
+                  <span style={{ color:'white', fontSize:18, fontWeight:800, letterSpacing:1 }}>EduSync</span>
                 </div>
                 <nav style={{flex:1}}>
                     {[
@@ -174,7 +163,7 @@ const Marks = ({ role = 'teacher' }) => {
                         { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
                         { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
                     ].map(item => (
-                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: (window.location.pathname === item.path ? '#fff' : 'rgba(255,255,255,0.5)'), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
+                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
                             {item.icon} {item.label}
                         </button>
                     ))}
@@ -183,13 +172,14 @@ const Marks = ({ role = 'teacher' }) => {
 
             <header style={styles.navbar}>
                 <div style={{display:'flex', alignItems:'center', gap:'16px'}}>
-                    {isMobile && <Menu size={24} onClick={() => setMenuOpen(true)} style={{cursor:'pointer'}} />}
-                    <h2 style={{fontSize:'20px', fontWeight:'800', margin:0}}>Performance Portal</h2>
+                    {isMobile && <Menu size={24} onClick={() => setMenuOpen(true)} style={{cursor:'pointer', color:'white'}} />}
+                    <h2 style={{fontSize:'20px', fontWeight:'800', margin:0, color:'white'}}>Performance Management</h2>
                 </div>
                 <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
                     <select value={selectedExam} onChange={(e) => setSelectedExam(e.target.value)} style={{background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'12px', padding:'8px 12px', color:'white', outline:'none', fontSize:'13px', cursor:'pointer'}} >
-                        <option value="Half Yearly" style={{color:'black'}}>Half Yearly</option>
-                        <option value="Finals" style={{color:'black'}}>Finals</option>
+                        {EXAM_TYPES.map(type => (
+                            <option key={type} value={type} style={{color:'black'}}>{type}</option>
+                        ))}
                     </select>
                 </div>
             </header>
@@ -201,20 +191,17 @@ const Marks = ({ role = 'teacher' }) => {
                         { label: 'Highest Score', value: `${analytics.highest}%`, icon: <Award size={24}/>, color: '#10B981' },
                         { label: 'Lowest Score', value: `${analytics.lowest}%`, icon: <TrendingDown size={24}/>, color: '#EF4444' }
                     ].map((s, i) => (
-                        <div key={i} style={styles.glassCard}>
+                        <div key={i} style={styles.statCard}>
                             <div style={{width:'48px', height:'48px', borderRadius:'14px', background:`${s.color}20`, display:'flex', alignItems:'center', justifyContent:'center', color:s.color, marginBottom:'16px'}}>{s.icon}</div>
-                            <h3 style={{fontSize:'28px', fontWeight:'800', margin:0}}>{s.value}</h3>
-                            <p style={{fontSize:'13px', opacity:0.6, margin:0}}>{s.label}</p>
+                            <h3 style={{fontSize:'28px', fontWeight:'800', margin:0, color:'white'}}>{s.value}</h3>
+                            <p style={{fontSize:'13px', opacity:0.6, margin:0, color:'white'}}>{s.label}</p>
                         </div>
                     ))}
                 </div>
 
                 <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap:'24px'}}>
                     <div style={styles.glassCard}>
-                        <div style={{display:'flex', justifyContent:'space-between', items:'center', marginBottom:'24px'}}>
-                            <h4 style={{fontSize:'18px', fontWeight:'800', margin:0}}>Class Grade Distribution</h4>
-                            <span style={{fontSize:'12px', opacity:0.5}}>{selectedSubject}</span>
-                        </div>
+                        <h4 style={{fontSize:'18px', fontWeight:'800', margin:0, color:'white', marginBottom:'24px'}}>Grade Distribution</h4>
                         <div style={{height:'300px', width:'100%', minWidth:0}}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={performanceData}>
@@ -222,14 +209,7 @@ const Marks = ({ role = 'teacher' }) => {
                                     <XAxis dataKey="range" stroke="rgba(255,255,255,0.4)" fontSize={12} axisLine={false} tickLine={false} />
                                     <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} axisLine={false} tickLine={false} />
                                     <Tooltip contentStyle={{background:'#000', border:'none', borderRadius:'12px'}} />
-                                    <Bar dataKey="count" fill="url(#colorBar)" radius={[6,6,0,0]} barSize={40}>
-                                        <defs>
-                                            <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#2563EB" />
-                                                <stop offset="100%" stopColor="#7C3AED" />
-                                            </linearGradient>
-                                        </defs>
-                                    </Bar>
+                                    <Bar dataKey="count" fill="#2563EB" radius={[6,6,0,0]} barSize={40} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
@@ -237,30 +217,35 @@ const Marks = ({ role = 'teacher' }) => {
 
                     <div style={styles.glassCard}>
                         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'24px'}}>
-                            <h4 style={{fontSize:'18px', fontWeight:'800', margin:0}}>Student Marks</h4>
-                            <div style={{position:'relative', width:'120px'}}>
-                                <Search size={14} style={{position:'absolute', left:'8px', top:'50%', transform:'translateY(-50%)', opacity:0.3}} />
-                                <input type="text" placeholder="Roll..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{width:'100%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', padding:'6px 12px 6px 28px', color:'white', outline:'none', fontSize:'11px'}} />
-                            </div>
+                            <h4 style={{fontSize:'18px', fontWeight:'800', margin:0, color:'white'}}>Student Marks</h4>
+                            <Search size={16} style={{opacity:0.3, color:'white'}} />
                         </div>
                         <div style={{maxHeight:'350px', overflowY:'auto', paddingRight:'8px'}}>
-                            {students.filter(s => s.roll_number.toLowerCase().includes(searchTerm.toLowerCase())).map(student => {
+                            {students.map(student => {
                                 const record = marksData.find(m => m.student_id === student.id);
                                 return (
                                     <div key={student.id} style={{display:'flex', items:'center', gap:'12px', padding:'12px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
                                         <div style={{flex:1}}>
-                                            <p style={{fontSize:'14px', fontWeight:'700', margin:0}}>{student.full_name}</p>
-                                            <p style={{fontSize:'10px', opacity:0.5, margin:0}}>Roll No: {student.roll_number}</p>
+                                            <p style={{fontSize:'14px', fontWeight:'700', margin:0, color:'white'}}>{student.full_name}</p>
+                                            <p style={{fontSize:'10px', opacity:0.5, margin:0, color:'white'}}>Roll No: {student.roll_number}</p>
                                         </div>
                                         <input 
                                             type="number" 
                                             defaultValue={record?.marks_obtained}
                                             onBlur={async (e) => {
                                                 try {
-                                                    await axios.post(API_BASE_URL, { student_id: student.id, class: selectedClass, section: selectedSection, exam_type: selectedExam, subject: selectedSubject, marks_obtained: e.target.value, total_marks: 100 });
+                                                    await axios.post(`${API}/api/marks`, { 
+                                                      student_id: student.id, 
+                                                      class: teacherProfile.class_assigned, 
+                                                      section: teacherProfile.section_assigned, 
+                                                      exam_type: selectedExam, 
+                                                      subject: teacherProfile.subject_assigned, 
+                                                      marks_obtained: e.target.value, 
+                                                      total_marks: 100 
+                                                    });
                                                 } catch (err) { console.error(err); }
                                             }}
-                                            style={{width:'60px', background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', padding:'6px', color:'white', textAlign:'center', fontWeight:'700'}} 
+                                            style={{width:'65px', background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'10px', padding:'8px', color:'white', textAlign:'center', fontWeight:'700', outline:'none'}} 
                                         />
                                     </div>
                                 );

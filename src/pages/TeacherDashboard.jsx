@@ -15,9 +15,7 @@ import LoadingScreen from '../components/LoadingScreen';
 const API = 'https://edusync.up.railway.app';
 
 const TeacherDashboard = () => {
-    // FIX 1: 10s loading ONLY on teacher login
     const [showLoader, setShowLoader] = useState(false);
-    
     const [teacherProfile, setTeacherProfile] = useState(null);
     const [stats, setStats] = useState({
         totalStudents: 0,
@@ -46,7 +44,6 @@ const TeacherDashboard = () => {
             const profile = profileRes.data;
             setTeacherProfile(profile);
 
-            // Fetch everything else using Promise.all
             const [studentsRes, homeworkRes, attendanceRes] = await Promise.all([
                 axios.get(`${API}/api/students`, { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
                 axios.get(`${API}/api/homework`, { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
@@ -55,7 +52,7 @@ const TeacherDashboard = () => {
 
             setStats({
                 totalStudents: studentsRes.data.length || 0,
-                avgAttendance: 92, // Mocking aggregate stats as they aren't fully in backend yet
+                avgAttendance: 92,
                 pendingHomework: homeworkRes.data.length || 0,
                 classPerformance: 88
             });
@@ -82,7 +79,6 @@ const TeacherDashboard = () => {
 
     useEffect(() => {
         const source = axios.CancelToken.source();
-        
         const init = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { navigate('/login'); return; }
@@ -91,21 +87,13 @@ const TeacherDashboard = () => {
             if (isFirstLoad === 'true') {
                 setShowLoader(true);
                 sessionStorage.removeItem('teacherFirstLoad');
-                
-                // Show loader for exactly 10s
-                const timer = setTimeout(() => {
-                    setShowLoader(false);
-                }, 10000);
-
-                // Fetch silently in background
+                const timer = setTimeout(() => { setShowLoader(false); }, 10000);
                 fetchAllData(user.email, source.token);
                 return () => clearTimeout(timer);
             } else {
-                // Not first load, no loader
                 fetchAllData(user.email, source.token);
             }
         };
-
         init();
         return () => source.cancel();
     }, [fetchAllData, navigate]);
@@ -125,7 +113,7 @@ const TeacherDashboard = () => {
             left: 0, top: 0,
             width: '260px',
             height: '100vh',
-            background: 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%)',
+            background: 'rgba(0,0,0,0.4)',
             backdropFilter: 'blur(30px)',
             WebkitBackdropFilter: 'blur(30px)',
             borderRight: '1px solid rgba(255,255,255,0.1)',
@@ -154,13 +142,16 @@ const TeacherDashboard = () => {
         glassCard: {
           background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
           backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
           borderRadius: '24px',
           border: '1px solid rgba(255,255,255,0.15)',
-          boxShadow: '0 16px 40px rgba(0,0,0,0.2), inset 0 1px 0 0 rgba(255,255,255,0.3)',
+          boxShadow: '0 16px 40px rgba(0,0,0,0.2)',
+          padding: '24px'
+        },
+        statCard: {
+          background: 'rgba(0,0,0,0.4)',
+          borderRadius: '16px',
           padding: '24px',
-          willChange: 'transform',
-          transform: 'translateZ(0)'
+          border: '1px solid rgba(255,255,255,0.1)'
         },
         mainContent: {
             marginLeft: isMobile ? 0 : '260px',
@@ -174,23 +165,17 @@ const TeacherDashboard = () => {
 
     return (
         <div style={styles.pageWrapper}>
-            {/* oversized background pattern */}
+            {/* oversized background pattern - FIX 6 */}
             <div style={{
               position: 'fixed',
-              top: '-10%',
-              left: '-10%',
-              width: '120vw',
-              height: '120vh',
+              top: '-5%', left: '-5%',
+              width: '110vw', height: '110vh',
               backgroundImage: 'url(/nature-bg.jpg)',
               backgroundSize: 'cover',
-              backgroundPosition: 'center center',
-              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center',
               zIndex: -2,
-              transform: 'translateZ(0)',
-              willChange: 'transform',
             }} />
             
-            {/* dark overlay */}
             <div style={{
               position: 'fixed',
               top: 0, left: 0,
@@ -205,10 +190,22 @@ const TeacherDashboard = () => {
             )}
 
             <aside style={styles.sidebar}>
-                <div style={{display:'flex', alignItems:'center', gap:'12px', marginBottom:'40px', padding:'0 8px'}}>
-                    <GraduationCap size={32} color="#fff" />
-                    <span style={{fontSize:'24px', fontWeight:'800', letterSpacing:'-0.5px'}}>EduSync</span>
+                {/* Logo Area - FIX 3 */}
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:'40px', padding:'0 8px' }}>
+                  <div style={{
+                    width: 32, height: 32,
+                    background: 'rgba(255,255,255,0.2)',
+                    borderRadius: 8,
+                    display: 'flex', alignItems: 'center', 
+                    justifyContent: 'center',
+                  }}>
+                    <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
+                  </div>
+                  <span style={{ 
+                    color:'white', fontSize:18, fontWeight:800, letterSpacing:1 
+                  }}>EduSync</span>
                 </div>
+                
                 <nav style={{flex:1}}>
                     {[
                         { label: 'Overview', icon: <TrendingUp size={20} />, path: '/dashboard/teacher' },
@@ -217,7 +214,7 @@ const TeacherDashboard = () => {
                         { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
                         { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
                     ].map((item) => (
-                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: (window.location.pathname === item.path ? '#fff' : 'rgba(255,255,255,0.5)'), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s'}} onClick={() => { navigate(item.path); if (isMobile) setMenuOpen(false); }}>
+                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if (isMobile) setMenuOpen(false); }}>
                             {item.icon} {item.label}
                         </button>
                     ))}
@@ -246,7 +243,7 @@ const TeacherDashboard = () => {
                         { label: 'Homework', value: stats.pendingHomework, icon: <BookOpen size={24}/>, color: '#F59E0B' },
                         { label: 'Performance', value: `${stats.classPerformance}%`, icon: <TrendingUp size={24}/>, color: '#8B5CF6' }
                     ].map((stat, i) => (
-                        <div key={i} style={styles.glassCard}>
+                        <div key={i} style={styles.statCard}>
                             <div style={{width:'48px', height:'48px', borderRadius:'14px', background:`${stat.color}20`, display:'flex', alignItems:'center', justifyContent:'center', color:stat.color, marginBottom:'16px'}}>
                                 {stat.icon}
                             </div>
@@ -277,7 +274,7 @@ const TeacherDashboard = () => {
                         <h4 style={{fontSize:'18px', fontWeight:'800', marginBottom:'24px', margin:0}}>Recent Activity</h4>
                         <div style={{display:'flex', flexDirection:'column', gap:'16px'}}>
                             {recentActivity.map(act => (
-                                <div key={act.id} style={{display:'flex', items:'center', gap:'12px'}}>
+                                <div key={act.id} style={{display:'flex', alignItems:'center', gap:'12px'}}>
                                     <div style={{width:'40px', height:'40px', borderRadius:'12px', background:'rgba(255,255,255,0.05)', display:'flex', alignItems:'center', justifyContent:'center'}}>
                                         {act.type === 'attendance' ? <ClipboardCheck size={18} /> : <BookOpen size={18} />}
                                     </div>
