@@ -162,7 +162,7 @@ const Dashboard = () => {
                 <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap:'24px'}}>
                     <div style={styles.glassCard}>
                         <h4 style={{fontSize:'18px', fontWeight:'800', marginBottom:'24px', margin:0}}>Attendance Overview</h4>
-                        <div style={{height:'300px', width:'100%', minWidth: 0}}>
+                        <div style={{ width: '100%', height: 280, minWidth: 0, minHeight: 0 }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={attendanceData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />

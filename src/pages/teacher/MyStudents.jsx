@@ -3,7 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
-  Menu, Users, Plus, Search, Trash2, Mail, Phone, Calendar, UserPlus, X, Award
+  Menu, Users, Plus, Search, Trash2, Mail, Phone, Calendar, UserPlus, X, Award, 
+  TrendingUp, ClipboardCheck, BookOpen, GraduationCap
 } from 'lucide-react';
 
 const API = 'https://edusync.up.railway.app';

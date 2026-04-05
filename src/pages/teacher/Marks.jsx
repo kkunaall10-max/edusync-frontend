@@ -131,7 +131,7 @@ const Marks = () => {
             
             if (records.length === 0) return alert('No full records to save');
             
-            await axios.post(`${API}/api/marks/bulk`, { records });
+            await axios.post(`${API}/api/marks/bulk`, { marks: records });
             alert(`Bulk synchronized ${records.length} records!`);
             fetchData();
         } catch (err) {
@@ -240,8 +240,22 @@ const Marks = () => {
                     <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap:20, marginBottom:30 }}>
                         <div>
                             <label style={{ fontSize:10, fontWeight:800, opacity:0.6, marginBottom:8, display:'block', color:'white' }}>EXAM CYCLE</label>
-                            <select value={examType} onChange={e => setExamType(e.target.value)} style={{ background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)', borderRadius:12, padding:'12px', color:'white', width:'100%', outline:'none' }}>
-                                {EXAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                            <select 
+                                value={examType} 
+                                onChange={e => setExamType(e.target.value)} 
+                                style={{
+                                    backgroundColor: 'rgba(0,0,0,0.6)',
+                                    color: 'white',
+                                    border: '1px solid rgba(255,255,255,0.3)',
+                                    borderRadius: '8px',
+                                    padding: '8px 12px',
+                                    width: '100%',
+                                    outline: 'none'
+                                }}
+                            >
+                                {EXAM_TYPES.map(t => (
+                                    <option key={t} value={t} style={{backgroundColor:'#1a1a2e', color:'white'}}>{t}</option>
+                                ))}
                             </select>
                         </div>
                         <div>
@@ -315,7 +329,7 @@ const Marks = () => {
                                 </div>
                             </div>
 
-                            <div style={{ height:300, width:'100%' }}>
+                            <div style={{ width: '100%', height: 280, minWidth: 0, minHeight: 0 }}>
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={analytics.chartData}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
