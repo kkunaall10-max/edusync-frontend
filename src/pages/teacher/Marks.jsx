@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
-  Menu, Users, BookOpen, GraduationCap, 
+  Menu, X, Users, BookOpen, GraduationCap, 
   ClipboardCheck, TrendingUp, Save, BarChart2, Award, Target
 } from 'lucide-react';
 import { 
@@ -18,14 +18,11 @@ const Marks = () => {
     const [marksData, setMarksData] = useState({});
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [menuOpen, setMenuOpen] = useState(false);
-    
-    // FIX 5: Enter Marks state
     const [examType, setExamType] = useState('Unit Test');
     const [examDate, setExamDate] = useState(new Date().toISOString().split('T')[0]);
-    const [subject, setSubject] = useState(''); // FIX 5: Editable subject
+    const [subject, setSubject] = useState('');
 
     const navigate = useNavigate();
-
     const EXAM_TYPES = ['Unit Test', 'Class Test', 'Mid Term', 'Half Yearly', 'Final Exam', 'Assignment'];
 
     useEffect(() => {
@@ -70,7 +67,6 @@ const Marks = () => {
                 };
             });
             setMarksData(existing);
-
         } catch (error) {
             console.error("Marks Fetch Error:", error);
         }
@@ -127,7 +123,6 @@ const Marks = () => {
             }));
 
             if (marksToSave.length === 0) return alert('No records to save');
-            
             await axios.post(`${API}/api/marks/bulk`, { marks: marksToSave });
             alert(`Bulk synchronized ${marksToSave.length} records!`);
             fetchData();
@@ -137,14 +132,12 @@ const Marks = () => {
         }
     };
 
-    // FIX 5: Analytics logic
     const analytics = useMemo(() => {
         const scores = Object.values(marksData)
             .filter(m => m.obtained && m.total)
             .map(m => (m.obtained / m.total) * 100);
         
         if (scores.length === 0) return null;
-
         const avg = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
         
         let highest = { name: 'N/A', score: -1 };
@@ -172,23 +165,29 @@ const Marks = () => {
     const styles = {
         pageWrapper: {
             position: 'relative', minHeight: '100vh', width: '100%',
-            overflow: 'hidden', fontFamily: "'Inter', sans-serif"
+            overflow: 'hidden', fontFamily: "'Inter', sans-serif", color: 'white'
         },
         sidebar: {
             position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
-            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+            background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
             borderRight: '1px solid rgba(255,255,255,0.1)', padding: '28px 16px',
-            display: 'flex', flexDirection: 'column', zIndex: 100,
+            display: 'flex', flexDirection: 'column', zIndex: 200,
             transform: isMobile ? (menuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
-            transition: '0.3s ease'
+            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        },
+        overlay: {
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 190,
+            opacity: menuOpen ? 1 : 0, visibility: menuOpen ? 'visible' : 'hidden', transition: '0.3s opacity'
         },
         headerGlass: {
             background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)', borderRadius: 16,
             padding: '16px 20px', marginBottom: 20, border: '1px solid rgba(255,255,255,0.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: isMobile ? 'wrap' : 'nowrap', gap: isMobile ? '12px' : '0'
         },
         mainContent: {
-            marginLeft: isMobile ? 0 : '260px', paddingTop: '40px', padding: isMobile ? '40px 16px' : '40px 32px'
+            marginLeft: isMobile ? 0 : '260px', paddingTop: '40px', padding: isMobile ? '40px 16px' : '40px 32px',
+            transition: 'margin-left 0.3s ease'
         },
         glassCard: {
             background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(24px)', borderRadius: '24px',
@@ -201,12 +200,17 @@ const Marks = () => {
             <div style={{ position: 'fixed', top: '-5%', left: '-5%', width: '110vw', height: '110vh', backgroundImage: 'url(/nature-bg.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -2 }} />
             <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.35)', zIndex: -1 }} />
 
+            {isMobile && <div style={styles.overlay} onClick={() => setMenuOpen(false)} />}
+
             <aside style={styles.sidebar}>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:'40px', padding:'0 8px' }}>
-                  <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
+                <div style={{ display:'flex', alignItems:'center', justifyContent: 'space-between', marginBottom:'40px', padding:'0 8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
+                    </div>
+                    <span style={{ color:'white', fontSize:18, fontWeight:800, letterSpacing:1 }}>EduSync</span>
                   </div>
-                  <span style={{ color:'white', fontSize:18, fontWeight:800, letterSpacing:1 }}>EduSync</span>
+                  {isMobile && <X size={24} onClick={() => setMenuOpen(false)} style={{ cursor: 'pointer', opacity: 0.7 }} />}
                 </div>
                 <nav style={{flex:1}}>
                     {[
@@ -216,7 +220,7 @@ const Marks = () => {
                         { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
                         { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
                     ].map(item => (
-                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => navigate(item.path)}>
+                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
                             {item.icon} {item.label}
                         </button>
                     ))}
@@ -224,36 +228,18 @@ const Marks = () => {
             </aside>
 
             <main style={styles.mainContent}>
-                {/* FIX 3: Header in Glass card */}
                 <div style={styles.headerGlass}>
                   <div style={{display:'flex', alignItems:'center', gap:15}}>
                     {isMobile && <Menu size={24} onClick={() => setMenuOpen(true)} style={{cursor:'pointer', color:'white'}} />}
-                    <h1 style={{ color: 'white', fontSize: 20, fontWeight: 700, margin: 0 }}>Academic Records</h1>
+                    <h1 style={{ color: 'white', fontSize: isMobile ? 18 : 20, fontWeight: 700, margin: 0 }}>Academic Records</h1>
                   </div>
                 </div>
 
-                {/* SECTION 1: Enter Marks */}
                 <div style={styles.glassCard}>
                     <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap:20, marginBottom:30 }}>
                         <div>
                             <label style={{ fontSize:10, fontWeight:800, opacity:0.6, marginBottom:8, display:'block', color:'white' }}>EXAM CYCLE</label>
-                            <select 
-                                value={examType} 
-                                onChange={e => setExamType(e.target.value)} 
-                                style={{
-                                    width: '100%',
-                                    padding: '12px 16px',
-                                    backgroundColor: 'rgba(0,0,0,0.6)',
-                                    color: 'white',
-                                    border: '1px solid rgba(255,255,255,0.3)',
-                                    borderRadius: '12px',
-                                    fontSize: '14px',
-                                    outline: 'none',
-                                    appearance: 'none',
-                                    WebkitAppearance: 'none',
-                                    cursor: 'pointer'
-                                }}
-                            >
+                            <select value={examType} onChange={e => setExamType(e.target.value)} style={{ width: '100%', padding: '12px 16px', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '12px', fontSize: '14px', outline: 'none', cursor: 'pointer' }} >
                                 {EXAM_TYPES.map(t => (
                                     <option key={t} value={t} style={{backgroundColor:'#1a1a2e', color:'white'}}>{t}</option>
                                 ))}
@@ -265,7 +251,6 @@ const Marks = () => {
                         </div>
                         <div>
                             <label style={{ fontSize:10, fontWeight:800, opacity:0.6, marginBottom:8, display:'block', color:'white' }}>SUBJECT</label>
-                            {/* FIX 5: Editable subject */}
                             <input placeholder="Enter Subject" value={subject} onChange={e => setSubject(e.target.value)} style={{ background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)', borderRadius:12, padding:'12px', color:'white', width:'100%', outline:'none' }} />
                         </div>
                         <div style={{ display:'flex', alignItems:'flex-end' }}>
@@ -274,7 +259,7 @@ const Marks = () => {
                     </div>
 
                     <div style={{ overflowX:'auto' }}>
-                        <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                        <table style={{ width:'100%', borderCollapse:'collapse', minWidth: isMobile ? '600px' : 'auto' }}>
                             <thead>
                                 <tr style={{ borderBottom:'1px solid rgba(255,255,255,0.1)' }}>
                                     <th style={{ padding:16, textAlign:'left', color:'rgba(255,255,255,0.5)', fontSize:11, fontWeight:800 }}>ROLL</th>
@@ -305,39 +290,38 @@ const Marks = () => {
                     </div>
                 </div>
 
-                {/* SECTION 2: Analytics */}
                 <div style={styles.glassCard}>
                     <h2 style={{ fontSize:18, fontWeight:800, marginBottom:30, display:'flex', alignItems:'center', gap:10, color:'white' }}>
-                        <BarChart2 size={22} className="text-blue-500" /> Class Performance Analytics
+                        <BarChart2 size={22} className="text-blue-500" /> Performance Analytics
                     </h2>
                     
                     {analytics ? (
                         <>
-                            <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:24, marginBottom:40 }}>
-                                <div style={{ background:'rgba(255,255,255,0.03)', padding:24, borderRadius:24, border:'1px solid rgba(255,255,255,0.05)' }}>
-                                    <p style={{ fontSize:11, fontWeight:800, opacity:0.5, marginBottom:8, color:'white' }}>COHORT AVERAGE</p>
-                                    <h3 style={{ fontSize:32, fontWeight:900, margin:0, color:'white' }}>{analytics.avg}%</h3>
+                            <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:20, marginBottom:40 }}>
+                                <div style={{ background:'rgba(255,255,255,0.03)', padding:20, borderRadius:20, border:'1px solid rgba(255,255,255,0.05)' }}>
+                                    <p style={{ fontSize:11, fontWeight:800, opacity:0.5, marginBottom:8, color:'white' }}>AVERAGE SCORE</p>
+                                    <h3 style={{ fontSize:28, fontWeight:900, margin:0, color:'white' }}>{analytics.avg}%</h3>
                                 </div>
-                                <div style={{ background:'rgba(255,255,255,0.03)', padding:24, borderRadius:24, border:'1px solid rgba(255,255,255,0.05)' }}>
-                                    <p style={{ fontSize:11, fontWeight:800, opacity:0.5, marginBottom:8, color:'white' }}>TOP PERFORMER</p>
-                                    <h3 style={{ fontSize:18, fontWeight:800, margin:0, color:'#22C55E' }}>{analytics.highest.name}</h3>
+                                <div style={{ background:'rgba(255,255,255,0.03)', padding:20, borderRadius:20, border:'1px solid rgba(255,255,255,0.05)' }}>
+                                    <p style={{ fontSize:11, fontWeight:800, opacity:0.5, marginBottom:8, color:'white' }}>TOPPER</p>
+                                    <h3 style={{ fontSize:16, fontWeight:800, margin:0, color:'#22C55E' }}>{analytics.highest.name}</h3>
                                     <p style={{ fontSize:12, fontWeight:700, margin:0, opacity:0.6, color:'white' }}>Score: {analytics.highest.score}%</p>
                                 </div>
-                                <div style={{ background:'rgba(255,255,255,0.03)', padding:24, borderRadius:24, border:'1px solid rgba(255,255,255,0.05)' }}>
-                                    <p style={{ fontSize:11, fontWeight:800, opacity:0.5, marginBottom:8, color:'white' }}>LOWEST SCORE</p>
-                                    <h3 style={{ fontSize:18, fontWeight:800, margin:0, color:'#EF4444' }}>{analytics.lowest.name}</h3>
+                                <div style={{ background:'rgba(255,255,255,0.03)', padding:20, borderRadius:20, border:'1px solid rgba(255,255,255,0.05)' }}>
+                                    <p style={{ fontSize:11, fontWeight:800, opacity:0.5, marginBottom:8, color:'white' }}>LOWEST</p>
+                                    <h3 style={{ fontSize:16, fontWeight:800, margin:0, color:'#EF4444' }}>{analytics.lowest.name}</h3>
                                     <p style={{ fontSize:12, fontWeight:700, margin:0, opacity:0.6, color:'white' }}>Score: {analytics.lowest.score}%</p>
                                 </div>
                             </div>
 
-                            <div style={{ width: '100%', height: 280, minWidth: 0, minHeight: 0 }}>
+                            <div style={{ width: '100%', height: isMobile ? 220 : 280, minWidth: 0 }}>
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={analytics.chartData}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                        <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
-                                        <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} />
+                                        <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} />
                                         <Tooltip contentStyle={{ background:'rgba(0,0,0,0.8)', border:'none', borderRadius:12, fontSize:12 }} />
-                                        <Bar dataKey="score" radius={[8,8,0,0]}>
+                                        <Bar dataKey="score" radius={[6,6,0,0]}>
                                             {analytics.chartData.map((entry, index) => (
                                                 <Cell key={index} fill={entry.score >= 80 ? '#22C55E' : entry.score >= 50 ? '#3B82F6' : '#EF4444'} fillOpacity={0.8} />
                                             ))}
@@ -349,7 +333,7 @@ const Marks = () => {
                     ) : (
                         <div style={{ padding:60, textAlign:'center', opacity:0.3 }}>
                             <Target size={48} style={{ marginBottom:16 }} />
-                            <p>Enter and save marks to generate real-time performance insights</p>
+                            <p>Real-time analytics will appear as you enter marks</p>
                         </div>
                     )}
                 </div>

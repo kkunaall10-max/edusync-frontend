@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
-  Menu, Bell, Users, BookOpen, GraduationCap, 
+  Menu, X, Bell, Users, BookOpen, GraduationCap, 
   ClipboardCheck, TrendingUp, ChevronRight
 } from 'lucide-react';
 import { 
@@ -83,18 +83,24 @@ const Dashboard = () => {
         },
         sidebar: {
             position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
-            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+            background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
             borderRight: '1px solid rgba(255,255,255,0.1)', padding: '28px 16px',
-            display: 'flex', flexDirection: 'column', zIndex: 100,
+            display: 'flex', flexDirection: 'column', zIndex: 200,
             transform: isMobile ? (menuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
             transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        },
+        overlay: {
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 190,
+            opacity: menuOpen ? 1 : 0, visibility: menuOpen ? 'visible' : 'hidden', transition: '0.3s opacity'
         },
         headerGlass: {
             background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)', borderRadius: 16,
             padding: '16px 20px', marginBottom: 20, border: '1px solid rgba(255,255,255,0.15)'
         },
         mainContent: {
-            marginLeft: isMobile ? 0 : '260px', paddingTop: '40px', paddingLeft: isMobile ? '16px' : '32px', paddingRight: isMobile ? '16px' : '32px'
+            marginLeft: isMobile ? 0 : '260px', paddingTop: '40px', paddingLeft: isMobile ? '16px' : '32px', paddingRight: isMobile ? '16px' : '32px',
+            transition: 'margin-left 0.3s ease'
         },
         glassCard: {
           background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
@@ -111,12 +117,17 @@ const Dashboard = () => {
             <div style={{ position: 'fixed', top: '-5%', left: '-5%', width: '110vw', height: '110vh', backgroundImage: 'url(/nature-bg.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -2 }} />
             <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.35)', zIndex: -1 }} />
 
+            {isMobile && <div style={styles.overlay} onClick={() => setMenuOpen(false)} />}
+
             <aside style={styles.sidebar}>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:'40px', padding:'0 8px' }}>
-                  <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
+                <div style={{ display:'flex', alignItems:'center', justifyContent: 'space-between', marginBottom:'40px', padding:'0 8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
+                    </div>
+                    <span style={{ color:'white', fontSize:18, fontWeight:800, letterSpacing:1 }}>EduSync</span>
                   </div>
-                  <span style={{ color:'white', fontSize:18, fontWeight:800, letterSpacing:1 }}>EduSync</span>
+                  {isMobile && <X size={24} onClick={() => setMenuOpen(false)} style={{ cursor: 'pointer', opacity: 0.7 }} />}
                 </div>
                 <nav style={{flex:1}}>
                     {[
@@ -126,7 +137,7 @@ const Dashboard = () => {
                         { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
                         { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
                     ].map((item) => (
-                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => navigate(item.path)}>
+                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
                             {item.icon} {item.label}
                         </button>
                     ))}
@@ -134,7 +145,6 @@ const Dashboard = () => {
             </aside>
 
             <main style={styles.mainContent}>
-                {/* FIX 3: Header in Glass card */}
                 <div style={styles.headerGlass}>
                   <div style={{display:'flex', alignItems:'center', gap:15}}>
                     {isMobile && <Menu size={24} onClick={() => setMenuOpen(true)} style={{cursor:'pointer'}} />}
@@ -142,19 +152,19 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap:'20px', marginBottom:'32px'}}>
+                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap:'16px', marginBottom:'32px'}}>
                     {[
                         { label: 'Total Students', value: stats.totalStudents, icon: <Users size={24}/>, color: '#2563EB' },
                         { label: 'Attendance', value: `${stats.avgAttendance}%`, icon: <ClipboardCheck size={24}/>, color: '#10B981' },
                         { label: 'Homework', value: stats.pendingHomework, icon: <BookOpen size={24}/>, color: '#F59E0B' },
                         { label: 'Performance', value: `${stats.classPerformance}%`, icon: <TrendingUp size={24}/>, color: '#8B5CF6' }
                     ].map((stat, i) => (
-                        <div key={i} style={styles.statCard}>
-                            <div style={{width:'48px', height:'48px', borderRadius:'14px', background:`${stat.color}20`, display:'flex', alignItems:'center', justifyContent:'center', color:stat.color, marginBottom:'16px'}}>
-                                {stat.icon}
+                        <div key={i} style={{ ...styles.statCard, padding: isMobile ? '16px' : '24px' }}>
+                            <div style={{width: isMobile ? '36px' : '48px', height: isMobile ? '36px' : '48px', borderRadius:'12px', background:`${stat.color}20`, display:'flex', alignItems:'center', justifyContent:'center', color:stat.color, marginBottom: isMobile ? '12px' : '16px'}}>
+                                {React.cloneElement(stat.icon, { size: isMobile ? 20 : 24 })}
                             </div>
-                            <h3 style={{fontSize:'28px', fontWeight:'800', margin:0}}>{stat.value}</h3>
-                            <p style={{fontSize:'13px', opacity:0.6, margin:'4px 0 0 0'}}>{stat.label}</p>
+                            <h3 style={{fontSize: isMobile ? '20px' : '28px', fontWeight:'800', margin:0}}>{stat.value}</h3>
+                            <p style={{fontSize: '12px', opacity:0.6, margin:'4px 0 0 0'}}>{stat.label}</p>
                         </div>
                     ))}
                 </div>
@@ -162,7 +172,7 @@ const Dashboard = () => {
                 <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap:'24px'}}>
                     <div style={styles.glassCard}>
                         <h4 style={{fontSize:'18px', fontWeight:'800', marginBottom:'24px', margin:0}}>Attendance Overview</h4>
-                        <div style={{ width: '100%', height: 280, minWidth: 0, minHeight: 0 }}>
+                        <div style={{ width: '100%', height: isMobile ? 220 : 280, minWidth: 0, minHeight: 0 }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={attendanceData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
@@ -200,3 +210,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import { Search, Bell, Layout as Apps, User, Menu } from 'lucide-react';
 
 const Layout = ({ children, role }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Inline Styles
   const styles = {
@@ -17,12 +24,15 @@ const Layout = ({ children, role }) => {
       flex: 1,
       display: 'flex',
       flexDirection: 'column',
-      minWidth: 0
+      minWidth: 0,
+      marginLeft: isMobile ? 0 : '240px',
+      transition: 'margin-left 0.3s ease'
     },
     header: {
       position: 'fixed',
       top: 0,
       right: 0,
+      left: isMobile ? 0 : '240px',
       height: '64px',
       zIndex: 40,
       backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -31,7 +41,9 @@ const Layout = ({ children, role }) => {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      padding: isMobile ? '0 16px' : '0 24px',
+      transition: 'left 0.3s ease'
     },
     searchGroup: {
       display: 'flex',
@@ -115,7 +127,8 @@ const Layout = ({ children, role }) => {
     pageContent: {
       marginTop: '64px',
       minHeight: 'calc(100vh - 64px)',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      padding: isMobile ? '16px' : '32px'
     }
   };
 
@@ -128,29 +141,41 @@ const Layout = ({ children, role }) => {
       />
 
       {/* Main Content */}
-      <main style={styles.main} className="md:ml-[240px]">
+      <main style={styles.main}>
         {/* Top Navigation Bar */}
-        <header style={styles.header} className="left-0 md:left-[240px] px-4 md:px-6">
+        <header style={styles.header}>
           <div style={styles.searchGroup}>
             {/* Hamburger Menu Mobile */}
-            <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg md:hidden"
-            >
-              <Menu size={24} />
-            </button>
+            {isMobile && (
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                style={{
+                  padding: '8px',
+                  marginLeft: '-8px',
+                  color: '#475569',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Menu size={24} />
+              </button>
+            )}
 
-            <div style={styles.searchContainer} className="hidden sm:block">
-              <span style={styles.searchIcon}>
-                <Search size={18} />
-              </span>
-              <input 
-                style={styles.searchInput}
-                className="w-48 lg:w-64 focus:w-64 lg:focus:w-80"
-                placeholder="Search..." 
-                type="text"
-              />
-            </div>
+            {!isMobile && (
+              <div style={styles.searchContainer}>
+                <span style={styles.searchIcon}>
+                  <Search size={18} />
+                </span>
+                <input 
+                  style={styles.searchInput}
+                  className="w-48 lg:w-64 focus:w-64 lg:focus:w-80"
+                  placeholder="Search..." 
+                  type="text"
+                />
+              </div>
+            )}
             
             <nav style={styles.navLinks} className="hidden lg:flex ml-4">
             </nav>
@@ -161,9 +186,11 @@ const Layout = ({ children, role }) => {
               <Bell size={20} />
               <span style={styles.notificationDot}></span>
             </button>
-            <button style={styles.iconBtn} className="hidden sm:flex">
-              <Apps size={20} />
-            </button>
+            {!isMobile && (
+              <button style={styles.iconBtn}>
+                <Apps size={20} />
+              </button>
+            )}
             <div style={styles.avatar}>
               <User size={18} className="text-slate-400" />
             </div>
@@ -171,7 +198,7 @@ const Layout = ({ children, role }) => {
         </header>
 
         {/* Page Content */}
-        <div style={styles.pageContent} className="p-4 md:p-8">
+        <div style={styles.pageContent}>
           {children}
         </div>
       </main>
@@ -180,3 +207,4 @@ const Layout = ({ children, role }) => {
 };
 
 export default Layout;
+

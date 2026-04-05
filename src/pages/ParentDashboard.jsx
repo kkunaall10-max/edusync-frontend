@@ -25,6 +25,14 @@ const ParentDashboard = () => {
     const [userEmail, setUserEmail] = useState('');
     const navigate = useNavigate();
 
+    // 1. Detect screen size
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const fetchDashboardData = async () => {
         setLoading(true);
         setError(null);
@@ -84,32 +92,32 @@ const ParentDashboard = () => {
         },
         sidebar: {
             position: 'fixed', left: 0, top: 0, width: '240px', height: '100vh',
-            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
             borderRight: '1px solid rgba(255,255,255,0.2)', padding: '24px 16px',
-            display: 'flex', flexDirection: 'column', zIndex: 100,
-            transform: window.innerWidth < 1024 ? (menuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
-            transition: '0.3s ease'
+            display: 'flex', flexDirection: 'column', zIndex: 200,
+            transform: isMobile ? (menuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
+            transition: 'transform 0.3s ease'
         },
         navbar: {
             height: '64px', backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)',
             borderBottom: '1px solid rgba(255,255,255,0.2)', display: 'flex',
-            alignItems: 'center', justifyContent: 'space-between', padding: '0 24px',
-            position: 'sticky', top: 0, zIndex: 50
+            alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 24px',
+            position: 'sticky', top: 0, zIndex: 150
         },
         mainContent: {
-            marginLeft: window.innerWidth < 1024 ? 0 : '240px', paddingTop: '0px',
-            minHeight: '100vh'
+            marginLeft: isMobile ? '0' : '240px', paddingTop: '0px',
+            minHeight: '100vh', transition: 'margin 0.3s ease'
         },
         glassCard: {
             backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.3)',
-            borderRadius: '16px', padding: '24px'
+            borderRadius: '16px', padding: isMobile ? '16px' : '24px'
         },
         avatar: {
-            width: '64px', height: '64px', borderRadius: '16px',
+            width: isMobile ? '48px' : '64px', height: isMobile ? '48px' : '64px', borderRadius: '16px',
             backgroundColor: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '20px', fontWeight: '800', border: '1px solid rgba(255, 255, 255, 0.2)',
+            fontSize: isMobile ? '16px' : '20px', fontWeight: '800', border: '1px solid rgba(255, 255, 255, 0.2)',
             flexShrink: 0, color: 'white'
         },
         badge: {
@@ -119,61 +127,6 @@ const ParentDashboard = () => {
             alignItems: 'center', gap: '6px', border: '1px solid rgba(255, 255, 255, 0.1)'
         }
     };
-
-    if (loading) {
-        return (
-            <div style={{ minHeight: '100vh', width: '100%', position: 'relative', background: 'none' }} className="font-['Inter'] flex flex-col items-center justify-center gap-4">
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100vw',
-                    height: '100vh',
-                    backgroundImage: `url(${parentBg})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    zIndex: -1,
-                    opacity: 0.4
-                }} />
-                <div className="relative z-10 text-center">
-                    <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-white font-bold tracking-tight">Syncing child profile...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (error || !child) {
-        return (
-            <div style={{ minHeight: '100vh', width: '100%', position: 'relative', background: 'none' }} className="font-['Inter'] flex flex-col items-center justify-center p-6">
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100vw',
-                    height: '100vh',
-                    backgroundImage: `url(${parentBg})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    zIndex: -1,
-                    opacity: 0.4
-                }} />
-                <div className="relative z-10 w-full max-w-md p-10 text-center rounded-3xl" style={styles.glassCard}>
-                    <span className="material-symbols-outlined text-6xl text-red-400 mb-6">error</span>
-                    <h2 className="text-2xl font-black text-white mb-3">No student linked</h2>
-                    <p className="text-white/60 mb-8">{error || "We couldn't find any child profile associated with your account."}</p>
-                    <button 
-                        onClick={fetchDashboardData}
-                        className="w-full py-4 bg-white text-black rounded-xl font-bold hover:bg-slate-100 transition-colors cursor-pointer border-none"
-                    >
-                        Try Again
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     const totalPaid = fees?.records?.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0) || 0;
     const totalPending = fees?.records?.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0) || 0;
@@ -190,18 +143,33 @@ const ParentDashboard = () => {
             <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundImage: `url(${parentBg})`, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 }} />
             <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.25)', zIndex: 1 }} />
 
+            {/* Mobile Overlay */}
+            {isMobile && menuOpen && (
+              <div 
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  position: 'fixed', inset: 0,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  zIndex: 199
+                }}
+              />
+            )}
+
             {/* Content Layer */}
             <div style={{ position: 'relative', zIndex: 10, minHeight: '100vh', display: 'flex' }}>
                 {/* Sidebar */}
                 <aside style={styles.sidebar}>
-                    <div style={{ padding: '0 8px', marginBottom: '40px' }}>
-                        <h1 style={{ color: 'white', fontSize: '24px', fontWeight: '900', fontStyle: 'italic', margin: 0, letterSpacing: '-1px' }}>EduSync</h1>
-                        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', tracking: '2px', marginTop: '4px' }}>Parental Portal</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px', marginBottom: '40px' }}>
+                        <div>
+                            <h1 style={{ color: 'white', fontSize: '24px', fontWeight: '900', fontStyle: 'italic', margin: 0, letterSpacing: '-1px' }}>EduSync</h1>
+                            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', tracking: '2px', marginTop: '4px' }}>Parental Portal</p>
+                        </div>
+                        {isMobile && <button onClick={() => setMenuOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={24} /></button>}
                     </div>
 
                     <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <button 
-                            onClick={() => navigate('/dashboard/parent')} 
+                            onClick={() => { navigate('/dashboard/parent'); if(isMobile) setMenuOpen(false); }} 
                             style={{ 
                                 display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', 
                                 border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: '700', cursor: 'pointer', textAlign: 'left' 
@@ -227,26 +195,37 @@ const ParentDashboard = () => {
                 <main style={styles.mainContent} className="flex-1">
                     {/* Navbar */}
                     <header style={styles.navbar}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            {window.innerWidth < 1024 && <Menu size={24} color="white" onClick={() => setMenuOpen(true)} style={{ cursor: 'pointer' }} />}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            {isMobile && (
+                              <button
+                                onClick={() => setMenuOpen(!menuOpen)}
+                                style={{
+                                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                                  borderRadius: '8px', color: 'white', width: '36px', height: '36px',
+                                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}
+                              >
+                                <Menu size={20} />
+                              </button>
+                            )}
                             <div style={{ position: 'relative' }}>
                                 <Search size={18} color="rgba(255,255,255,0.5)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                                 <input 
                                     type="text" 
-                                    placeholder="Search child's progress..." 
+                                    placeholder={isMobile ? "Search..." : "Search stats..."}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     style={{ 
                                         background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', 
-                                        padding: '10px 16px 10px 40px', color: 'white', fontSize: '14px', outline: 'none', width: '280px' 
+                                        padding: '10px 16px 10px 40px', color: 'white', fontSize: '14px', outline: 'none', width: isMobile ? '120px' : '280px' 
                                     }} 
                                 />
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', items: 'center', gap: '20px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '20px' }}>
                             <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'white', position: 'relative' }} onClick={() => alert('No new notifications')}>
-                                <Bell size={22} />
+                                <Bell size={isMobile ? 20 : 22} />
                                 <span style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, background: '#ff4d4d', borderRadius: '50%', border: '2px solid rgba(0,0,0,0.3)' }} />
                             </button>
                             <div style={{ position: 'relative' }}>
@@ -254,7 +233,7 @@ const ParentDashboard = () => {
                                     style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '6px', cursor: 'pointer', color: 'white' }} 
                                     onClick={() => setShowAccountDropdown(!showAccountDropdown)}
                                 >
-                                    <User size={22} />
+                                    <User size={isMobile ? 20 : 22} />
                                 </button>
                                 {showAccountDropdown && (
                                     <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '12px', width: '220px', background: 'rgba(20,20,20,0.9)', backdropFilter: 'blur(20px)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', padding: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
@@ -267,97 +246,97 @@ const ParentDashboard = () => {
                         </div>
                     </header>
 
-                    <div style={{ padding: '32px' }}>
-                        <div className="max-w-6xl mx-auto space-y-8">
+                    <div style={{ padding: isMobile ? '16px' : '32px' }}>
+                        <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
                             {/* Hero Card */}
                             <section style={styles.glassCard} className="flex flex-col md:flex-row items-center justify-between gap-6">
-                                <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-                                    <div style={styles.avatar}>{getInitials(child.full_name)}</div>
+                                <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 text-center md:text-left">
+                                    <div style={styles.avatar}>{getInitials(child?.full_name)}</div>
                                     <div>
-                                        <h3 className="text-3xl md:text-4xl font-black text-white m-0 tracking-tight leading-none">{child.full_name}</h3>
-                                        <div className="flex flex-wrap justify-center md:justify-start gap-4 text-white/50 text-sm font-bold mt-3">
-                                            <span className="flex items-center gap-2"><div style={{ width:20, height:20, background:'rgba(255,255,255,0.1)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}><TrendingUp size={12}/></div> Roll: {child.roll_number}</span>
-                                            <span className="flex items-center gap-2"><div style={{ width:20, height:20, background:'rgba(255,255,255,0.1)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}><GraduationCap size={12}/></div> Class {child.class}-{child.section}</span>
+                                        <h3 style={{ fontSize: isMobile ? '24px' : '36px' }} className="font-black text-white m-0 tracking-tight leading-tight">{child?.full_name}</h3>
+                                        <div className="flex flex-wrap justify-center md:justify-start gap-3 text-white/50 text-xs font-bold mt-2">
+                                            <span className="flex items-center gap-2"><div style={{ width:18, height:18, background:'rgba(255,255,255,0.1)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}><TrendingUp size={10}/></div> Roll: {child?.roll_number}</span>
+                                            <span className="flex items-center gap-2"><div style={{ width:18, height:18, background:'rgba(255,255,255,0.1)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}><GraduationCap size={10}/></div> Class {child?.class}-{child?.section}</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-wrap justify-center gap-3">
+                                <div className="flex flex-wrap justify-center gap-2 md:gap-3">
                                     <div style={styles.badge}>
                                         <span className={`w-2 h-2 rounded-full ${parseFloat(attendance?.percentage) >= 75 ? 'bg-emerald-400' : 'bg-red-400'}`}></span>
                                         Attendance {attendance?.percentage}%
                                     </div>
                                     <div style={styles.badge}>
                                         <span className={`w-2 h-2 rounded-full ${fees?.summary?.overdueCount > 0 ? 'bg-red-400' : 'bg-emerald-400'}`}></span>
-                                        Fees: {fees?.summary?.overdueCount > 0 ? 'Action Required' : 'Up to date'}
+                                        Fees: {fees?.summary?.overdueCount > 0 ? 'Pending' : 'Ok'}
                                     </div>
                                 </div>
                             </section>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '16px' : '24px' }} className="pb-8">
                                 {/* Card 1: Attendance */}
-                                <div style={styles.glassCard} className="flex flex-col justify-between min-h-[300px]">
-                                    <div className="flex justify-between items-start mb-6">
+                                <div style={styles.glassCard} className="flex flex-col justify-between min-h-[250px] md:min-h-[300px]">
+                                    <div className="flex justify-between items-start mb-4 md:mb-6">
                                         <div>
                                             <h4 style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Attendance</h4>
                                             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', marginTop: '4px', textTransform: 'uppercase', fontWeight: '700' }}>Academic Statistics</p>
                                         </div>
-                                        <Calendar size={20} style={{ opacity: 0.3, color: 'white' }} />
+                                        <Calendar size={18} style={{ opacity: 0.3, color: 'white' }} />
                                     </div>
-                                    <div className="flex items-baseline gap-4 mb-8">
-                                        <span style={{ fontSize: '72px', fontWeight: '900', color: 'white', lineHeight: 1, letterSpacing: '-4px' }}>{attendance?.total}</span>
-                                        <span style={{ fontSize: '18px', fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Total Days</span>
+                                    <div className="flex items-baseline gap-3 mb-6 md:mb-8">
+                                        <span style={{ fontSize: isMobile ? '48px' : '72px', fontWeight: '900', color: 'white', lineHeight: 1, letterSpacing: '-2px' }}>{attendance?.total}</span>
+                                        <span style={{ fontSize: isMobile ? '14px' : '18px', fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Total Days</span>
                                     </div>
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between text-xs font-black text-white/90">
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between text-[10px] md:text-xs font-black text-white/90">
                                             <div className="flex items-center gap-2">
-                                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Present: {attendance?.present}
+                                                <span className="w-2 h-2 rounded-full bg-emerald-400"></span> Present: {attendance?.present}
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="w-2.5 h-2.5 rounded-full bg-red-400"></span> Absent: {attendance?.absent}
+                                                <span className="w-2 h-2 rounded-full bg-red-400"></span> Absent: {attendance?.absent}
                                             </div>
                                         </div>
-                                        <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+                                        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                                             <div 
                                                 className={`h-full transition-all duration-1000 ease-out ${parseFloat(attendance?.percentage) >= 75 ? 'bg-emerald-400' : 'bg-red-400'}`}
                                                 style={{ width: `${attendance?.percentage}%` }}
                                             ></div>
                                         </div>
-                                        <p style={{ fontSize: '12px', fontStyle: 'italic', color: 'rgba(255,255,255,0.7)', fontWeight: '500' }}>
-                                            {parseFloat(attendance?.percentage) >= 75 ? "Excellent attendance sustained!" : "Attendance tracking below the required criteria."}
+                                        <p style={{ fontSize: '11px', fontStyle: 'italic', color: 'rgba(255,255,255,0.7)', fontWeight: '500' }}>
+                                            {parseFloat(attendance?.percentage) >= 75 ? "Excellent attendance sustained!" : "Attendance is below criteria."}
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Card 2: Fee Status */}
-                                <div style={styles.glassCard} className="flex flex-col justify-between min-h-[300px]">
-                                    <div className="flex justify-between items-start mb-6">
+                                <div style={styles.glassCard} className="flex flex-col justify-between min-h-[250px] md:min-h-[300px]">
+                                    <div className="flex justify-between items-start mb-4 md:mb-6">
                                         <div>
                                             <h4 style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Fee Status</h4>
                                             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', marginTop: '4px', textTransform: 'uppercase', fontWeight: '700' }}>Financial Overview</p>
                                         </div>
-                                        <CreditCard size={20} style={{ opacity: 0.3, color: 'white' }} />
+                                        <CreditCard size={18} style={{ opacity: 0.3, color: 'white' }} />
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 mb-8 text-center">
-                                        <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
-                                            <p className="text-lg font-black text-emerald-400 leading-none">₹{totalPaid.toLocaleString()}</p>
-                                            <p style={{ fontSize: '8px', fontWeight: '900', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: '8px' }}>Paid</p>
+                                    <div className="grid grid-cols-3 gap-2 mb-6 md:mb-8 text-center">
+                                        <div className="p-2 bg-white/5 rounded-xl border border-white/5">
+                                            <p style={{ fontSize: isMobile ? '12px' : '16px' }} className="font-black text-emerald-400 leading-none">₹{totalPaid.toLocaleString()}</p>
+                                            <p style={{ fontSize: '7px', fontWeight: '900', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: '4px' }}>Paid</p>
                                         </div>
-                                        <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
-                                            <p className="text-lg font-black text-blue-400 leading-none">₹{totalPending.toLocaleString()}</p>
-                                            <p style={{ fontSize: '8px', fontWeight: '900', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: '8px' }}>Pending</p>
+                                        <div className="p-2 bg-white/5 rounded-xl border border-white/5">
+                                            <p style={{ fontSize: isMobile ? '12px' : '16px' }} className="font-black text-blue-400 leading-none">₹{totalPending.toLocaleString()}</p>
+                                            <p style={{ fontSize: '7px', fontWeight: '900', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: '4px' }}>Pend.</p>
                                         </div>
-                                        <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
-                                            <p className="text-lg font-black text-red-400 leading-none">₹{totalOverdue.toLocaleString()}</p>
-                                            <p style={{ fontSize: '8px', fontWeight: '900', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: '8px' }}>Overdue</p>
+                                        <div className="p-2 bg-white/5 rounded-xl border border-white/5">
+                                            <p style={{ fontSize: isMobile ? '12px' : '16px' }} className="font-black text-red-400 leading-none">₹{totalOverdue.toLocaleString()}</p>
+                                            <p style={{ fontSize: '7px', fontWeight: '900', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: '4px' }}>Over.</p>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
                                         {fees?.records?.slice(0, 2).map((fee, idx) => (
-                                            <div key={fee.id || idx} style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                                <span style={{ fontSize: '12px', fontWeight: '700', color: 'white' }}>{fee.month} {fee.fee_type}</span>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    {fee.status === 'paid' ? <CheckCircle2 size={12} color="#10b981" /> : <AlertCircle size={12} color="#ef4444" />}
-                                                    <span style={{ fontSize: '9px', fontWeight: '900', color: fee.status === 'paid' ? '#10b981' : '#ef4444', textTransform: 'uppercase', letterSpacing: '1px' }}>{fee.status}</span>
+                                            <div key={fee.id || idx} style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: '700', color: 'white' }}>{isMobile && fee.month.length > 3 ? fee.month.substring(0,3) : fee.month} {fee.fee_type}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    {fee.status === 'paid' ? <CheckCircle2 size={10} color="#10b981" /> : <AlertCircle size={10} color="#ef4444" />}
+                                                    <span style={{ fontSize: '8px', fontWeight: '900', color: fee.status === 'paid' ? '#10b981' : '#ef4444', textTransform: 'uppercase' }}>{fee.status}</span>
                                                 </div>
                                             </div>
                                         ))}
@@ -365,27 +344,27 @@ const ParentDashboard = () => {
                                 </div>
 
                                 {/* Card 3: Recent Homework */}
-                                <div style={styles.glassCard} className="min-h-[300px]">
-                                    <div className="flex justify-between items-start mb-8">
+                                <div style={styles.glassCard} className="min-h-[250px] md:min-h-[300px]">
+                                    <div className="flex justify-between items-start mb-6 md:mb-8">
                                         <div>
                                             <h4 style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Homework</h4>
                                             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', marginTop: '4px', textTransform: 'uppercase', fontWeight: '700' }}>Active Assignments</p>
                                         </div>
-                                        <BookOpen size={20} style={{ opacity: 0.3, color: 'white' }} />
+                                        <BookOpen size={18} style={{ opacity: 0.3, color: 'white' }} />
                                     </div>
-                                    <div className="space-y-5">
+                                    <div className="space-y-4">
                                         {homework.length === 0 ? (
-                                            <div style={{ padding: '48px 0', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>No homework assigned yet.</div>
+                                            <div style={{ padding: '32px 0', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase' }}>No homework yet.</div>
                                         ) : (
                                             homework.map((hw, idx) => (
                                                 <div key={hw.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                        <span style={{ fontSize: '8px', fontWeight: '900', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.1)', color: 'white', textTransform: 'uppercase', width: 'fit-content' }}>{hw.subject}</span>
-                                                        <h5 style={{ fontSize: '14px', fontWeight: '700', color: 'white', margin: 0 }}>{hw.title}</h5>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                        <span style={{ fontSize: '7px', fontWeight: '900', padding: '2px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.1)', color: 'white', textTransform: 'uppercase', width: 'fit-content' }}>{hw.subject}</span>
+                                                        <h5 style={{ fontSize: '13px', fontWeight: '700', color: 'white', margin: 0 }}>{hw.title}</h5>
                                                     </div>
                                                     <div style={{ textAlign: 'right' }}>
-                                                        <p style={{ fontSize: '8px', fontWeight: '900', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', margin: 0 }}>Due Date</p>
-                                                        <p style={{ fontSize: '12px', fontWeight: '700', color: 'white', marginTop: '4px', margin: 0 }}>{new Date(hw.due_date).toLocaleDateString()}</p>
+                                                        <p style={{ fontSize: '7px', fontWeight: '900', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', margin: 0 }}>Due</p>
+                                                        <p style={{ fontSize: '11px', fontWeight: '700', color: 'white', marginTop: '2px', margin: 0 }}>{new Date(hw.due_date).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}</p>
                                                     </div>
                                                 </div>
                                             ))
@@ -394,27 +373,27 @@ const ParentDashboard = () => {
                                 </div>
 
                                 {/* Card 4: Latest Results */}
-                                <div style={styles.glassCard} className="min-h-[300px]">
-                                    <div className="flex justify-between items-start mb-8">
+                                <div style={styles.glassCard} className="min-h-[250px] md:min-h-[300px]">
+                                    <div className="flex justify-between items-start mb-6 md:mb-8">
                                         <div>
                                             <h4 style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Latest Results</h4>
                                             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', marginTop: '4px', textTransform: 'uppercase', fontWeight: '700' }}>Performance Overview</p>
                                         </div>
-                                        <TrendingUp size={20} style={{ opacity: 0.3, color: 'white' }} />
+                                        <TrendingUp size={18} style={{ opacity: 0.3, color: 'white' }} />
                                     </div>
-                                    <div className="space-y-5">
+                                    <div className="space-y-4">
                                         {marks.length === 0 ? (
-                                            <div style={{ padding: '48px 0', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>Await official evaluations...</div>
+                                            <div style={{ padding: '32px 0', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase' }}>Await evaluations...</div>
                                         ) : (
                                             marks.map((res, idx) => {
                                                 const grade = getGrade((res.marks_obtained / res.total_marks) * 100);
                                                 return (
-                                                    <div key={res.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: '16px', background: 'rgba(255,255,255,0.03)' }}>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                            <h5 style={{ fontSize: '14px', fontWeight: '700', color: 'white', margin: 0 }}>{res.subject}</h5>
-                                                            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', fontWeight: '500', textTransform: 'uppercase' }}>{res.exam_type} • {res.marks_obtained}/{res.total_marks}</span>
+                                                    <div key={res.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)' }}>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                            <h5 style={{ fontSize: '13px', fontWeight: '700', color: 'white', margin: 0 }}>{res.subject}</h5>
+                                                            <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.5)', fontWeight: '500', textTransform: 'uppercase' }}>{res.exam_type} • {res.marks_obtained}/{res.total_marks}</span>
                                                         </div>
-                                                        <div style={{ width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${grade.color}`, backgroundColor: grade.bg, color: grade.color, fontWeight: '900', fontSize: '16px' }}>
+                                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${grade.color}`, backgroundColor: grade.bg, color: grade.color, fontWeight: '900', fontSize: '14px' }}>
                                                             {grade.label}
                                                         </div>
                                                     </div>

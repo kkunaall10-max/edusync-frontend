@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
-  Menu, Users, BookOpen, GraduationCap, 
+  Menu, X, Users, BookOpen, GraduationCap, 
   ClipboardCheck, TrendingUp, Plus, Search, Calendar, Trash2
 } from 'lucide-react';
 
@@ -18,7 +18,7 @@ const Homework = () => {
     const [showAddForm, setShowAddForm] = useState(false);
     const [newHomework, setNewHomework] = useState({
         title: '',
-        subject: '', // FIX 1: Will be editable
+        subject: '',
         description: '',
         due_date: new Date().toISOString().split('T')[0]
     });
@@ -47,7 +47,6 @@ const Homework = () => {
             });
             setHomeworkList(hwRes.data);
             
-            // Pre-fill subject with teacher's primary subject initially, but keep it editable
             setNewHomework(prev => ({ ...prev, subject: profile.subject || '' }));
         } catch (error) {
             console.error("Homework Fetch Error:", error);
@@ -89,7 +88,6 @@ const Homework = () => {
         }
     };
 
-    // FIX 4: Search functionality
     const filteredHomework = homeworkList.filter(hw => 
         hw.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         hw.subject.toLowerCase().includes(searchQuery.toLowerCase())
@@ -102,19 +100,25 @@ const Homework = () => {
         },
         sidebar: {
             position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
-            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+            background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
             borderRight: '1px solid rgba(255,255,255,0.1)', padding: '28px 16px',
-            display: 'flex', flexDirection: 'column', zIndex: 100,
+            display: 'flex', flexDirection: 'column', zIndex: 200,
             transform: isMobile ? (menuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
-            transition: '0.3s ease'
+            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        },
+        overlay: {
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 190,
+            opacity: menuOpen ? 1 : 0, visibility: menuOpen ? 'visible' : 'hidden', transition: '0.3s opacity'
         },
         headerGlass: {
             background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)', borderRadius: 16,
             padding: '16px 20px', marginBottom: 20, border: '1px solid rgba(255,255,255,0.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: isMobile ? 'wrap' : 'nowrap', gap: isMobile ? '12px' : '0'
         },
         mainContent: {
-            marginLeft: isMobile ? 0 : '260px', paddingTop: '40px', padding: isMobile ? '40px 16px' : '40px 32px'
+            marginLeft: isMobile ? 0 : '260px', paddingTop: '40px', padding: isMobile ? '40px 16px' : '40px 32px',
+            transition: 'margin-left 0.3s ease'
         },
         glassCard: {
             background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(24px)', borderRadius: '24px',
@@ -131,12 +135,17 @@ const Homework = () => {
             <div style={{ position: 'fixed', top: '-5%', left: '-5%', width: '110vw', height: '110vh', backgroundImage: 'url(/nature-bg.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -2 }} />
             <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.35)', zIndex: -1 }} />
 
+            {isMobile && <div style={styles.overlay} onClick={() => setMenuOpen(false)} />}
+
             <aside style={styles.sidebar}>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:'40px', padding:'0 8px' }}>
-                  <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
+                <div style={{ display:'flex', alignItems:'center', justifyContent: 'space-between', marginBottom:'40px', padding:'0 8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
+                    </div>
+                    <span style={{ color:'white', fontSize:18, fontWeight:800, letterSpacing:1 }}>EduSync</span>
                   </div>
-                  <span style={{ color:'white', fontSize:18, fontWeight:800, letterSpacing:1 }}>EduSync</span>
+                  {isMobile && <X size={24} onClick={() => setMenuOpen(false)} style={{ cursor: 'pointer', opacity: 0.7 }} />}
                 </div>
                 <nav style={{flex:1}}>
                     {[
@@ -146,7 +155,7 @@ const Homework = () => {
                         { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
                         { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
                     ].map(item => (
-                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => navigate(item.path)}>
+                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
                             {item.icon} {item.label}
                         </button>
                     ))}
@@ -154,22 +163,26 @@ const Homework = () => {
             </aside>
 
             <main style={styles.mainContent}>
-                {/* FIX 3: Header in Glass card */}
                 <div style={styles.headerGlass}>
                   <div style={{display:'flex', alignItems:'center', gap:15}}>
-                    {isMobile && <Menu size={24} onClick={() => setMenuOpen(true)} style={{cursor:'pointer'}} />}
-                    <h1 style={{ color: 'white', fontSize: 20, fontWeight: 700, margin: 0 }}>Homework Portal</h1>
+                    {isMobile && <Menu size={24} onClick={() => setMenuOpen(true)} style={{cursor:'pointer', color:'white'}} />}
+                    <h1 style={{ color: 'white', fontSize: isMobile ? 18 : 20, fontWeight: 700, margin: 0 }}>Homework Portal</h1>
                   </div>
-                  <div style={{display:'flex', gap:12}}>
-                    {/* FIX 4: Search input */}
+                  <div style={{display:'flex', gap:12, width: isMobile ? '100%' : 'auto'}}>
                     <div style={{position:'relative', display: isMobile ? 'none' : 'block'}}>
                         <Search size={16} style={{position:'absolute', left:12, top:12, opacity:0.5}} />
                         <input placeholder="Search tasks..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ background:'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 24, padding: '10px 16px 10px 40px', color: 'white', fontSize: 13, outline: 'none', width: 220 }} />
                     </div>
-                    <button onClick={() => setShowAddForm(!showAddForm)} style={{ background: '#2563EB', color: 'white', border: 'none', borderRadius: 12, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button onClick={() => setShowAddForm(!showAddForm)} style={{ background: '#2563EB', color: 'white', border: 'none', borderRadius: 12, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, flex: isMobile ? 1 : 'none', justifyContent: 'center' }}>
                         {showAddForm ? 'Close' : <><Plus size={18} /> Assign Task</>}
                     </button>
                   </div>
+                  {isMobile && !showAddForm && (
+                      <div style={{position:'relative', width: '100%', marginTop: 10}}>
+                          <Search size={16} style={{position:'absolute', left:12, top:12, opacity:0.5}} />
+                          <input placeholder="Search tasks..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ background:'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 12, padding: '10px 16px 10px 40px', color: 'white', fontSize: 13, outline: 'none', width: '100%' }} />
+                      </div>
+                  )}
                 </div>
 
                 {showAddForm && (
@@ -182,31 +195,14 @@ const Homework = () => {
                                     <input required placeholder="Homework title" value={newHomework.title} onChange={e => setNewHomework({...newHomework, title: e.target.value})} style={styles.input} />
                                     
                                     <label style={{ fontSize: 12, fontWeight: 700, opacity: 0.6, marginBottom: 8, display: 'block' }}>SUBJECT</label>
-                                    {/* FIX 1: Editable subject input */}
-                                    <input 
-                                        type="text"
-                                        placeholder="Enter subject (e.g. Maths, Science, English)"
-                                        value={newHomework.subject}
-                                        onChange={e => setNewHomework(prev => ({ ...prev, subject: e.target.value }))}
-                                        style={{
-                                            background: 'rgba(255,255,255,0.1)',
-                                            border: '1px solid rgba(255,255,255,0.3)',
-                                            borderRadius: 12,
-                                            padding: '12px 16px',
-                                            color: 'white',
-                                            width: '100%',
-                                            fontSize: 14,
-                                            outline: 'none',
-                                            marginBottom: 16
-                                        }}
-                                    />
+                                    <input type="text" placeholder="Enter subject (e.g. Maths, Science, English)" value={newHomework.subject} onChange={e => setNewHomework(prev => ({ ...prev, subject: e.target.value }))} style={styles.input} />
                                     
                                     <label style={{ fontSize: 12, fontWeight: 700, opacity: 0.6, marginBottom: 8, display: 'block' }}>DUE DATE</label>
                                     <input type="date" required value={newHomework.due_date} onChange={e => setNewHomework({...newHomework, due_date: e.target.value})} style={styles.input} />
                                 </div>
                                 <div>
                                     <label style={{ fontSize: 12, fontWeight: 700, opacity: 0.6, marginBottom: 8, display: 'block' }}>DESCRIPTION / INSTRUCTIONS</label>
-                                    <textarea required placeholder="Detailed homework description..." value={newHomework.description} onChange={e => setNewHomework({...newHomework, description: e.target.value})} style={{ ...styles.input, height: 160, resize: 'none' }} />
+                                    <textarea required placeholder="Detailed homework description..." value={newHomework.description} onChange={e => setNewHomework({...newHomework, description: e.target.value})} style={{ ...styles.input, height: isMobile ? 120 : 160, resize: 'none' }} />
                                     <button type="submit" style={{ width: '100%', padding: '16px', background: '#2563EB', color: 'white', border: 'none', borderRadius: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}>Post Assignment</button>
                                 </div>
                             </div>
@@ -229,7 +225,7 @@ const Homework = () => {
                         </div>
                     ))}
                     {filteredHomework.length === 0 && (
-                        <div style={{ ...styles.glassCard, gridColumn: '1/-1', textAlign: 'center', padding: '60px' }}>
+                        <div style={{ ...styles.glassCard, gridColumn: '1/-1', textAlign: 'center', padding: isMobile ? '40px 20px' : '60px' }}>
                             <BookOpen size={48} style={{ opacity: 0.2, marginBottom: 16 }} />
                             <p style={{ fontSize: 16, fontWeight: 600, opacity: 0.4 }}>No tasks found matching your criteria</p>
                         </div>
