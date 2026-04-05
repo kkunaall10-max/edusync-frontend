@@ -244,13 +244,17 @@ const Marks = () => {
                                 value={examType} 
                                 onChange={e => setExamType(e.target.value)} 
                                 style={{
+                                    width: '100%',
+                                    padding: '12px 16px',
                                     backgroundColor: 'rgba(0,0,0,0.6)',
                                     color: 'white',
                                     border: '1px solid rgba(255,255,255,0.3)',
-                                    borderRadius: '8px',
-                                    padding: '8px 12px',
-                                    width: '100%',
-                                    outline: 'none'
+                                    borderRadius: '12px',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                    appearance: 'none',
+                                    WebkitAppearance: 'none',
+                                    cursor: 'pointer'
                                 }}
                             >
                                 {EXAM_TYPES.map(t => (

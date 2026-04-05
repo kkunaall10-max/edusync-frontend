@@ -213,11 +213,29 @@ const MyStudents = () => {
                                 <input required placeholder="Roll Number" value={enrollForm.roll_number} onChange={e => setEnrollForm({...enrollForm, roll_number: e.target.value})} style={styles.input} />
                                 
                                 {/* FIX 2: Gender select */}
-                                <select required value={enrollForm.gender} onChange={e => setEnrollForm({...enrollForm, gender: e.target.value})} style={{ ...styles.input, background:'rgba(255,255,255,0.1)', cursor:'pointer' }}>
-                                    <option value="">Select Gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="other">Other</option>
+                                <select 
+                                    required 
+                                    value={enrollForm.gender} 
+                                    onChange={e => setEnrollForm({...enrollForm, gender: e.target.value})} 
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px 16px',
+                                        backgroundColor: 'rgba(0,0,0,0.6)',
+                                        color: 'white',
+                                        border: '1px solid rgba(255,255,255,0.3)',
+                                        borderRadius: '12px',
+                                        fontSize: '14px',
+                                        outline: 'none',
+                                        appearance: 'none',
+                                        WebkitAppearance: 'none',
+                                        cursor: 'pointer',
+                                        marginBottom: 15
+                                    }}
+                                >
+                                    <option value="" style={{backgroundColor:'#1a1a2e', color:'white'}}>Select Gender</option>
+                                    <option value="male" style={{backgroundColor:'#1a1a2e', color:'white'}}>Male</option>
+                                    <option value="female" style={{backgroundColor:'#1a1a2e', color:'white'}}>Female</option>
+                                    <option value="other" style={{backgroundColor:'#1a1a2e', color:'white'}}>Other</option>
                                 </select>
 
                                 <input required type="email" placeholder="Parent Email" value={enrollForm.parent_email} onChange={e => setEnrollForm({...enrollForm, parent_email: e.target.value})} style={styles.input} />
