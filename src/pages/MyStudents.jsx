@@ -8,7 +8,7 @@ import {
   ChevronRight, Menu
 } from 'lucide-react';
 
-const API = 'https://edusync.up.railway.app';
+const API = import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app';
 
 const MyStudents = () => {
     const [students, setStudents] = useState([]);

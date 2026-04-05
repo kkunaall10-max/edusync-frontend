@@ -28,11 +28,11 @@ const PrincipalDashboard = () => {
                 attendanceRes,
                 overdueRes
             ] = await Promise.all([
-                axios.get('https://edusync.up.railway.app/api/students', { cancelToken }),
-                axios.get('https://edusync.up.railway.app/api/teachers', { cancelToken }),
-                axios.get('https://edusync.up.railway.app/api/fees/stats', { cancelToken }),
-                axios.get(`https://edusync.up.railway.app/api/attendance?date=${today}`, { cancelToken }),
-                axios.get('https://edusync.up.railway.app/api/fees?status=overdue', { cancelToken })
+                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/students`, { cancelToken }),
+                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/teachers`, { cancelToken }),
+                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/fees/stats`, { cancelToken }),
+                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/attendance?date=${today}`, { cancelToken }),
+                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/fees?status=overdue`, { cancelToken })
             ]);
 
             const totalAttendance = attendanceRes.data.length;

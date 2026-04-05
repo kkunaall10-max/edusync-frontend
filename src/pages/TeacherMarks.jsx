@@ -12,7 +12,7 @@ import {
   ClipboardCheck, TrendingUp, Search, Award, TrendingDown, Target
 } from 'lucide-react';
 
-const API = 'https://edusync.up.railway.app';
+const API = import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app';
 
 const TeacherMarks = () => {
     const [loading, setLoading] = useState(true);

@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 import Layout from '../components/Layout';
 
-const API_BASE_URL = 'https://edusync.up.railway.app/api/teachers';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/teachers';
 
 const TeacherList = ({ role }) => {
     const [teachers, setTeachers] = useState([]);

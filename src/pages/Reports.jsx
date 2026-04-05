@@ -15,8 +15,8 @@ import {
     ChevronDown
 } from 'lucide-react';
 
-const API_BASE_URL = 'https://edusync.up.railway.app/api/reports';
-const STUDENTS_API_URL = 'https://edusync.up.railway.app/api/students';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/reports';
+const STUDENTS_API_URL = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/students';
 
 const Reports = () => {
     const [activeTab, setActiveTab] = useState('attendance');

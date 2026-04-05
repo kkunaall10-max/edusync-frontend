@@ -7,7 +7,7 @@ import {
   TrendingUp, ClipboardCheck, BookOpen, GraduationCap, LogOut
 } from 'lucide-react';
 
-const API = 'https://edusync.up.railway.app';
+const API = import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app';
 
 const MyStudents = () => {
     const [teacherProfile, setTeacherProfile] = useState(null);

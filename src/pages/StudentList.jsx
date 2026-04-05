@@ -9,8 +9,8 @@ import {
   Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Search, Plus
 } from 'lucide-react';
 
-const API_BASE_URL = 'https://edusync.up.railway.app/api/students';
-const TEACHERS_API_URL = 'https://edusync.up.railway.app/api/teachers';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/students';
+const TEACHERS_API_URL = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/teachers';
 
 const StudentList = ({ role = 'principal' }) => {
     const isTeacher = role === 'teacher';

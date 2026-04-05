@@ -5,8 +5,8 @@ import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES } from '../utils/constants';
 import Layout from '../components/Layout';
 
-const API_BASE_URL = 'https://edusync.up.railway.app/api/fees';
-const STUDENTS_API_URL = 'https://edusync.up.railway.app/api/students';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/fees';
+const STUDENTS_API_URL = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/students';
 
 const FeeManagement = ({ role }) => {
     const [fees, setFees] = useState([]);

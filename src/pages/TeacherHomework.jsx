@@ -8,7 +8,7 @@ import {
   Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Plus
 } from 'lucide-react';
 
-const API = 'https://edusync.up.railway.app';
+const API = import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app';
 
 const TeacherHomework = () => {
     const [loading, setLoading] = useState(true);

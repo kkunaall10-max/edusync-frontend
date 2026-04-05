@@ -8,7 +8,7 @@ import {
   ChevronRight, ArrowRight, Download, Filter
 } from 'lucide-react';
 
-const API_BASE = 'https://edusync.up.railway.app/api';
+const API_BASE = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api';
 
 const Attendance = () => {
     const [loading, setLoading] = useState(true);

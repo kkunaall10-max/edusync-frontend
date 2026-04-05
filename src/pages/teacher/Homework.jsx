@@ -7,7 +7,7 @@ import {
   ClipboardCheck, TrendingUp, Plus, Search, Calendar, Trash2, LogOut, Download
 } from 'lucide-react';
 
-const API = 'https://edusync.up.railway.app';
+const API = import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app';
 
 const Homework = () => {
     const [teacherProfile, setTeacherProfile] = useState(null);

@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import LoadingScreen from '../components/LoadingScreen';
 
-const API = 'https://edusync.up.railway.app';
+const API = import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app';
 
 const TeacherDashboard = () => {
     const [showLoader, setShowLoader] = useState(false);

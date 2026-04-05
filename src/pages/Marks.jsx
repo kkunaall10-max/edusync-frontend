@@ -7,7 +7,7 @@ import {
   ChevronRight, ArrowRight, Download, BarChart2, Award, Target
 } from 'lucide-react';
 
-const API_BASE = 'https://edusync.up.railway.app/api';
+const API_BASE = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api';
 
 const Marks = () => {
     const [loading, setLoading] = useState(true);

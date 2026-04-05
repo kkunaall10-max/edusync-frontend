@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import parentBg from '../assets/parent-bg.jpg';
 
-const API_BASE_URL = 'https://edusync.up.railway.app/api/parent';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/parent';
 
 const ParentDashboard = () => {
     const [child, setChild] = useState(null);
