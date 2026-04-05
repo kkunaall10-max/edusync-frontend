@@ -19,9 +19,7 @@ const API_BASE_URL = 'https://edusync.up.railway.app/api/attendance';
 const Attendance = ({ role = 'principal' }) => {
     const isTeacher = role === 'teacher';
     const [loading, setLoading] = useState(true);
-    const [minTimeDone, setMinTimeDone] = useState(false);
-    const [dataReady, setDataReady] = useState(false);
-
+    
     const [teacherProfile, setTeacherProfile] = useState(null);
     const [students, setStudents] = useState([]);
     const [attendanceRecords, setAttendanceRecords] = useState([]);
@@ -39,20 +37,6 @@ const Attendance = ({ role = 'principal' }) => {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
-
-    // Force minimum 10 second loading
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setMinTimeDone(true);
-        }, 10000);
-        return () => clearTimeout(timer);
-    }, []);
-
-    useEffect(() => {
-        if (minTimeDone && dataReady) {
-            setLoading(false);
-        }
-    }, [minTimeDone, dataReady]);
 
     const fetchInitialData = useCallback(async (cancelToken) => {
         try {
@@ -75,11 +59,12 @@ const Attendance = ({ role = 'principal' }) => {
                 });
                 setStudents(studentsRes.data);
             }
-            setDataReady(true);
+            setLoading(false);
         } catch (error) {
-            if (axios.isCancel(error)) return;
-            console.error("Attendance Data Error:", error);
-            setDataReady(true);
+            if (!axios.isCancel(error)) {
+                console.error("Attendance Data Error:", error);
+                setLoading(false);
+            }
         }
     }, [isTeacher, navigate]);
 
@@ -127,11 +112,11 @@ const Attendance = ({ role = 'principal' }) => {
 
     const styles = {
         pageWrapper: {
+            position: 'relative',
             minHeight: '100vh',
             width: '100%',
-            position: 'relative',
-            background: 'none',
-            paddingBottom: '50px'
+            overflow: 'hidden',
+            fontFamily: "'Inter', sans-serif"
         },
         sidebar: {
             position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
@@ -161,14 +146,13 @@ const Attendance = ({ role = 'principal' }) => {
         }
     };
 
-    if (loading) return <LoadingScreen />;
+    if (loading && isTeacher) return <LoadingScreen />;
 
     if (!isTeacher) {
         return (
             <Layout role="principal">
                 <div className="space-y-4">
                     <h2 className="text-2xl font-bold">Attendance Records</h2>
-                    {/* Principal specific logic preserved */}
                 </div>
             </Layout>
         );
@@ -176,9 +160,30 @@ const Attendance = ({ role = 'principal' }) => {
 
     return (
         <div style={styles.pageWrapper}>
+            {/* oversized background pattern */}
             <div style={{
-                position: 'fixed', inset: 0, backgroundImage: 'url(/nature-bg.jpg)',
-                backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', zIndex: -1
+              position: 'fixed',
+              top: '-10%',
+              left: '-10%',
+              width: '120vw',
+              height: '120vh',
+              backgroundImage: 'url(/nature-bg.jpg)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center center',
+              backgroundRepeat: 'no-repeat',
+              zIndex: -2,
+              transform: 'translateZ(0)',
+              willChange: 'transform',
+            }} />
+            
+            {/* dark overlay */}
+            <div style={{
+              position: 'fixed',
+              top: 0, left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(0,0,0,0.35)',
+              zIndex: -1,
             }} />
 
             {isMobile && isMobileMenuOpen && (
@@ -265,7 +270,7 @@ const Attendance = ({ role = 'principal' }) => {
                                                 onClick={async () => {
                                                     try {
                                                         await axios.post(API_BASE_URL, { student_id: student.id, class: selectedClass, section: selectedSection, date: selectedDate, status: 'present', marked_by: teacherProfile.email });
-                                                        fetchAttendance();
+                                                        await axios.get(API_BASE_URL, { params: { class: selectedClass, section: selectedSection, date: selectedDate } }).then(res => setAttendanceRecords(res.data));
                                                     } catch (e) { console.error(e); }
                                                 }}
                                                 style={{width:'32px', height:'32px', borderRadius:'8px', border:'none', background: record?.status === 'present' ? '#10B981' : 'rgba(255,255,255,0.05)', color: record?.status === 'present' ? '#fff' : 'rgba(255,255,255,0.3)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}
@@ -276,7 +281,7 @@ const Attendance = ({ role = 'principal' }) => {
                                                 onClick={async () => {
                                                     try {
                                                         await axios.post(API_BASE_URL, { student_id: student.id, class: selectedClass, section: selectedSection, date: selectedDate, status: 'absent', marked_by: teacherProfile.email });
-                                                        fetchAttendance();
+                                                        await axios.get(API_BASE_URL, { params: { class: selectedClass, section: selectedSection, date: selectedDate } }).then(res => setAttendanceRecords(res.data));
                                                     } catch (e) { console.error(e); }
                                                 }}
                                                 style={{width:'32px', height:'32px', borderRadius:'8px', border:'none', background: record?.status === 'absent' ? '#EF4444' : 'rgba(255,255,255,0.05)', color: record?.status === 'absent' ? '#fff' : 'rgba(255,255,255,0.3)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}

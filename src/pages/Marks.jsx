@@ -19,8 +19,6 @@ const API_BASE_URL = 'https://edusync.up.railway.app/api/marks';
 const Marks = ({ role = 'teacher' }) => {
     const isTeacher = role === 'teacher';
     const [loading, setLoading] = useState(true);
-    const [minTimeDone, setMinTimeDone] = useState(false);
-    const [dataReady, setDataReady] = useState(false);
 
     const [teacherProfile, setTeacherProfile] = useState(null);
     const [students, setStudents] = useState([]);
@@ -40,20 +38,6 @@ const Marks = ({ role = 'teacher' }) => {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
-
-    // Force minimum 10 second loading
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setMinTimeDone(true);
-        }, 10000);
-        return () => clearTimeout(timer);
-    }, []);
-
-    useEffect(() => {
-        if (minTimeDone && dataReady) {
-            setLoading(false);
-        }
-    }, [minTimeDone, dataReady]);
 
     const fetchData = useCallback(async (cancelToken) => {
         try {
@@ -76,11 +60,12 @@ const Marks = ({ role = 'teacher' }) => {
 
             setStudents(studentsRes.data);
             setMarksData(marksRes.data);
-            setDataReady(true);
+            setLoading(false);
         } catch (error) {
-            if (axios.isCancel(error)) return;
-            console.error("Marks Data Error:", error);
-            setDataReady(true);
+            if (!axios.isCancel(error)) {
+                console.error("Marks Data Error:", error);
+                setLoading(false);
+            }
         }
     }, [selectedExam, selectedSubject, navigate]);
 
@@ -108,11 +93,11 @@ const Marks = ({ role = 'teacher' }) => {
 
     const styles = {
         pageWrapper: {
+            position: 'relative',
             minHeight: '100vh',
             width: '100%',
-            position: 'relative',
-            background: 'none',
-            paddingBottom: '50px'
+            overflow: 'hidden',
+            fontFamily: "'Inter', sans-serif"
         },
         sidebar: {
             position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
@@ -142,13 +127,34 @@ const Marks = ({ role = 'teacher' }) => {
         }
     };
 
-    if (loading) return <LoadingScreen />;
+    if (loading && isTeacher) return <LoadingScreen />;
 
     return (
         <div style={styles.pageWrapper}>
+            {/* oversized background pattern */}
             <div style={{
-                position: 'fixed', inset: 0, backgroundImage: 'url(/nature-bg.jpg)',
-                backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', zIndex: -1
+              position: 'fixed',
+              top: '-10%',
+              left: '-10%',
+              width: '120vw',
+              height: '120vh',
+              backgroundImage: 'url(/nature-bg.jpg)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center center',
+              backgroundRepeat: 'no-repeat',
+              zIndex: -2,
+              transform: 'translateZ(0)',
+              willChange: 'transform',
+            }} />
+            
+            {/* dark overlay */}
+            <div style={{
+              position: 'fixed',
+              top: 0, left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(0,0,0,0.35)',
+              zIndex: -1,
             }} />
 
             {isMobile && menuOpen && (

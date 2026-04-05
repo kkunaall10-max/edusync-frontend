@@ -7,8 +7,6 @@ import LoadingScreen from '../components/LoadingScreen';
 
 const PrincipalDashboard = () => {
     const [loading, setLoading] = useState(true);
-    const [minTimeDone, setMinTimeDone] = useState(false);
-    const [dataReady, setDataReady] = useState(false);
 
     const [metrics, setMetrics] = useState({
         totalStudents: 0,
@@ -18,20 +16,6 @@ const PrincipalDashboard = () => {
     });
     const [recentAlerts, setRecentAlerts] = useState([]);
     const navigate = useNavigate();
-
-    // Force minimum 10 second loading
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setMinTimeDone(true);
-        }, 10000);
-        return () => clearTimeout(timer);
-    }, []);
-
-    useEffect(() => {
-        if (minTimeDone && dataReady) {
-            setLoading(false);
-        }
-    }, [minTimeDone, dataReady]);
 
     const fetchData = useCallback(async (cancelToken) => {
         try {
@@ -63,11 +47,12 @@ const PrincipalDashboard = () => {
             });
 
             setRecentAlerts(overdueRes.data.slice(0, 3));
-            setDataReady(true);
+            setLoading(false);
         } catch (error) {
-            if (axios.isCancel(error)) return;
-            console.error("Error fetching dashboard data:", error);
-            setDataReady(true);
+            if (!axios.isCancel(error)) {
+                console.error("Error fetching dashboard data:", error);
+                setLoading(false);
+            }
         }
     }, []);
 
@@ -81,10 +66,10 @@ const PrincipalDashboard = () => {
 
     const styles = {
         pageWrapper: {
+            position: 'relative',
             minHeight: '100vh',
             width: '100%',
-            position: 'relative',
-            background: 'none',
+            overflow: 'hidden',
             fontFamily: "'Inter', sans-serif"
         },
         card: {

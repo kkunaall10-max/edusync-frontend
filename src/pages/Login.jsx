@@ -44,7 +44,10 @@ const Login = () => {
             }
 
             if (dbRole === 'principal') navigate('/dashboard/principal');
-            else if (dbRole === 'teacher') navigate('/dashboard/teacher');
+            else if (dbRole === 'teacher') {
+                sessionStorage.setItem('teacherFirstLoad', 'true');
+                navigate('/dashboard/teacher');
+            }
             else if (dbRole === 'parent') navigate('/dashboard/parent');
             else navigate('/dashboard/student');
 

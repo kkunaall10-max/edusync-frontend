@@ -15,8 +15,6 @@ const API_BASE_URL = 'https://edusync.up.railway.app/api/homework';
 const Homework = ({ role = 'principal' }) => {
     const isTeacher = role === 'teacher';
     const [loading, setLoading] = useState(true);
-    const [minTimeDone, setMinTimeDone] = useState(false);
-    const [dataReady, setDataReady] = useState(false);
 
     const [homework, setHomework] = useState([]);
     const [user, setUser] = useState(null);
@@ -42,20 +40,6 @@ const Homework = ({ role = 'principal' }) => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Force minimum 10 second loading
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setMinTimeDone(true);
-        }, 10000);
-        return () => clearTimeout(timer);
-    }, []);
-
-    useEffect(() => {
-        if (minTimeDone && dataReady) {
-            setLoading(false);
-        }
-    }, [minTimeDone, dataReady]);
-
     const fetchHomework = useCallback(async (cancelToken) => {
         try {
             const params = {
@@ -65,11 +49,11 @@ const Homework = ({ role = 'principal' }) => {
             };
             const res = await axios.get(API_BASE_URL, { params, cancelToken });
             setHomework(res.data);
-            setDataReady(true);
+            setLoading(false);
         } catch (err) {
             if (axios.isCancel(err)) return;
             console.error('Error fetching homework:', err);
-            setDataReady(true);
+            setLoading(false);
         }
     }, [filters]);
 
@@ -81,10 +65,10 @@ const Homework = ({ role = 'principal' }) => {
 
     const styles = {
         pageWrapper: {
+            position: 'relative',
             minHeight: '100vh',
             width: '100%',
-            position: 'relative',
-            background: 'none',
+            overflow: 'hidden',
             fontFamily: "'Inter', sans-serif",
             color: isTeacher ? 'white' : 'inherit'
         },
@@ -128,14 +112,13 @@ const Homework = ({ role = 'principal' }) => {
         }
     };
 
-    if (loading) return <LoadingScreen />;
+    if (loading && isTeacher) return <LoadingScreen />;
 
     if (!isTeacher) {
         return (
             <Layout role="principal">
                 <div className="space-y-8">
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight m-0 uppercase">Homework Registry</h1>
-                    {/* Principal content logic preserved */}
                 </div>
             </Layout>
         );
@@ -143,9 +126,30 @@ const Homework = ({ role = 'principal' }) => {
 
     return (
         <div style={styles.pageWrapper}>
+            {/* oversized background pattern */}
             <div style={{
-                position: 'fixed', inset: 0, backgroundImage: 'url(/nature-bg.jpg)',
-                backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', zIndex: -1
+              position: 'fixed',
+              top: '-10%',
+              left: '-10%',
+              width: '120vw',
+              height: '120vh',
+              backgroundImage: 'url(/nature-bg.jpg)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center center',
+              backgroundRepeat: 'no-repeat',
+              zIndex: -2,
+              transform: 'translateZ(0)',
+              willChange: 'transform',
+            }} />
+            
+            {/* dark overlay */}
+            <div style={{
+              position: 'fixed',
+              top: 0, left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(0,0,0,0.35)',
+              zIndex: -1,
             }} />
 
             {isMobile && isMobileMenuOpen && (

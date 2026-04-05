@@ -12,10 +12,11 @@ import {
 } from 'recharts';
 import LoadingScreen from '../components/LoadingScreen';
 
+const API = 'https://edusync.up.railway.app';
+
 const TeacherDashboard = () => {
-    const [loading, setLoading] = useState(true);
-    const [minTimeDone, setMinTimeDone] = useState(false);
-    const [dataReady, setDataReady] = useState(false);
+    // FIX 1: 10s loading ONLY on teacher login
+    const [showLoader, setShowLoader] = useState(false);
     
     const [teacherProfile, setTeacherProfile] = useState(null);
     const [stats, setStats] = useState({
@@ -36,42 +37,26 @@ const TeacherDashboard = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Force minimum 10 second loading
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setMinTimeDone(true);
-        }, 10000);
-        return () => clearTimeout(timer);
-    }, []);
-
-    useEffect(() => {
-        if (minTimeDone && dataReady) {
-            setLoading(false);
-        }
-    }, [minTimeDone, dataReady]);
-
-    const fetchDashboardData = useCallback(async (cancelToken) => {
+    const fetchAllData = useCallback(async (email, cancelToken) => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { navigate('/login'); return; }
-
-            const teacherRes = await axios.get('https://edusync.up.railway.app/api/teachers/profile', {
-                params: { email: user.email },
+            const profileRes = await axios.get(`${API}/api/teachers/profile`, {
+                params: { email },
                 cancelToken
             });
-            const profile = teacherRes.data;
+            const profile = profileRes.data;
             setTeacherProfile(profile);
 
+            // Fetch everything else using Promise.all
             const [studentsRes, homeworkRes, attendanceRes] = await Promise.all([
-                axios.get('https://edusync.up.railway.app/api/students', { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
-                axios.get('https://edusync.up.railway.app/api/homework', { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
-                axios.get('https://edusync.up.railway.app/api/attendance', { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken })
+                axios.get(`${API}/api/students`, { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
+                axios.get(`${API}/api/homework`, { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
+                axios.get(`${API}/api/attendance`, { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken })
             ]);
 
             setStats({
-                totalStudents: studentsRes.data.length,
-                avgAttendance: 92,
-                pendingHomework: homeworkRes.data.length,
+                totalStudents: studentsRes.data.length || 0,
+                avgAttendance: 92, // Mocking aggregate stats as they aren't fully in backend yet
+                pendingHomework: homeworkRes.data.length || 0,
                 classPerformance: 88
             });
 
@@ -88,26 +73,49 @@ const TeacherDashboard = () => {
                 { id: 2, type: 'homework', title: 'Math Homework Assigned', time: 'Yesterday', status: 'pending' },
             ]);
 
-            setDataReady(true);
         } catch (error) {
-            if (axios.isCancel(error)) return;
-            console.error("Dashboard Error:", error);
-            setDataReady(true); // Still ready even if error, to stop loading after 10s
+            if (!axios.isCancel(error)) {
+                console.error("Dashboard Fetch Error:", error);
+            }
         }
-    }, [navigate]);
+    }, []);
 
     useEffect(() => {
         const source = axios.CancelToken.source();
-        fetchDashboardData(source.token);
-        return () => source.cancel("Operation canceled by the user.");
-    }, [fetchDashboardData]);
+        
+        const init = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { navigate('/login'); return; }
+
+            const isFirstLoad = sessionStorage.getItem('teacherFirstLoad');
+            if (isFirstLoad === 'true') {
+                setShowLoader(true);
+                sessionStorage.removeItem('teacherFirstLoad');
+                
+                // Show loader for exactly 10s
+                const timer = setTimeout(() => {
+                    setShowLoader(false);
+                }, 10000);
+
+                // Fetch silently in background
+                fetchAllData(user.email, source.token);
+                return () => clearTimeout(timer);
+            } else {
+                // Not first load, no loader
+                fetchAllData(user.email, source.token);
+            }
+        };
+
+        init();
+        return () => source.cancel();
+    }, [fetchAllData, navigate]);
 
     const styles = {
         pageWrapper: {
+            position: 'relative',
             minHeight: '100vh',
             width: '100%',
-            position: 'relative',
-            background: 'none',
+            overflow: 'hidden',
             fontFamily: "'Inter', sans-serif",
             color: '#ffffff',
             paddingBottom: '40px'
@@ -144,15 +152,15 @@ const TeacherDashboard = () => {
             padding: '0 32px'
         },
         glassCard: {
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            borderRadius: '24px',
-            border: '1px solid rgba(255,255,255,0.15)',
-            boxShadow: '0 16px 40px rgba(0,0,0,0.2), inset 0 1px 0 0 rgba(255,255,255,0.3)',
-            padding: '24px',
-            willChange: 'transform',
-            transform: 'translateZ(0)'
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderRadius: '24px',
+          border: '1px solid rgba(255,255,255,0.15)',
+          boxShadow: '0 16px 40px rgba(0,0,0,0.2), inset 0 1px 0 0 rgba(255,255,255,0.3)',
+          padding: '24px',
+          willChange: 'transform',
+          transform: 'translateZ(0)'
         },
         mainContent: {
             marginLeft: isMobile ? 0 : '260px',
@@ -162,18 +170,34 @@ const TeacherDashboard = () => {
         }
     };
 
-    if (loading) return <LoadingScreen />;
+    if (showLoader) return <LoadingScreen />;
 
     return (
         <div style={styles.pageWrapper}>
+            {/* oversized background pattern */}
             <div style={{
-                position: 'fixed',
-                inset: 0,
-                backgroundImage: 'url(/nature-bg.jpg)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                zIndex: -1,
+              position: 'fixed',
+              top: '-10%',
+              left: '-10%',
+              width: '120vw',
+              height: '120vh',
+              backgroundImage: 'url(/nature-bg.jpg)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center center',
+              backgroundRepeat: 'no-repeat',
+              zIndex: -2,
+              transform: 'translateZ(0)',
+              willChange: 'transform',
+            }} />
+            
+            {/* dark overlay */}
+            <div style={{
+              position: 'fixed',
+              top: 0, left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(0,0,0,0.35)',
+              zIndex: -1,
             }} />
 
             {isMobile && menuOpen && (
