@@ -114,25 +114,22 @@ const Marks = () => {
 
     const saveAllMarks = async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const records = students
-                .filter(s => marksData[s.id]?.obtained && marksData[s.id]?.total)
-                .map(s => ({
-                    student_id: s.id,
-                    class: teacherProfile.class_assigned,
-                    section: teacherProfile.section_assigned,
-                    subject: subject,
-                    exam_type: examType,
-                    exam_date: examDate,
-                    marks_obtained: marksData[s.id].obtained,
-                    total_marks: marksData[s.id].total,
-                    marked_by: user.email
-                }));
+            const marksToSave = students.map(s => ({
+                student_id: s.id,
+                teacher_id: teacherProfile?.id || null,
+                class: teacherProfile?.class_assigned,
+                section: teacherProfile?.section_assigned,
+                subject: subject,
+                exam_type: examType,
+                marks_obtained: Number(marksData[s.id]?.obtained || 0),
+                total_marks: Number(marksData[s.id]?.total || 100),
+                exam_date: examDate
+            }));
+
+            if (marksToSave.length === 0) return alert('No records to save');
             
-            if (records.length === 0) return alert('No full records to save');
-            
-            await axios.post(`${API}/api/marks/bulk`, { marks: records });
-            alert(`Bulk synchronized ${records.length} records!`);
+            await axios.post(`${API}/api/marks/bulk`, { marks: marksToSave });
+            alert(`Bulk synchronized ${marksToSave.length} records!`);
             fetchData();
         } catch (err) {
             console.error("Bulk Save Error:", err);
