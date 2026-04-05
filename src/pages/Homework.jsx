@@ -18,9 +18,9 @@ const Homework = ({ role = 'teacher' }) => {
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     
-    // Homework Form State
+    // FIX 3: Homework Form State with Subject auto-fill logic
     const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState({
+    const [newHomework, setNewHomework] = useState({
         title: '',
         description: '',
         due_date: '',
@@ -40,16 +40,13 @@ const Homework = ({ role = 'teacher' }) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { navigate('/login'); return; }
 
-            // FIX 1: Fetch teacher profile first
             const profileRes = await axios.get(`${API}/api/teachers/profile`, {
                 params: { email: user.email },
                 cancelToken
             });
             const profile = profileRes.data;
             setTeacherProfile(profile);
-            setFormData(prev => ({ ...prev, subject: profile.subject_assigned || '' }));
 
-            // Fetch homework for teacher's class/section ONLY
             const hwRes = await axios.get(`${API}/api/homework`, {
                 params: { 
                     class: profile.class_assigned, 
@@ -73,18 +70,33 @@ const Homework = ({ role = 'teacher' }) => {
         return () => source.cancel();
     }, [fetchInitialData]);
 
+    // FIX 3: Auto-fill subject when teacher data loads
+    useEffect(() => {
+        if (teacherProfile?.subject_assigned) {
+            setNewHomework(prev => ({
+                ...prev,
+                subject: teacherProfile.subject_assigned
+            }));
+        }
+    }, [teacherProfile]);
+
     const handleCreateHomework = async (e) => {
         e.preventDefault();
         try {
+            // FIX 3: Submit with teacher profile details
             const payload = {
-                ...formData,
+                teacher_id: teacherProfile.id,
                 class: teacherProfile.class_assigned,
                 section: teacherProfile.section_assigned,
-                teacher_id: teacherProfile.id
+                subject: teacherProfile.subject_assigned,
+                title: newHomework.title,
+                description: newHomework.description,
+                due_date: newHomework.due_date
             };
             await axios.post(`${API}/api/homework`, payload);
             alert('Homework assigned successfully!');
             setShowForm(false);
+            
             // Refresh list
             const hwRes = await axios.get(`${API}/api/homework`, {
                 params: { 
@@ -93,6 +105,7 @@ const Homework = ({ role = 'teacher' }) => {
                 }
             });
             setHomework(hwRes.data);
+            setNewHomework(prev => ({ ...prev, title: '', description: '', due_date: '' }));
         } catch (err) {
             console.error("Post Homework Error:", err);
             alert('Failed to assign homework');
@@ -101,11 +114,8 @@ const Homework = ({ role = 'teacher' }) => {
 
     const styles = {
         pageWrapper: {
-            position: 'relative',
-            minHeight: '100vh',
-            width: '100%',
-            overflow: 'hidden',
-            fontFamily: "'Inter', sans-serif"
+            position: 'relative', minHeight: '100vh', width: '100%',
+            overflow: 'hidden', fontFamily: "'Inter', sans-serif"
         },
         sidebar: {
             position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
@@ -133,6 +143,17 @@ const Homework = ({ role = 'teacher' }) => {
         input: {
             width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '12px', padding: '12px 16px', color: 'white', outline: 'none', marginBottom: '16px'
+        },
+        readOnlyInput: {
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: 12,
+            padding: '12px 16px',
+            color: 'rgba(255,255,255,0.6)',
+            width: '100%',
+            cursor: 'not-allowed',
+            marginBottom: '16px',
+            outline: 'none'
         }
     };
 
@@ -140,7 +161,6 @@ const Homework = ({ role = 'teacher' }) => {
 
     return (
         <div style={styles.pageWrapper}>
-            {/* FIX 6 consistency */}
             <div style={{
               position: 'fixed',
               top: '-5%', left: '-5%',
@@ -160,10 +180,7 @@ const Homework = ({ role = 'teacher' }) => {
               zIndex: -1,
             }} />
 
-            {isMobile && isMobileMenuOpen && ( <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:99}} onClick={() => setIsMobileMenuOpen(false)} /> )}
-
             <aside style={styles.sidebar}>
-                {/* FIX 3 Sidebar Consistency */}
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:'40px', padding:'0 8px' }}>
                   <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ color:'white', fontSize:16, fontWeight:800 }}>E</span>
@@ -205,21 +222,21 @@ const Homework = ({ role = 'teacher' }) => {
                         <form onSubmit={handleCreateHomework}>
                             <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:'20px'}}>
                                 <div>
-                                    <label style={{fontSize:'12px', fontWeight:'600', opacity:0.6, display:'block', marginBottom:'8px'}}>Homework Title</label>
-                                    <input style={styles.input} placeholder="e.g. Algebra Exercise 1" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
+                                    <label style={{fontSize:'12px', fontWeight:'600', opacity:0.6, display:'block', marginBottom:'8px', color:'white'}}>Homework Title</label>
+                                    <input style={styles.input} placeholder="e.g. Algebra Exercise 1" value={newHomework.title} onChange={e => setNewHomework({...newHomework, title: e.target.value})} required />
                                 </div>
                                 <div>
-                                    <label style={{fontSize:'12px', fontWeight:'600', opacity:0.6, display:'block', marginBottom:'8px'}}>Subject</label>
-                                    <input style={{...styles.input, opacity:0.6}} value={formData.subject} readOnly />
+                                    <label style={{fontSize:'12px', fontWeight:'600', opacity:0.6, display:'block', marginBottom:'8px', color:'white'}}>Subject</label>
+                                    <input style={styles.readOnlyInput} value={newHomework.subject} readOnly />
                                 </div>
                             </div>
                             <div>
-                                <label style={{fontSize:'12px', fontWeight:'600', opacity:0.6, display:'block', marginBottom:'8px'}}>Due Date</label>
-                                <input type="date" style={styles.input} value={formData.due_date} onChange={e => setFormData({...formData, due_date: e.target.value})} required />
+                                <label style={{fontSize:'12px', fontWeight:'600', opacity:0.6, display:'block', marginBottom:'8px', color:'white'}}>Due Date</label>
+                                <input type="date" style={styles.input} value={newHomework.due_date} onChange={e => setNewHomework({...newHomework, due_date: e.target.value})} required />
                             </div>
                             <div>
-                                <label style={{fontSize:'12px', fontWeight:'600', opacity:0.6, display:'block', marginBottom:'8px'}}>Description / Instructions</label>
-                                <textarea style={{...styles.input, minHeight:'100px', resize:'none'}} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} required />
+                                <label style={{fontSize:'12px', fontWeight:'600', opacity:0.6, display:'block', marginBottom:'8px', color:'white'}}>Description / Instructions</label>
+                                <textarea style={{...styles.input, minHeight:'100px', resize:'none'}} value={newHomework.description} onChange={e => setNewHomework({...newHomework, description: e.target.value})} required />
                             </div>
                             <button type="submit" style={{width:'100%', padding:'14px', background:'#2563EB', color:'white', border:'none', borderRadius:'12px', fontWeight:'700', cursor:'pointer'}}>Post Assignment</button>
                         </form>
@@ -227,7 +244,6 @@ const Homework = ({ role = 'teacher' }) => {
                 )}
 
                 <div style={{display:'flex', flexDirection:'column', gap:'16px'}}>
-                    <h4 style={{fontSize:'14px', fontWeight:'800', opacity:0.4, textTransform:'uppercase', margin:'0 0 8px 0', color:'white'}}>Posted Homework ({teacherProfile?.class_assigned}-{teacherProfile?.section_assigned})</h4>
                     {homework.map((hw) => (
                         <div key={hw.id} style={styles.glassCard}>
                             <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
@@ -245,9 +261,6 @@ const Homework = ({ role = 'teacher' }) => {
                             </div>
                         </div>
                     ))}
-                    {homework.length === 0 && (
-                        <div style={{textAlign:'center', padding:'40px', opacity:0.3, color:'white'}}>No homework assigned yet.</div>
-                    )}
                 </div>
             </main>
         </div>
