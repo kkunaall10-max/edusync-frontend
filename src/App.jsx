@@ -135,7 +135,7 @@ function App() {
         path="/dashboard/teacher/students" 
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
-            <MyStudents />
+            <StudentList role="teacher" />
           </ProtectedRoute>
         } 
       />
@@ -143,7 +143,7 @@ function App() {
         path="/dashboard/teacher/attendance" 
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
-            <TeacherAttendance />
+            <Attendance role="teacher" />
           </ProtectedRoute>
         } 
       />
@@ -151,7 +151,7 @@ function App() {
         path="/dashboard/teacher/homework" 
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
-            <TeacherHomework />
+            <Homework role="teacher" />
           </ProtectedRoute>
         } 
       />
@@ -159,7 +159,7 @@ function App() {
         path="/dashboard/teacher/marks" 
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
-            <TeacherMarks />
+            <Marks role="teacher" />
           </ProtectedRoute>
         } 
       />

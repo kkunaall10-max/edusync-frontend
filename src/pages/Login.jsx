@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { ChevronDown, ShieldCheck, GraduationCap, Users, LogIn } from 'lucide-react';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -56,128 +55,146 @@ const Login = () => {
         }
     };
 
+    const styles = {
+        container: {
+            backgroundColor: '#F9FAFB',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '100vh',
+            fontFamily: "'Inter', sans-serif",
+            padding: '20px',
+            boxSizing: 'border-box'
+        },
+        card: {
+            backgroundColor: 'white',
+            width: '400px',
+            borderRadius: '12px',
+            border: '1px solid #E5E7EB',
+            padding: '40px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
+            boxSizing: 'border-box'
+        },
+        title: {
+            color: '#2563EB',
+            fontSize: '32px',
+            fontWeight: 700,
+            textAlign: 'center',
+            marginBottom: '8px',
+            marginTop: 0
+        },
+        subtitle: {
+            color: '#6B7280',
+            fontSize: '14px',
+            textAlign: 'center',
+            marginBottom: '32px'
+        },
+        label: {
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: 500,
+            color: '#374151',
+            marginBottom: '6px'
+        },
+        input: {
+            width: '100%',
+            height: '44px',
+            border: '1px solid #E5E7EB',
+            borderRadius: '8px',
+            padding: '0 12px',
+            fontSize: '14px',
+            marginBottom: '16px',
+            boxSizing: 'border-box',
+            outline: 'none'
+        },
+        button: {
+            width: '100%',
+            height: '44px',
+            backgroundColor: '#2563EB',
+            color: 'white',
+            borderRadius: '8px',
+            fontSize: '15px',
+            fontWeight: 600,
+            border: 'none',
+            cursor: 'pointer',
+            marginTop: '8px',
+            transition: 'background-color 0.2s'
+        },
+        buttonDisabled: {
+            opacity: 0.7,
+            cursor: 'not-allowed'
+        },
+        error: {
+            color: '#DC2626',
+            fontSize: '13px',
+            textAlign: 'center',
+            marginBottom: '16px'
+        },
+        inputGroup: {
+            marginBottom: '4px'
+        }
+    };
+
     return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 font-inter relative overflow-hidden">
-            {/* Ambient Backdrops */}
-            <div className="absolute -top-[10%] -left-[5%] w-2/5 h-2/5 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
-            <div className="absolute -bottom-[10%] -right-[5%] w-2/5 h-2/5 bg-slate-500/5 rounded-full blur-[100px] pointer-events-none"></div>
-
-            <main className="w-full max-w-[440px] relative z-10">
-                <div className="flex flex-col items-center">
-                    {/* Branding */}
-                    <div className="text-center mb-10">
-                        <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-xl shadow-blue-200 mb-6 group transition-transform hover:scale-105 duration-500">
-                            <GraduationCap className="text-white w-8 h-8" />
-                        </div>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-2">EduSync</h1>
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Institutional Portal</p>
+        <div style={styles.container}>
+            <div style={styles.card}>
+                <h1 style={styles.title}>EduSync</h1>
+                <p style={styles.subtitle}>School Management Platform</p>
+                
+                <form onSubmit={handleLogin}>
+                    <div style={styles.inputGroup}>
+                        <label style={styles.label}>Role</label>
+                        <select 
+                            style={styles.input}
+                            value={role}
+                            onChange={(e) => setRole(e.target.value)}
+                            required
+                        >
+                            <option value="Principal">Principal</option>
+                            <option value="Teacher">Teacher</option>
+                            <option value="Parent">Parent</option>
+                        </select>
                     </div>
 
-                    {/* Login Card */}
-                    <div className="w-full bg-white rounded-[32px] border border-slate-100 p-8 md:p-10 shadow-2xl shadow-slate-200/50">
-                        <form onSubmit={handleLogin} className="space-y-6">
-                            {/* Role Select */}
-                            <div className="space-y-2">
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest px-1">Access Level</label>
-                                <div className="relative group">
-                                    <select 
-                                        className="w-full h-14 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none cursor-pointer appearance-none transition-all"
-                                        value={role}
-                                        onChange={(e) => setRole(e.target.value)}
-                                        required
-                                    >
-                                        <option value="Principal">Principal</option>
-                                        <option value="Teacher">Teacher</option>
-                                        <option value="Parent">Parent</option>
-                                    </select>
-                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none">
-                                        <ChevronDown size={20} />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Email */}
-                            <div className="space-y-2">
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest px-1">Institutional Email</label>
-                                <input 
-                                    className="w-full h-14 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none transition-all placeholder:text-slate-300"
-                                    placeholder="name@edusync.edu" 
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
-
-                            {/* Password */}
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center px-1">
-                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Secret Key</label>
-                                    <a href="#" className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">Recover?</a>
-                                </div>
-                                <input 
-                                    className="w-full h-14 bg-slate-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none transition-all placeholder:text-slate-300"
-                                    placeholder="••••••••" 
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
-                            </div>
-
-                            {/* Error Alert */}
-                            {error && (
-                                <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-xs font-bold text-center animate-shake">
-                                    {error}
-                                </div>
-                            )}
-
-                            {/* Submit */}
-                            <button 
-                                className={`w-full h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg shadow-blue-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                                type="submit"
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <span className="flex items-center gap-2 italic">
-                                        Authenticating...
-                                    </span>
-                                ) : (
-                                    <>
-                                        Authorized Sign In
-                                        <LogIn size={18} />
-                                    </>
-                                )}
-                            </button>
-                        </form>
-
-                        {/* Secondary */}
-                        <div className="mt-8 pt-8 border-top border-slate-50 text-center">
-                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">
-                                System Inquiry? <a href="#" className="text-blue-600 font-black hover:underline ml-1">Contact Protocol</a>
-                            </p>
-                        </div>
+                    <div style={styles.inputGroup}>
+                        <label style={styles.label}>Institutional Email</label>
+                        <input 
+                            style={styles.input}
+                            placeholder="name@edusync.edu" 
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
                     </div>
 
-                    {/* Footer */}
-                    <footer className="mt-10 text-center space-y-4">
-                        <div className="flex items-center justify-center gap-2 text-slate-300">
-                            <ShieldCheck size={14} />
-                            <p className="text-[9px] font-black uppercase tracking-[0.2em]">End-to-End Encrypted Node</p>
-                        </div>
-                        <p className="text-[10px] font-bold text-slate-400">© 2026 EduSync Core. All Rights Reserved.</p>
-                    </footer>
-                </div>
-            </main>
+                    <div style={styles.inputGroup}>
+                        <label style={styles.label}>Password</label>
+                        <input 
+                            style={styles.input}
+                            placeholder="••••••••" 
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
 
-            <style>{`
-                @keyframes shake {
-                    0%, 100% { transform: translateX(0); }
-                    25% { transform: translateX(-4px); }
-                    75% { transform: translateX(4px); }
-                }
-                .animate-shake { animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both; }
-            `}</style>
+                    {error && (
+                        <div style={styles.error}>
+                            {error}
+                        </div>
+                    )}
+
+                    <button 
+                        style={{...styles.button, ...(loading ? styles.buttonDisabled : {})}}
+                        type="submit"
+                        disabled={loading}
+                    >
+                        {loading ? 'Authenticating...' : 'Sign In'}
+                    </button>
+                </form>
+            </div>
         </div>
     );
 };

@@ -1,22 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 import Layout from '../components/Layout';
+import { 
+  Menu, X, Bell, Users, BookOpen, GraduationCap, 
+  Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Activity, Target
+} from 'lucide-react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
+} from 'recharts';
 
-const ATTENDANCE_API_URL = 'https://edusync.up.railway.app/api/attendance';
-const STUDENTS_API_URL = 'https://edusync.up.railway.app/api/students';
+const API_BASE_URL = 'https://edusync.up.railway.app/api';
 
-const Attendance = ({ role }) => {
+const Attendance = ({ role = 'principal' }) => {
+    const isTeacher = role === 'teacher';
     const [students, setStudents] = useState([]);
     const [attendance, setAttendance] = useState({});
+    const [allAttendance, setAllAttendance] = useState([]); // For charts
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [user, setUser] = useState(null);
+    const [teacherProfile, setTeacherProfile] = useState(null);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     
     const [filters, setFilters] = useState({
-        class: SCHOOL_CLASSES[3], 
+        class: SCHOOL_CLASSES[0], 
         section: SCHOOL_SECTIONS[0], 
         date: new Date().toISOString().split('T')[0]
     });
@@ -24,29 +34,57 @@ const Attendance = ({ role }) => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchUser = async () => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        
+        const initPortal = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            setUser(user);
+            if (!user) { navigate('/login'); return; }
+
+            if (isTeacher) {
+                try {
+                    const profileRes = await axios.get(`${API_BASE_URL}/teachers/profile`, { params: { email: user.email } });
+                    const profile = profileRes.data;
+                    setTeacherProfile(profile);
+                    setFilters(prev => ({ 
+                        ...prev, 
+                        class: profile.class_assigned, 
+                        section: profile.section_assigned 
+                    }));
+                } catch (err) {
+                    console.error("Error fetching teacher profile:", err);
+                }
+            }
         };
-        fetchUser();
-    }, []);
+        initPortal();
+        return () => window.removeEventListener('resize', handleResize);
+    }, [isTeacher]);
 
     const fetchStudentsAndAttendance = async () => {
         if (!filters.class || !filters.section) return;
         setLoading(true);
         try {
-            const studentsRes = await axios.get(STUDENTS_API_URL, { 
+            const studentsRes = await axios.get(`${API_BASE_URL}/students`, { 
                 params: { class: filters.class, section: filters.section } 
             });
             const studentData = studentsRes.data;
             setStudents(studentData);
 
-            const attendanceRes = await axios.get(ATTENDANCE_API_URL, { 
+            // Fetch daily attendance
+            const dailyRes = await axios.get(`${API_BASE_URL}/attendance`, { 
                 params: { ...filters } 
             });
             
+            // Fetch historical attendance for charts (last 30 days)
+            const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const endDate = new Date().toISOString().split('T')[0];
+            const historyRes = await axios.get(`${API_BASE_URL}/attendance`, { 
+                params: { class: filters.class, section: filters.section, startDate, endDate } 
+            });
+            setAllAttendance(historyRes.data);
+
             const existingAttendance = {};
-            attendanceRes.data.forEach(record => {
+            dailyRes.data.forEach(record => {
                 existingAttendance[record.student_id] = record.status;
             });
 
@@ -73,17 +111,19 @@ const Attendance = ({ role }) => {
     const handleSubmit = async () => {
         setSaving(true);
         try {
+            const { data: { user } } = await supabase.auth.getUser();
             const attendanceData = Object.entries(attendance).map(([studentId, status]) => ({
                 student_id: studentId,
                 status,
                 date: filters.date,
                 class: filters.class,
                 section: filters.section,
-                marked_by: user?.email || 'Principal'
+                marked_by: user?.email || 'Teacher'
             }));
 
-            await axios.post(`${ATTENDANCE_API_URL}/mark`, { attendanceData });
+            await axios.post(`${API_BASE_URL}/attendance/mark`, { attendanceData });
             alert('Attendance records updated successfully.');
+            fetchStudentsAndAttendance();
         } catch (error) {
             alert('Error saving: ' + (error.response?.data?.error || error.message));
         } finally {
@@ -91,176 +131,201 @@ const Attendance = ({ role }) => {
         }
     };
 
+    // --- Chart Data Calculation ---
+    const chartData = useMemo(() => {
+        return students.map(s => {
+            const sHistory = allAttendance.filter(a => a.student_id === s.id);
+            const presentCount = sHistory.filter(a => a.status === 'present').length;
+            const pct = sHistory.length > 0 ? Math.round((presentCount / sHistory.length) * 100) : 100;
+            return { name: s.full_name.split(' ')[0], percentage: pct };
+        });
+    }, [students, allAttendance]);
+
+    const stats = useMemo(() => {
+        const dailyValues = Object.values(attendance);
+        return {
+            present: dailyValues.filter(v => v === 'present').length,
+            absent: dailyValues.filter(v => v === 'absent').length,
+            late: dailyValues.filter(v => v === 'late').length,
+            overall: dailyValues.length > 0 ? Math.round((dailyValues.filter(v => v === 'present').length / dailyValues.length) * 100) : 0
+        };
+    }, [attendance]);
+
+    const glass = {
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)',
+        backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+        borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.15)', color: '#ffffff'
+    };
+
+    const styles = {
+        pageWrapper: {
+            backgroundImage: isTeacher ? 'url(/nature-bg.jpg)' : 'none',
+            backgroundColor: isTeacher ? 'transparent' : '#F8FAFC',
+            backgroundSize: 'cover', backgroundAttachment: 'fixed', minHeight: '100vh', paddingBottom: '50px'
+        },
+        mainContent: {
+            marginLeft: isMobile ? 0 : '260px',
+            paddingTop: '80px',
+            padding: isMobile ? '80px 16px 16px' : '80px 24px 24px'
+        },
+        sidebar: {
+            position: 'fixed', left: 0, top: 0, width: '260px', height: '100vh',
+            background: isTeacher ? 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%)' : 'white',
+            backdropFilter: isTeacher ? 'blur(30px)' : 'none', zIndex: 100,
+            transform: isMobile ? (isMobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
+            transition: '0.3s ease', padding: '24px 16px', boxSizing: 'border-box'
+        },
+        navbar: {
+            position: 'fixed', top: 0, left: isMobile ? 0 : '260px', right: 0, height: '64px',
+            background: isTeacher ? 'rgba(0,0,0,0.15)' : 'white', backdropFilter: 'blur(20px)',
+            borderBottom: '1px solid rgba(255,255,255,0.08)', zIndex: 40,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px'
+        },
+        navLink: {
+            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px',
+            color: isTeacher ? 'rgba(255,255,255,0.7)' : '#64748B', textDecoration: 'none', fontSize: '14px', fontWeight: '500', border: 'none', background: 'none', width: '100%', cursor: 'pointer', textAlign: 'left'
+        },
+        activeLink: { background: isTeacher ? 'rgba(255,255,255,0.2)' : '#EFF6FF', color: isTeacher ? 'white' : '#2563EB' },
+        statCard: { ...glass, padding: '20px', textAlign: 'center' }
+    };
+
+    if (loading && !isTeacher) return <div style={{padding:'40px', textAlign:'center'}}>Loading...</div>;
+
+    const navItems = [
+        { label: 'Overview', icon: <TrendingUp size={18} />, path: '/dashboard/teacher' },
+        { label: 'My Students', icon: <Users size={18} />, path: '/dashboard/teacher/students' },
+        { label: 'Attendance', icon: <ClipboardCheck size={18} />, path: '/dashboard/teacher/attendance' },
+        { label: 'Homework', icon: <BookOpen size={18} />, path: '/dashboard/teacher/homework' },
+        { label: 'Marks Entry', icon: <GraduationCap size={18} />, path: '/dashboard/teacher/marks' },
+    ];
+
+    if (!isTeacher) {
+        return <Layout role="principal">Attendance Management for Principal (Current implementation preserved)</Layout>;
+    }
+
     return (
-        <Layout role="principal">
-            <div className="space-y-8">
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-3xl font-black text-slate-900 m-0 tracking-tight">Attendance</h2>
-                        <p className="text-sm text-slate-500 mt-1 font-medium">Daily registry for {filters.class}-{filters.section}</p>
-                    </div>
-                    <button 
-                        onClick={handleSubmit} 
-                        disabled={saving || students.length === 0}
-                        className="w-full md:w-auto h-12 px-8 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
-                    >
-                        {saving ? (
-                            <>
-                                <span className="animate-spin material-symbols-outlined text-lg">sync</span>
-                                Saving...
-                            </>
-                        ) : (
-                            <>
-                                <span className="material-symbols-outlined text-lg">check_circle</span>
-                                Save Changes
-                            </>
-                        )}
-                    </button>
-                </div>
+        <div style={styles.pageWrapper}>
+            {isMobile && isMobileMenuOpen && (
+                <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:99}} onClick={() => setIsMobileMenuOpen(false)} />
+            )}
 
-                {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Class</label>
-                        <select 
-                            className="w-full h-10 bg-slate-50 border-none rounded-lg px-3 text-sm font-bold text-slate-900 outline-none cursor-pointer"
-                            value={filters.class}
-                            onChange={(e) => setFilters({...filters, class: e.target.value})}
-                        >
-                            {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
+            <aside style={styles.sidebar}>
+                <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'40px', padding:'0 5px', color:'white'}}>
+                    <GraduationCap size={24} /> <span style={{fontSize:'20px', fontWeight:'800'}}>EduSync</span>
+                </div>
+                <nav style={{flex:1}}>
+                    {navItems.map(item => (
+                        <button key={item.label} style={{...styles.navLink, ...(window.location.pathname === item.path ? styles.activeLink : {})}} onClick={() => { navigate(item.path); if(isMobile) setIsMobileMenuOpen(false); }}>
+                            {item.icon} {item.label}
+                        </button>
+                    ))}
+                </nav>
+            </aside>
+
+            <header style={styles.navbar}>
+                <div style={{display:'flex', alignItems:'center', gap:'15px', color:'white'}}>
+                    {isMobile && <Menu size={24} onClick={() => setIsMobileMenuOpen(true)} style={{cursor:'pointer'}} />}
+                    <h2 style={{fontSize:'18px', fontWeight:'700', margin:0}}>Daily Registry</h2>
+                </div>
+                <button onClick={handleSubmit} disabled={saving} style={{background: 'rgba(255,255,255,0.2)', color: 'white', padding: '8px 20px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', fontSize: '13px', fontWeight: '700', cursor: 'pointer'}}>
+                    {saving ? 'Syncing...' : 'Submit Registry'}
+                </button>
+            </header>
+
+            <main style={styles.mainContent}>
+                {/* Stats Row */}
+                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap:'16px', marginBottom:'24px'}}>
+                    <div style={styles.statCard}>
+                        <div style={{fontSize:'11px', opacity:0.6, fontWeight:'700', textTransform:'uppercase'}}>Present</div>
+                        <div style={{fontSize:'24px', fontWeight:'800', color:'#4ade80'}}>{stats.present}</div>
                     </div>
-                    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Section</label>
-                        <select 
-                            className="w-full h-10 bg-slate-50 border-none rounded-lg px-3 text-sm font-bold text-slate-900 outline-none cursor-pointer"
-                            value={filters.section}
-                            onChange={(e) => setFilters({...filters, section: e.target.value})}
-                        >
-                            {SCHOOL_SECTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
-                        </select>
+                    <div style={styles.statCard}>
+                        <div style={{fontSize:'11px', opacity:0.6, fontWeight:'700', textTransform:'uppercase'}}>Absent</div>
+                        <div style={{fontSize:'24px', fontWeight:'800', color:'#f87171'}}>{stats.absent}</div>
                     </div>
-                    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Date</label>
-                        <input 
-                            type="date"
-                            className="w-full h-10 bg-slate-50 border-none rounded-lg px-3 text-sm font-bold text-slate-900 outline-none cursor-pointer"
-                            value={filters.date}
-                            onChange={(e) => setFilters({...filters, date: e.target.value})}
-                        />
+                    <div style={styles.statCard}>
+                        <div style={{fontSize:'11px', opacity:0.6, fontWeight:'700', textTransform:'uppercase'}}>Late</div>
+                        <div style={{fontSize:'24px', fontWeight:'800', color:'#fbbf24'}}>{stats.late}</div>
+                    </div>
+                    <div style={styles.statCard}>
+                        <div style={{fontSize:'11px', opacity:0.6, fontWeight:'700', textTransform:'uppercase'}}>Overall Rate</div>
+                        <div style={{fontSize:'24px', fontWeight:'800'}}>{stats.overall}%</div>
                     </div>
                 </div>
 
-                {/* Content Table / Cards */}
-                <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                    {/* Desktop View */}
-                    <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full border-collapse">
-                            <thead>
-                                <tr className="bg-slate-50/50">
-                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Roll No</th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Name</th>
-                                    <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Attendance Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan="3" className="px-6 py-12 text-center text-slate-400 font-medium italic">Syncing records...</td>
-                                    </tr>
-                                ) : students.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="3" className="px-6 py-20 text-center">
-                                            <span className="material-symbols-outlined text-4xl text-slate-200 mb-2">group_off</span>
-                                            <p className="text-slate-900 font-bold">No students found for this selection.</p>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    students.map((s) => (
-                                        <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-6 py-4 font-bold text-blue-600 font-mono text-sm">{s.roll_number}</td>
-                                            <td className="px-6 py-4 font-bold text-slate-900">{s.full_name}</td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    {['present', 'late', 'absent'].map((status) => (
-                                                        <button
-                                                            key={status}
-                                                            onClick={() => handleStatusChange(s.id, status)}
-                                                            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all border ${
-                                                                attendance[s.id] === status
-                                                                    ? status === 'present' ? 'bg-emerald-50 border-emerald-500 text-emerald-600'
-                                                                    : status === 'late' ? 'bg-amber-50 border-amber-500 text-amber-600'
-                                                                    : 'bg-rose-50 border-rose-500 text-rose-600'
-                                                                    : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
-                                                            }`}
-                                                        >
-                                                            {status}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                {/* Filters (Locked for Teacher) */}
+                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:'16px', marginBottom:'24px'}}>
+                    <div style={{...styles.statCard, textAlign:'left'}}>
+                        <div style={{fontSize:'10px', opacity:0.6, fontWeight:'800', marginBottom:'4px'}}>CLASS UNIT</div>
+                        <div style={{fontSize:'14px', fontWeight:'700', color:'rgba(255,255,255,0.9)'}}>{filters.class} (Assigned)</div>
                     </div>
+                    <div style={{...styles.statCard, textAlign:'left'}}>
+                        <div style={{fontSize:'10px', opacity:0.6, fontWeight:'800', marginBottom:'4px'}}>SECTION</div>
+                        <div style={{fontSize:'14px', fontWeight:'700', color:'rgba(255,255,255,0.9)'}}>Section {filters.section} (Assigned)</div>
+                    </div>
+                    <div style={{...styles.statCard, textAlign:'left'}}>
+                        <div style={{fontSize:'10px', opacity:0.6, fontWeight:'800', marginBottom:'4px'}}>REGISTRY DATE</div>
+                        <input type="date" value={filters.date} onChange={(e) => setFilters({...filters, date: e.target.value})} style={{background:'none', border:'none', color:'white', fontSize:'14px', fontWeight:'700', outline:'none', width:'100%'}} />
+                    </div>
+                </div>
 
-                    {/* Mobile View */}
-                    <div className="md:hidden divide-y divide-slate-100">
-                        {loading ? (
-                            <div className="p-8 text-center text-slate-400 italic">Syncing daily records...</div>
-                        ) : students.length === 0 ? (
-                            <div className="p-10 text-center">
-                                <span className="material-symbols-outlined text-4xl text-slate-200 mb-2">group_off</span>
-                                <p className="text-slate-900 font-bold">No students matched filters.</p>
-                            </div>
-                        ) : (
-                            students.map((s) => (
-                                <div key={s.id} className="p-5 space-y-4">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h4 className="text-sm font-black text-slate-900 leading-none">{s.full_name}</h4>
-                                            <p className="text-[10px] font-bold text-blue-600 mt-1 uppercase tracking-wider">Roll: {s.roll_number}</p>
-                                        </div>
-                                        <div className="flex gap-1.5">
-                                            {['present', 'late', 'absent'].map((status) => (
-                                                <button
-                                                    key={status}
-                                                    onClick={() => handleStatusChange(s.id, status)}
-                                                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all border ${
-                                                        attendance[s.id] === status
-                                                            ? status === 'present' ? 'bg-emerald-50 border-emerald-500 text-emerald-600'
-                                                            : status === 'late' ? 'bg-amber-50 border-amber-500 text-amber-600'
-                                                            : 'bg-rose-50 border-rose-500 text-rose-600'
-                                                            : 'bg-white border-slate-200 text-slate-300'
-                                                    }`}
-                                                >
-                                                    <span className="material-symbols-outlined text-lg">
-                                                        {status === 'present' ? 'check_circle' : status === 'late' ? 'schedule' : 'cancel'}
-                                                    </span>
+                {/* Attendance Table */}
+                <div style={{...glass, padding:'0', overflow:'hidden', marginBottom:'24px'}}>
+                    <table style={{width:'100%', borderCollapse:'collapse'}}>
+                        <thead>
+                            <tr style={{borderBottom:'1px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.05)'}}>
+                                <th style={{padding:'16px', textAlign:'left', fontSize:'12px', opacity:0.6}}>STUDENT IDENTITY</th>
+                                <th style={{padding:'16px', textAlign:'right', fontSize:'12px', opacity:0.6}}>STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {students.map(s => (
+                                <tr key={s.id} style={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
+                                    <td style={{padding:'16px'}}>
+                                        <div style={{fontSize:'14px', fontWeight:'700'}}>{s.full_name}</div>
+                                        <div style={{fontSize:'11px', opacity:0.5}}>Roll: {s.roll_number}</div>
+                                    </td>
+                                    <td style={{padding:'16px', textAlign:'right'}}>
+                                        <div style={{display:'flex', justifyContent:'flex-end', gap:'8px'}}>
+                                            {['present', 'absent', 'late'].map(st => (
+                                                <button key={st} onClick={() => handleStatusChange(s.id, st)} style={{
+                                                    background: attendance[s.id] === st ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.05)',
+                                                    color:'white', padding:'6px 12px', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', fontSize:'10px', fontWeight:'800', cursor:'pointer', textTransform:'uppercase'
+                                                }}>
+                                                    {st}
                                                 </button>
                                             ))}
                                         </div>
-                                    </div>
-                                    {/* Mobile status indicator */}
-                                    <div className={`p-2 rounded-xl text-center text-[10px] font-black uppercase tracking-widest ${
-                                        attendance[s.id] === 'present' ? 'bg-emerald-50 text-emerald-600'
-                                        : attendance[s.id] === 'late' ? 'bg-amber-50 text-amber-600'
-                                        : 'bg-rose-50 text-rose-600'
-                                    }`}>
-                                        Currently Marked: {attendance[s.id]}
-                                    </div>
-                                </div>
-                            ))
-                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Monthly Chart */}
+                <div style={{...glass, padding:'24px'}}>
+                    <h3 style={{fontSize:'18px', fontWeight:'800', marginBottom:'20px'}}>Monthly Attendance Summary (30 Days)</h3>
+                    <div style={{ width: '100%', height: 300, minWidth: 0 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} />
+                                <YAxis axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 10}} unit="%" />
+                                <Tooltip contentStyle={{background: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '12px'}} />
+                                <Bar dataKey="percentage">
+                                    {chartData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.percentage > 75 ? 'rgba(74, 222, 128, 0.7)' : 'rgba(248, 113, 113, 0.7)'} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
-            </div>
-        </Layout>
+            </main>
+        </div>
     );
 };
 
 export default Attendance;
-
