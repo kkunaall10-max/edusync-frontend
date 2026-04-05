@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 import Layout from '../components/Layout';
+import LoadingScreen from '../components/LoadingScreen';
 import { 
   Menu, X, Bell, Users, BookOpen, GraduationCap, 
   Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight
@@ -38,7 +39,7 @@ const Homework = ({ role = 'principal' }) => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const fetchHomework = async () => {
+    const fetchHomework = useCallback(async (cancelToken) => {
         setLoading(true);
         try {
             const params = {
@@ -46,18 +47,21 @@ const Homework = ({ role = 'principal' }) => {
                 section: filters.section || undefined,
                 subject: filters.subject || undefined
             };
-            const res = await axios.get(API_BASE_URL, { params });
+            const res = await axios.get(API_BASE_URL, { params, cancelToken });
             setHomework(res.data);
         } catch (err) {
+            if (axios.isCancel(err)) return;
             console.error('Error fetching homework:', err);
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters]);
 
     useEffect(() => {
-        fetchHomework();
-    }, [filters.class, filters.section, filters.subject]);
+        const source = axios.CancelToken.source();
+        fetchHomework(source.token);
+        return () => source.cancel("Operation canceled due to filter update");
+    }, [fetchHomework]);
 
     const glass = {
         background: 'rgba(255,255,255,0.15)',
@@ -190,6 +194,8 @@ const Homework = ({ role = 'principal' }) => {
             </button>
         </aside>
     );
+
+    if (loading) return <LoadingScreen />;
 
     if (!isTeacher) {
         return (
@@ -332,27 +338,23 @@ const Homework = ({ role = 'principal' }) => {
                 </div>
 
                 <div style={{display:'flex', flexDirection:'column', gap:'15px'}}>
-                    {loading ? (
-                        <div style={{...glass, padding:'40px', textAlign:'center'}}>Synchronizing tasks...</div>
-                    ) : (
-                        homework.map((hw) => (
-                            <div key={hw.id} style={styles.card}>
-                                <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
-                                    <div>
-                                        <div style={{display:'inline-block', padding:'4px 8px', background:'rgba(255,255,255,0.1)', borderRadius:'6px', fontSize:'10px', fontWeight:'800', textTransform:'uppercase', marginBottom:'8px'}}>
-                                            {hw.class}-{hw.section} | {hw.subject}
-                                        </div>
-                                        <h3 style={{fontSize:'16px', fontWeight:'700', margin:'0 0 8px 0'}}>{hw.title}</h3>
-                                        <p style={{fontSize:'12px', opacity:0.7, margin:0, lineHeight:'1.5'}}>{hw.description}</p>
+                    {homework.map((hw) => (
+                        <div key={hw.id} style={styles.card}>
+                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
+                                <div>
+                                    <div style={{display:'inline-block', padding:'4px 8px', background:'rgba(255,255,255,0.1)', borderRadius:'6px', fontSize:'10px', fontWeight:'800', textTransform:'uppercase', marginBottom:'8px'}}>
+                                        {hw.class}-{hw.section} | {hw.subject}
                                     </div>
-                                    <div style={{textAlign:'right'}}>
-                                        <label style={styles.label}>Deadline</label>
-                                        <div style={{fontSize:'13px', fontWeight:'800', color:'#FCA5A5'}}>{new Date(hw.due_date).toLocaleDateString()}</div>
-                                    </div>
+                                    <h3 style={{fontSize:'16px', fontWeight:'700', margin:'0 0 8px 0'}}>{hw.title}</h3>
+                                    <p style={{fontSize:'12px', opacity:0.7, margin:0, lineHeight:'1.5'}}>{hw.description}</p>
+                                </div>
+                                <div style={{textAlign:'right'}}>
+                                    <label style={styles.label}>Deadline</label>
+                                    <div style={{fontSize:'13px', fontWeight:'800', color:'#FCA5A5'}}>{new Date(hw.due_date).toLocaleDateString()}</div>
                                 </div>
                             </div>
-                        ))
-                    )}
+                        </div>
+                    ))}
                 </div>
             </main>
         </div>

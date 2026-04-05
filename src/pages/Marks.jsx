@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 import Layout from '../components/Layout';
+import LoadingScreen from '../components/LoadingScreen';
 import { 
   Menu, X, Bell, Users, BookOpen, GraduationCap, 
   Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Award, AlertTriangle, BarChart as BarChartIcon
@@ -56,9 +57,9 @@ const Marks = ({ role = 'principal' }) => {
         };
         initPortal();
         return () => window.removeEventListener('resize', handleResize);
-    }, [isTeacher]);
+    }, [isTeacher, navigate]);
 
-    const fetchMarks = async () => {
+    const fetchMarks = useCallback(async (cancelToken) => {
         setLoading(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -69,20 +70,23 @@ const Marks = ({ role = 'principal' }) => {
                 exam_type: filters.examType,
                 teacher_email: isTeacher ? user?.email : undefined
             };
-            const res = await axios.get(`${API_BASE_URL}/marks`, { params });
+            const res = await axios.get(`${API_BASE_URL}/marks`, { params, cancelToken });
             setMarks(res.data);
         } catch (err) {
+            if (axios.isCancel(err)) return;
             console.error('Error fetching marks:', err);
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters, isTeacher]);
 
     useEffect(() => {
+        const source = axios.CancelToken.source();
         if (filters.class && filters.section) {
-            fetchMarks();
+            fetchMarks(source.token);
         }
-    }, [filters.class, filters.section, filters.subject, filters.examType]);
+        return () => source.cancel("Operation canceled due to filter update");
+    }, [fetchMarks, filters.class, filters.section]);
 
     // --- Chart & Analytics Data ---
     const averagePerExam = useMemo(() => {
@@ -99,9 +103,16 @@ const Marks = ({ role = 'principal' }) => {
     const topPerformers = useMemo(() => {
         const studentAverages = {};
         marks.forEach(m => {
-            if (!studentAverages[m.student_id]) studentAverages[m.student_id] = { name: m.student?.full_name || 'Student', total: 0, count: 0 };
-            studentAverages[m.student_id].total += (m.marks_obtained / m.total_marks * 100);
-            studentAverages[m.student_id].count += 1;
+            const studentId = m.student_id;
+            if (!studentAverages[studentId]) {
+                studentAverages[studentId] = { 
+                    name: m.students?.full_name || 'Student', 
+                    total: 0, 
+                    count: 0 
+                };
+            }
+            studentAverages[studentId].total += (m.marks_obtained / m.total_marks * 100);
+            studentAverages[studentId].count += 1;
         });
         return Object.values(studentAverages)
             .map(s => ({ name: s.name, average: Math.round(s.total / s.count) }))
@@ -111,7 +122,11 @@ const Marks = ({ role = 'principal' }) => {
 
     const lowPerformers = useMemo(() => {
         return marks.filter(m => (m.marks_obtained / m.total_marks) < 0.4)
-            .map(m => ({ name: m.student?.full_name, subject: m.subject, score: Math.round(m.marks_obtained / m.total_marks * 100) }));
+            .map(m => ({ 
+                name: m.students?.full_name, 
+                subject: m.subject, 
+                score: Math.round(m.marks_obtained / m.total_marks * 100) 
+            }));
     }, [marks]);
 
     const subjectPerformance = useMemo(() => {
@@ -165,6 +180,8 @@ const Marks = ({ role = 'principal' }) => {
         activeLink: { background: isTeacher ? 'rgba(255,255,255,0.2)' : '#EFF6FF', color: isTeacher ? 'white' : '#2563EB' },
         card: { ...glass, padding: '20px' }
     };
+
+    if (loading) return <LoadingScreen />;
 
     if (!isTeacher) {
         return <Layout role="principal">Marks Management for Principal (Implementation preserved)</Layout>;
@@ -235,9 +252,9 @@ const Marks = ({ role = 'principal' }) => {
 
                 {/* Top Section Charts */}
                 <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1.5fr 1fr', gap:'16px', marginBottom:'24px'}}>
-                    <div style={{...styles.card, height: 400}}>
+                    <div style={{...styles.card}}>
                         <h3 style={{fontSize:'18px', fontWeight:'800', marginBottom:'20px'}}>Class Average per Exam</h3>
-                        <div style={{ width: '100%', height: 320, minWidth: 0 }}>
+                        <div style={{ width: '100%', height: 280, minWidth: 0, overflow: 'hidden' }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={averagePerExam}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -270,7 +287,7 @@ const Marks = ({ role = 'principal' }) => {
                 {/* Subject Wise Performance */}
                 <div style={{...styles.card, marginBottom:'24px'}}>
                     <h3 style={{fontSize:'18px', fontWeight:'800', marginBottom:'20px'}}>Subject-wise Mastery</h3>
-                    <div style={{ width: '100%', height: 320, minWidth: 0 }}>
+                    <div style={{ width: '100%', height: 280, minWidth: 0, overflow: 'hidden' }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={subjectPerformance}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -318,7 +335,7 @@ const Marks = ({ role = 'principal' }) => {
                                 {marks.map(r => (
                                     <tr key={r.id} style={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
                                         <td style={{padding:'16px'}}>
-                                            <div style={{fontSize:'14px', fontWeight:'700'}}>{r.student?.full_name}</div>
+                                            <div style={{fontSize:'14px', fontWeight:'700'}}>{r.students?.full_name}</div>
                                             <div style={{fontSize:'11px', opacity:0.5}}>{r.exam_type} Cycle</div>
                                         </td>
                                         <td style={{padding:'16px'}}>

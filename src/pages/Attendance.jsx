@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 import Layout from '../components/Layout';
+import LoadingScreen from '../components/LoadingScreen';
 import { 
   Menu, X, Bell, Users, BookOpen, GraduationCap, 
   Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Activity, Target
@@ -58,28 +59,32 @@ const Attendance = ({ role = 'principal' }) => {
         };
         initPortal();
         return () => window.removeEventListener('resize', handleResize);
-    }, [isTeacher]);
+    }, [isTeacher, navigate]);
 
-    const fetchStudentsAndAttendance = async () => {
+    const fetchStudentsAndAttendance = useCallback(async (cancelToken) => {
         if (!filters.class || !filters.section) return;
         setLoading(true);
         try {
-            const studentsRes = await axios.get(`${API_BASE_URL}/students`, { 
-                params: { class: filters.class, section: filters.section } 
-            });
+            const [studentsRes, dailyRes] = await Promise.all([
+                axios.get(`${API_BASE_URL}/students`, { 
+                    params: { class: filters.class, section: filters.section },
+                    cancelToken
+                }),
+                axios.get(`${API_BASE_URL}/attendance`, { 
+                    params: { ...filters },
+                    cancelToken
+                })
+            ]);
+
             const studentData = studentsRes.data;
             setStudents(studentData);
 
-            // Fetch daily attendance
-            const dailyRes = await axios.get(`${API_BASE_URL}/attendance`, { 
-                params: { ...filters } 
-            });
-            
             // Fetch historical attendance for charts (last 30 days)
             const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
             const endDate = new Date().toISOString().split('T')[0];
             const historyRes = await axios.get(`${API_BASE_URL}/attendance`, { 
-                params: { class: filters.class, section: filters.section, startDate, endDate } 
+                params: { class: filters.class, section: filters.section, startDate, endDate },
+                cancelToken
             });
             setAllAttendance(historyRes.data);
 
@@ -94,15 +99,18 @@ const Attendance = ({ role = 'principal' }) => {
             });
             setAttendance(initialAttendance);
         } catch (error) {
+            if (axios.isCancel(error)) return;
             console.error('Error fetching student data:', error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters]);
 
     useEffect(() => {
-        fetchStudentsAndAttendance();
-    }, [filters.class, filters.section, filters.date]);
+        const source = axios.CancelToken.source();
+        fetchStudentsAndAttendance(source.token);
+        return () => source.cancel("Operation canceled due to component update");
+    }, [fetchStudentsAndAttendance]);
 
     const handleStatusChange = (studentId, status) => {
         setAttendance(prev => ({ ...prev, [studentId]: status }));
@@ -123,6 +131,7 @@ const Attendance = ({ role = 'principal' }) => {
 
             await axios.post(`${API_BASE_URL}/attendance/mark`, { attendanceData });
             alert('Attendance records updated successfully.');
+            // Re-fetch without cancel token for simplicity as it's a mutation callback
             fetchStudentsAndAttendance();
         } catch (error) {
             alert('Error saving: ' + (error.response?.data?.error || error.message));
@@ -190,7 +199,7 @@ const Attendance = ({ role = 'principal' }) => {
         statCard: { ...glass, padding: '20px', textAlign: 'center' }
     };
 
-    if (loading && !isTeacher) return <div style={{padding:'40px', textAlign:'center'}}>Loading...</div>;
+    if (loading) return <LoadingScreen />;
 
     const navItems = [
         { label: 'Overview', icon: <TrendingUp size={18} />, path: '/dashboard/teacher' },
@@ -307,7 +316,7 @@ const Attendance = ({ role = 'principal' }) => {
                 {/* Monthly Chart */}
                 <div style={{...glass, padding:'24px'}}>
                     <h3 style={{fontSize:'18px', fontWeight:'800', marginBottom:'20px'}}>Monthly Attendance Summary (30 Days)</h3>
-                    <div style={{ width: '100%', height: 300, minWidth: 0 }}>
+                    <div style={{ width: '100%', height: 280, minWidth: 0, overflow: 'hidden' }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />

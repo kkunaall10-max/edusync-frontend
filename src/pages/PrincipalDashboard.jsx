@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import Layout from '../components/Layout';
+import LoadingScreen from '../components/LoadingScreen';
 
 const PrincipalDashboard = () => {
     const [loading, setLoading] = useState(true);
@@ -15,7 +16,7 @@ const PrincipalDashboard = () => {
     const [recentAlerts, setRecentAlerts] = useState([]);
     const navigate = useNavigate();
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async (cancelToken) => {
         setLoading(true);
         try {
             const today = new Date().toISOString().split('T')[0];
@@ -27,11 +28,11 @@ const PrincipalDashboard = () => {
                 attendanceRes,
                 overdueRes
             ] = await Promise.all([
-                axios.get('https://edusync.up.railway.app/api/students'),
-                axios.get('https://edusync.up.railway.app/api/teachers'),
-                axios.get('https://edusync.up.railway.app/api/fees/stats'),
-                axios.get(`https://edusync.up.railway.app/api/attendance?date=${today}`),
-                axios.get('https://edusync.up.railway.app/api/fees?status=overdue')
+                axios.get('https://edusync.up.railway.app/api/students', { cancelToken }),
+                axios.get('https://edusync.up.railway.app/api/teachers', { cancelToken }),
+                axios.get('https://edusync.up.railway.app/api/fees/stats', { cancelToken }),
+                axios.get(`https://edusync.up.railway.app/api/attendance?date=${today}`, { cancelToken }),
+                axios.get('https://edusync.up.railway.app/api/fees?status=overdue', { cancelToken })
             ]);
 
             const totalAttendance = attendanceRes.data.length;
@@ -48,26 +49,20 @@ const PrincipalDashboard = () => {
             setRecentAlerts(overdueRes.data.slice(0, 3));
 
         } catch (error) {
+            if (axios.isCancel(error)) return;
             console.error("Error fetching dashboard data:", error);
         } finally {
             setLoading(false);
         }
-    };
-
-    useEffect(() => {
-        fetchData();
     }, []);
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50 font-['Inter']">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-slate-500 font-medium">Initializing Dashboard...</p>
-                </div>
-            </div>
-        );
-    }
+    useEffect(() => {
+        const source = axios.CancelToken.source();
+        fetchData(source.token);
+        return () => source.cancel("Cleanup on unmount");
+    }, [fetchData]);
+
+    if (loading) return <LoadingScreen />;
 
     const styles = {
         card: {backgroundColor:'#FFFFFF', border:'1px solid #E5E7EB', borderRadius:'12px', padding:'24px', boxShadow:'0 1px 3px rgba(0,0,0,0.08)'},
@@ -186,4 +181,3 @@ const PrincipalDashboard = () => {
 };
 
 export default PrincipalDashboard;
-

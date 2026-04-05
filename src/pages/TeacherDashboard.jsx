@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import LoadingScreen from '../components/LoadingScreen';
 import { 
   Menu, X, Bell, Users, BookOpen, GraduationCap, 
   Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Activity, Clock, 
@@ -31,7 +32,7 @@ const TeacherDashboard = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async (cancelToken) => {
         setLoading(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -41,7 +42,10 @@ const TeacherDashboard = () => {
             }
 
             // 1. Get Teacher Profile
-            const profileRes = await axios.get(`${API_BASE_URL}/teachers/profile`, { params: { email: user.email } });
+            const profileRes = await axios.get(`${API_BASE_URL}/teachers/profile`, { 
+              params: { email: user.email },
+              cancelToken
+            });
             const profile = profileRes.data;
             setTeacherProfile(profile);
 
@@ -52,10 +56,10 @@ const TeacherDashboard = () => {
             const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
             const [studentsRes, homeworkRes, attendanceRes, marksRes] = await Promise.all([
-                axios.get(`${API_BASE_URL}/students`, { params: { class: class_assigned, section: section_assigned } }),
-                axios.get(`${API_BASE_URL}/homework`, { params: { class: class_assigned, section: section_assigned } }),
-                axios.get(`${API_BASE_URL}/attendance`, { params: { teacher_email: user.email, startDate, endDate } }),
-                axios.get(`${API_BASE_URL}/marks`, { params: { teacher_email: user.email } })
+                axios.get(`${API_BASE_URL}/students`, { params: { class: class_assigned, section: section_assigned }, cancelToken }),
+                axios.get(`${API_BASE_URL}/homework`, { params: { class: class_assigned, section: section_assigned }, cancelToken }),
+                axios.get(`${API_BASE_URL}/attendance`, { params: { class: class_assigned, section: section_assigned, startDate, endDate }, cancelToken }),
+                axios.get(`${API_BASE_URL}/marks`, { params: { class: class_assigned, section: section_assigned }, cancelToken })
             ]);
 
             setStudents(studentsRes.data);
@@ -64,15 +68,18 @@ const TeacherDashboard = () => {
             setMarksData(marksRes.data);
 
         } catch (error) {
+            if (axios.isCancel(error)) return;
             console.error("Error fetching dashboard data:", error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [navigate]);
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        const source = axios.CancelToken.source();
+        fetchData(source.token);
+        return () => source.cancel("Operation canceled due to component unmount");
+    }, [fetchData]);
 
     // --- Data Processing for Charts ---
     
@@ -102,7 +109,7 @@ const TeacherDashboard = () => {
             name: d.day,
             percentage: d.total > 0 ? Math.round((d.presentCount / d.total) * 100) : 0
         }));
-    }, [attendanceData, students]);
+    }, [attendanceData, students.length]);
 
     // Performance Trend Calculation
     const performanceTrendData = useMemo(() => {
@@ -197,16 +204,7 @@ const TeacherDashboard = () => {
         pill: { background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', padding: '8px 16px', borderRadius: '50px', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }
     };
 
-    if (loading) {
-        return (
-            <div style={{...styles.pageWrapper, display:'flex', alignItems:'center', justifyContent:'center'}}>
-                <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:'15px'}}>
-                    <div className="animate-spin" style={{width:'48px', height:'48px', border:'4px solid rgba(255,255,255,0.1)', borderTop:'4px solid white', borderRadius:'50%'}} />
-                    <p style={{fontSize:'14px', fontWeight:'600', opacity:0.8}}>Synchronizing Dashboard...</p>
-                </div>
-            </div>
-        );
-    }
+    if (loading) return <LoadingScreen />;
 
     return (
         <div style={styles.pageWrapper}>
@@ -274,7 +272,7 @@ const TeacherDashboard = () => {
                 {/* Row 2: Weekly Attendance Chart */}
                 <div style={{...styles.glassCard, marginBottom:'24px'}}>
                     <h3 style={{fontSize:'18px', fontWeight:'800', marginBottom:'20px', letterSpacing:'-0.5px'}}>Weekly Attendance Rate</h3>
-                    <div style={{ width: '100%', height: 300, minWidth: 0 }}>
+                    <div style={{ width: '100%', height: 280, minWidth: 0, overflow: 'hidden' }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={weeklyChartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -295,7 +293,7 @@ const TeacherDashboard = () => {
                 <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1.5fr 1fr', gap:'16px', marginBottom:'24px'}}>
                     <div style={{...styles.glassCard}}>
                         <h3 style={{fontSize:'18px', fontWeight:'800', marginBottom:'20px' }}>Class Performance Trend</h3>
-                        <div style={{ width: '100%', height: 320, minWidth: 0 }}>
+                        <div style={{ width: '100%', height: 280, minWidth: 0, overflow: 'hidden' }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={performanceTrendData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
