@@ -157,11 +157,10 @@ const TeacherDashboard = () => {
 
     const styles = {
         pageWrapper: {
-            backgroundImage: 'url(/nature-bg.jpg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundAttachment: 'fixed',
             minHeight: '100vh',
+            width: '100%',
+            position: 'relative',
+            background: 'none',
             fontFamily: "'Inter', sans-serif",
             color: '#ffffff',
             paddingBottom: '40px'
@@ -208,6 +207,18 @@ const TeacherDashboard = () => {
 
     return (
         <div style={styles.pageWrapper}>
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100vw',
+                height: '100vh',
+                backgroundImage: 'url(/nature-bg.jpg)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                zIndex: -1,
+            }} />
             {isMobile && menuOpen && (
                 <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:99}} onClick={() => setMenuOpen(false)} />
             )}

@@ -107,11 +107,20 @@ const ParentDashboard = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen relative font-['Inter'] bg-slate-900 flex flex-col items-center justify-center gap-4">
-                <div 
-                    className="fixed inset-0 bg-cover bg-center z-0 opacity-40"
-                    style={{ backgroundImage: `url(${parentBg})` }}
-                ></div>
+            <div style={{ minHeight: '100vh', width: '100%', position: 'relative', background: 'none' }} className="font-['Inter'] flex flex-col items-center justify-center gap-4">
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    backgroundImage: `url(${parentBg})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    zIndex: -1,
+                    opacity: 0.4
+                }} />
                 <div className="relative z-10 text-center">
                     <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
                     <p className="text-white font-bold tracking-tight">Syncing child profile...</p>
@@ -122,11 +131,20 @@ const ParentDashboard = () => {
 
     if (error || !child) {
         return (
-            <div className="min-h-screen relative font-['Inter'] bg-slate-900 flex flex-col items-center justify-center p-6">
-                <div 
-                    className="fixed inset-0 bg-cover bg-center z-0 opacity-40"
-                    style={{ backgroundImage: `url(${parentBg})` }}
-                ></div>
+            <div style={{ minHeight: '100vh', width: '100%', position: 'relative', background: 'none' }} className="font-['Inter'] flex flex-col items-center justify-center p-6">
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    backgroundImage: `url(${parentBg})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    zIndex: -1,
+                    opacity: 0.4
+                }} />
                 <div className="relative z-10 w-full max-w-md p-10 text-center rounded-3xl" style={styles.glassCard}>
                     <span className="material-symbols-outlined text-6xl text-red-400 mb-6">error</span>
                     <h2 className="text-2xl font-black text-white mb-3">No student linked</h2>
@@ -147,11 +165,20 @@ const ParentDashboard = () => {
     const totalOverdue = fees?.records?.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0) || 0;
 
     return (
-        <div className="min-h-screen relative font-['Inter'] bg-slate-950 overflow-x-hidden">
-            <div 
-                className="fixed inset-0 bg-cover bg-center z-0 opacity-50"
-                style={{ backgroundImage: `url(${parentBg})` }}
-            ></div>
+        <div style={{ minHeight: '100vh', width: '100%', position: 'relative', background: 'none' }} className="font-['Inter'] overflow-x-hidden">
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100vw',
+                height: '100vh',
+                backgroundImage: `url(${parentBg})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                zIndex: -1,
+                opacity: 0.5
+            }} />
             
             <div className="relative z-10">
                 <Layout role="parent">

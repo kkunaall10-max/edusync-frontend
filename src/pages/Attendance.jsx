@@ -169,9 +169,11 @@ const Attendance = ({ role = 'principal' }) => {
 
     const styles = {
         pageWrapper: {
-            backgroundImage: isTeacher ? 'url(/nature-bg.jpg)' : 'none',
-            backgroundColor: isTeacher ? 'transparent' : '#F8FAFC',
-            backgroundSize: 'cover', backgroundAttachment: 'fixed', minHeight: '100vh', paddingBottom: '50px'
+            minHeight: '100vh',
+            width: '100%',
+            position: 'relative',
+            background: 'none',
+            paddingBottom: '50px'
         },
         mainContent: {
             marginLeft: isMobile ? 0 : '260px',
@@ -215,6 +217,20 @@ const Attendance = ({ role = 'principal' }) => {
 
     return (
         <div style={styles.pageWrapper}>
+            {isTeacher && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    backgroundImage: 'url(/nature-bg.jpg)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    zIndex: -1,
+                }} />
+            )}
             {isMobile && isMobileMenuOpen && (
                 <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:99}} onClick={() => setIsMobileMenuOpen(false)} />
             )}
