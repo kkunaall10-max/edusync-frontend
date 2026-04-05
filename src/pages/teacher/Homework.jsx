@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
   Menu, X, Users, BookOpen, GraduationCap, 
-  ClipboardCheck, TrendingUp, Plus, Search, Calendar, Trash2
+  ClipboardCheck, TrendingUp, Plus, Search, Calendar, Trash2, LogOut, Download
 } from 'lucide-react';
 
 const API = 'https://edusync.up.railway.app';
@@ -52,6 +52,23 @@ const Homework = () => {
             console.error("Homework Fetch Error:", error);
         }
     }, [navigate]);
+
+    const exportCSV = () => {
+        const headers = ['Title', 'Subject', 'Class', 'Section', 'Due Date', 'Description'];
+        const rows = homeworkList.map(hw => [
+            hw.title, hw.subject, hw.class, hw.section, hw.due_date, hw.description
+        ]);
+        const csv = [headers, ...rows]
+            .map(r => r.join(','))
+            .join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `homework-assignments.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     useEffect(() => {
         fetchData();
@@ -160,6 +177,44 @@ const Homework = () => {
                         </button>
                     ))}
                 </nav>
+
+                {/* Sidebar Footer */}
+                <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <button 
+                        onClick={async () => {
+                            await supabase.auth.signOut();
+                            navigate('/login');
+                        }}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '12px 16px',
+                            color: '#FF4D4D',
+                            fontSize: '14px',
+                            fontWeight: '700',
+                            backgroundColor: 'rgba(255, 77, 77, 0.1)',
+                            border: '1px solid rgba(255, 77, 77, 0.2)',
+                            cursor: 'pointer',
+                            borderRadius: '12px',
+                            transition: 'all 0.2s',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 77, 77, 0.2)';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 77, 77, 0.1)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                    >
+                        <LogOut size={18} />
+                        <span>Logout</span>
+                    </button>
+                </div>
             </aside>
 
             <main style={styles.mainContent}>
@@ -168,15 +223,21 @@ const Homework = () => {
                     {isMobile && <Menu size={24} onClick={() => setMenuOpen(true)} style={{cursor:'pointer', color:'white'}} />}
                     <h1 style={{ color: 'white', fontSize: isMobile ? 18 : 20, fontWeight: 700, margin: 0 }}>Homework Portal</h1>
                   </div>
-                  <div style={{display:'flex', gap:12, width: isMobile ? '100%' : 'auto'}}>
-                    <div style={{position:'relative', display: isMobile ? 'none' : 'block'}}>
-                        <Search size={16} style={{position:'absolute', left:12, top:12, opacity:0.5}} />
-                        <input placeholder="Search tasks..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ background:'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 24, padding: '10px 16px 10px 40px', color: 'white', fontSize: 13, outline: 'none', width: 220 }} />
+                    <div style={{display:'flex', gap:12, width: isMobile ? '100%' : 'auto'}}>
+                        <button 
+                            onClick={exportCSV}
+                            style={{background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)', borderRadius:12, padding:'10px 16px', color:'white', cursor:'pointer', display:'flex', alignItems:'center', gap:8, fontSize:13, fontWeight:700}}
+                        >
+                            <Download size={16} /> {isMobile ? '' : 'Export'}
+                        </button>
+                        <div style={{position:'relative', display: isMobile ? 'none' : 'block'}}>
+                            <Search size={16} style={{position:'absolute', left:12, top:12, opacity:0.5}} />
+                            <input placeholder="Search tasks..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ background:'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 24, padding: '10px 16px 10px 40px', color: 'white', fontSize: 13, outline: 'none', width: 220 }} />
+                        </div>
+                        <button onClick={() => setShowAddForm(!showAddForm)} style={{ background: '#2563EB', color: 'white', border: 'none', borderRadius: 12, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, flex: isMobile ? 1 : 'none', justifyContent: 'center' }}>
+                            {showAddForm ? 'Close' : <><Plus size={18} /> Assign Task</>}
+                        </button>
                     </div>
-                    <button onClick={() => setShowAddForm(!showAddForm)} style={{ background: '#2563EB', color: 'white', border: 'none', borderRadius: 12, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, flex: isMobile ? 1 : 'none', justifyContent: 'center' }}>
-                        {showAddForm ? 'Close' : <><Plus size={18} /> Assign Task</>}
-                    </button>
-                  </div>
                   {isMobile && !showAddForm && (
                       <div style={{position:'relative', width: '100%', marginTop: 10}}>
                           <Search size={16} style={{position:'absolute', left:12, top:12, opacity:0.5}} />

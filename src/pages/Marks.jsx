@@ -60,6 +60,55 @@ const Marks = () => {
         return ((record.marks_obtained / record.total_marks) * 100).toFixed(1);
     };
 
+    const exportCSV = () => {
+        const headers = ['Rank', 'Student Name', 'Roll No', 'Subject', 'Score', 'Total', 'Percentage', 'Grade'];
+        
+        const sortedData = students.map(s => {
+            const m = marks.find(rec => rec.student_id === s.id);
+            const perc = m ? (m.marks_obtained / m.total_marks) * 100 : 0;
+            return {
+                name: s.full_name,
+                roll: s.roll_number,
+                subject: m?.subject || 'N/A',
+                score: m?.marks_obtained || 0,
+                total: m?.total_marks || 100,
+                percentage: perc
+            };
+        }).sort((a, b) => b.percentage - a.percentage);
+
+        const rows = sortedData.map((d, index) => {
+            const p = d.percentage;
+            let grade = 'F';
+            if (p >= 90) grade = 'A+';
+            else if (p >= 80) grade = 'A';
+            else if (p >= 70) grade = 'B';
+            else if (p >= 60) grade = 'C';
+            else if (p >= 40) grade = 'D';
+
+            return [
+                index + 1,
+                d.name,
+                d.roll,
+                d.subject,
+                d.score,
+                d.total,
+                p.toFixed(1) + '%',
+                grade
+            ];
+        });
+
+        const csv = [headers, ...rows]
+            .map(r => r.join(','))
+            .join('\n');
+        const blob = new Blob([csv], {type:'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `merit-rankings.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <Layout role="principal">
             <div className="space-y-8 animate-in fade-in duration-700">
@@ -107,7 +156,10 @@ const Marks = () => {
                     </div>
                     <div className="flex flex-col gap-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Export</label>
-                        <button className="h-12 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-[0.98]">
+                        <button 
+                            onClick={exportCSV}
+                            className="h-12 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-[0.98]"
+                        >
                             <Download size={14} /> Merit Rankings
                         </button>
                     </div>

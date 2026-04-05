@@ -197,7 +197,7 @@ const TeacherMarks = () => {
                 <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap:'24px'}}>
                     <div style={styles.glassCard}>
                         <h4 style={{fontSize:'18px', fontWeight:'800', margin:0, color:'white', marginBottom:'24px'}}>Grade Distribution</h4>
-                        <div style={{height:'300px', width:'100%', minWidth:0}}>
+                        <div style={{height:'280px', width:'100%', minWidth:0}}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={performanceData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />

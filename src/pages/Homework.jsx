@@ -40,6 +40,23 @@ const Homework = () => {
         fetchHomework();
     }, [filters.class, filters.section, filters.subject]);
 
+    const exportCSV = () => {
+        const headers = ['Title', 'Subject', 'Class', 'Section', 'Due Date', 'Description'];
+        const rows = homework.map(h => [
+            h.title, h.subject, h.class, h.section, new Date(h.due_date).toLocaleDateString(), h.description
+        ]);
+        const csv = [headers, ...rows]
+            .map(r => r.join(','))
+            .join('\n');
+        const blob = new Blob([csv], {type:'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `homework-assignments.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <Layout role="principal">
             <div className="space-y-8 animate-in fade-in duration-700">
@@ -86,7 +103,10 @@ const Homework = () => {
                     </div>
                     <div className="flex flex-col gap-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Report</label>
-                        <button className="h-12 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-[0.98]">
+                        <button 
+                            onClick={exportCSV}
+                            className="h-12 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-[0.98]"
+                        >
                             <Download size={14} /> Export Assignments
                         </button>
                     </div>

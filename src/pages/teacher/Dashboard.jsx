@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
   Menu, X, Bell, Users, BookOpen, GraduationCap, 
-  ClipboardCheck, TrendingUp, ChevronRight
+  ClipboardCheck, TrendingUp, ChevronRight, LogOut
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -142,6 +142,44 @@ const Dashboard = () => {
                         </button>
                     ))}
                 </nav>
+
+                {/* Sidebar Footer */}
+                <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <button 
+                        onClick={async () => {
+                            await supabase.auth.signOut();
+                            navigate('/login');
+                        }}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '12px 16px',
+                            color: '#FF4D4D',
+                            fontSize: '14px',
+                            fontWeight: '700',
+                            backgroundColor: 'rgba(255, 77, 77, 0.1)',
+                            border: '1px solid rgba(255, 77, 77, 0.2)',
+                            cursor: 'pointer',
+                            borderRadius: '12px',
+                            transition: 'all 0.2s',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 77, 77, 0.2)';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 77, 77, 0.1)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                    >
+                        <LogOut size={18} />
+                        <span>Logout</span>
+                    </button>
+                </div>
             </aside>
 
             <main style={styles.mainContent}>
@@ -172,7 +210,7 @@ const Dashboard = () => {
                 <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap:'24px'}}>
                     <div style={styles.glassCard}>
                         <h4 style={{fontSize:'18px', fontWeight:'800', marginBottom:'24px', margin:0}}>Attendance Overview</h4>
-                        <div style={{ width: '100%', height: isMobile ? 220 : 280, minWidth: 0, minHeight: 0 }}>
+                        <div style={{ width: '100%', height: 280, minWidth: 0 }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={attendanceData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />

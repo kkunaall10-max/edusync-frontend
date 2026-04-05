@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
   Menu, X, Users, Plus, Search, Trash2, Mail, Phone, Calendar, UserPlus, Award, 
-  TrendingUp, ClipboardCheck, BookOpen, GraduationCap
+  TrendingUp, ClipboardCheck, BookOpen, GraduationCap, LogOut
 } from 'lucide-react';
 
 const API = 'https://edusync.up.railway.app';
@@ -166,6 +166,44 @@ const MyStudents = () => {
                         </button>
                     ))}
                 </nav>
+
+                {/* Sidebar Footer */}
+                <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <button 
+                        onClick={async () => {
+                            await supabase.auth.signOut();
+                            navigate('/login');
+                        }}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '12px 16px',
+                            color: '#FF4D4D',
+                            fontSize: '14px',
+                            fontWeight: '700',
+                            backgroundColor: 'rgba(255, 77, 77, 0.1)',
+                            border: '1px solid rgba(255, 77, 77, 0.2)',
+                            cursor: 'pointer',
+                            borderRadius: '12px',
+                            transition: 'all 0.2s',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 77, 77, 0.2)';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 77, 77, 0.1)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                    >
+                        <LogOut size={18} />
+                        <span>Logout</span>
+                    </button>
+                </div>
             </aside>
 
             <main style={styles.mainContent}>

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
   Menu, X, Users, BookOpen, GraduationCap, 
-  ClipboardCheck, TrendingUp, Save, BarChart2, Award, Target
+  ClipboardCheck, TrendingUp, Save, BarChart2, Award, Target, LogOut, Download
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
@@ -71,6 +71,45 @@ const Marks = () => {
             console.error("Marks Fetch Error:", error);
         }
     }, [navigate, examType, subject]);
+
+    const exportCSV = () => {
+        const sortedData = students.map(s => {
+            const m = marksData[s.id] || { obtained: 0, total: 100 };
+            const perc = (Number(m.obtained) / Number(m.total)) * 100;
+            let grade = 'F';
+            if(perc >= 90) grade = 'A+';
+            else if(perc >= 80) grade = 'A';
+            else if(perc >= 70) grade = 'B';
+            else if(perc >= 60) grade = 'C';
+            else if(perc >= 50) grade = 'D';
+            
+            return {
+                roll: s.roll_number,
+                name: s.full_name,
+                obtained: m.obtained,
+                total: m.total,
+                percentage: perc.toFixed(1) + '%',
+                grade: grade
+            };
+        }).sort((a, b) => parseFloat(b.percentage) - parseFloat(a.percentage));
+
+        const headers = ['Rank', 'Roll No', 'Name', 'Obtained', 'Total', 'Percentage', 'Grade'];
+        const rows = sortedData.map((d, i) => [
+            i + 1, d.roll, d.name, d.obtained, d.total, d.percentage, d.grade
+        ]);
+        
+        const csv = [headers, ...rows]
+            .map(r => r.join(','))
+            .join('\n');
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `merit-list-${subject}-${examType}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     useEffect(() => {
         fetchData();
@@ -225,6 +264,44 @@ const Marks = () => {
                         </button>
                     ))}
                 </nav>
+
+                {/* Sidebar Footer */}
+                <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <button 
+                        onClick={async () => {
+                            await supabase.auth.signOut();
+                            navigate('/login');
+                        }}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '12px 16px',
+                            color: '#FF4D4D',
+                            fontSize: '14px',
+                            fontWeight: '700',
+                            backgroundColor: 'rgba(255, 77, 77, 0.1)',
+                            border: '1px solid rgba(255, 77, 77, 0.2)',
+                            cursor: 'pointer',
+                            borderRadius: '12px',
+                            transition: 'all 0.2s',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 77, 77, 0.2)';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 77, 77, 0.1)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                    >
+                        <LogOut size={18} />
+                        <span>Logout</span>
+                    </button>
+                </div>
             </aside>
 
             <main style={styles.mainContent}>
@@ -232,6 +309,12 @@ const Marks = () => {
                   <div style={{display:'flex', alignItems:'center', gap:15}}>
                     {isMobile && <Menu size={24} onClick={() => setMenuOpen(true)} style={{cursor:'pointer', color:'white'}} />}
                     <h1 style={{ color: 'white', fontSize: isMobile ? 18 : 20, fontWeight: 700, margin: 0 }}>Academic Records</h1>
+                    <button 
+                        onClick={exportCSV}
+                        style={{background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)', borderRadius:12, padding:'10px 16px', color:'white', cursor:'pointer', display:'flex', alignItems:'center', gap:8, fontSize:13, fontWeight:700}}
+                    >
+                        <Download size={16} /> {isMobile ? '' : 'Export Merit List'}
+                    </button>
                   </div>
                 </div>
 
@@ -314,7 +397,7 @@ const Marks = () => {
                                 </div>
                             </div>
 
-                            <div style={{ width: '100%', height: isMobile ? 220 : 280, minWidth: 0 }}>
+                            <div style={{ width: '100%', height: 280, minWidth: 0 }}>
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={analytics.chartData}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />

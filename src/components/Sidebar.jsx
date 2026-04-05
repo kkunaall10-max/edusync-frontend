@@ -70,6 +70,7 @@ const Sidebar = ({ role, isOpen, onClose }) => {
       {/* Mobile Overlay Backdrop */}
       {isMobile && (
         <div 
+          className="no-print"
           style={{
             position: 'fixed',
             inset: 0,
@@ -86,6 +87,7 @@ const Sidebar = ({ role, isOpen, onClose }) => {
 
       {/* Sidebar Container */}
       <aside 
+        className="no-print"
         style={{
           position: 'fixed',
           left: 0,

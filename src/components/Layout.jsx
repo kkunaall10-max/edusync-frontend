@@ -143,7 +143,7 @@ const Layout = ({ children, role }) => {
       {/* Main Content */}
       <main style={styles.main}>
         {/* Top Navigation Bar */}
-        <header style={styles.header}>
+        <header className="no-print" style={styles.header}>
           <div style={styles.searchGroup}>
             {/* Hamburger Menu Mobile */}
             {isMobile && (

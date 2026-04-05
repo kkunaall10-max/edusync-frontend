@@ -52,6 +52,23 @@ const Attendance = () => {
         late: attendanceData.filter(a => a.status === 'late').length
     };
 
+    const exportCSV = () => {
+        const headers = ['Roll No','Student Name','Status','Date'];
+        const rows = students.map(s => [
+            s.roll_number, s.full_name, getStatus(s.id), filters.date
+        ]);
+        const csv = [headers, ...rows]
+            .map(r => r.join(','))
+            .join('\n');
+        const blob = new Blob([csv], {type:'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendance-${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <Layout role="principal">
             <div className="space-y-8 animate-in fade-in duration-700">
@@ -98,7 +115,10 @@ const Attendance = () => {
                     </div>
                     <div className="flex flex-col gap-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Actions</label>
-                        <button className="h-12 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-[0.98]">
+                        <button 
+                            onClick={exportCSV}
+                            className="h-12 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-[0.98]"
+                        >
                             <Download size={14} /> Export CSV
                         </button>
                     </div>
