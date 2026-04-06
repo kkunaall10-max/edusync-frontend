@@ -14,7 +14,8 @@ import {
   BookOpen,
   Award,
   School,
-  X
+  X,
+  Bell
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -39,6 +40,7 @@ const Sidebar = ({ role, isOpen, onClose }) => {
       { name: 'Overview', icon: <LayoutDashboard size={20} />, path: '/dashboard/principal' },
       { name: 'Attendance', icon: <CheckSquare size={20} />, path: '/dashboard/attendance' },
       { name: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/homework' },
+      { name: 'Announcements', icon: <Bell size={20} />, path: '/dashboard/announcements' },
       { name: 'Marks', icon: <Award size={20} />, path: '/dashboard/marks' },
       { name: 'Students', icon: <Users size={20} />, path: '/dashboard/students' },
       { name: 'Teachers', icon: <GraduationCap size={20} />, path: '/dashboard/teachers' },

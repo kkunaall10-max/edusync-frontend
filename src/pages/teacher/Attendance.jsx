@@ -15,6 +15,7 @@ const Attendance = () => {
     const [attendance, setAttendance] = useState({});
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [leaveStats, setLeaveStats] = useState({ pendingLeaves: 0 });
     const [menuOpen, setMenuOpen] = useState(false);
     const navigate = useNavigate();
 
@@ -39,6 +40,11 @@ const Attendance = () => {
                 params: { class: profile.class_assigned, section: profile.section_assigned }
             });
             setStudents(studentsRes.data);
+            
+            const leavesRes = await axios.get(`${API}/api/leave/teacher`, { 
+                params: { class: profile.class_assigned, section: profile.section_assigned, status: 'pending' } 
+            });
+            setLeaveStats({ pendingLeaves: leavesRes.data.length || 0 });
         } catch (error) {
             console.error("Attendance Data Error:", error);
         }
@@ -191,10 +197,11 @@ const Attendance = () => {
                         { label: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
                         { label: 'Attendance', icon: <ClipboardCheck size={20} />, path: '/dashboard/teacher/attendance' },
                         { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
+                        { label: 'Leave Requests', icon: <Calendar size={20} />, path: '/dashboard/teacher/leaves', badge: leaveStats.pendingLeaves },
                         { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
                     ].map(item => (
-                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
-                            {item.icon} {item.label}
+                        <button key={item.label} style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
+                            <div style={{display:'flex', alignItems:'center', gap:'8px'}}>{item.icon} {item.label}</div>{item.badge !== undefined && (<span style={{background:'rgba(255,0,0,0.6)', borderRadius:'8px', padding:'2px 6px', fontSize:'12px', color:'#fff'}}>{item.badge}</span>)}
                         </button>
                     ))}
                 </nav>

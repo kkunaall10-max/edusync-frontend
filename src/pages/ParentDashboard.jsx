@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { 
   Search, Bell, User, LayoutDashboard, LogOut, 
   Menu, X, TrendingUp, Calendar, CreditCard, 
-  CheckCircle2, AlertCircle, BookOpen, GraduationCap
+  CheckCircle2, AlertCircle, BookOpen, GraduationCap, Megaphone
 } from 'lucide-react';
 import parentBg from '../assets/parent-bg.jpg';
 
@@ -17,6 +17,7 @@ const ParentDashboard = () => {
     const [fees, setFees] = useState(null);
     const [homework, setHomework] = useState([]);
     const [marks, setMarks] = useState([]);
+    const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -47,17 +48,19 @@ const ParentDashboard = () => {
             const childData = childRes.data;
             setChild(childData);
 
-            const [attendanceRes, feesRes, homeworkRes, marksRes] = await Promise.all([
+            const [attendanceRes, feesRes, homeworkRes, marksRes, annRes] = await Promise.all([
                 axios.get(`${API_BASE_URL}/attendance`, { params: { student_id: childData.id } }),
                 axios.get(`${API_BASE_URL}/fees`, { params: { student_id: childData.id } }),
                 axios.get(`${API_BASE_URL}/homework`, { params: { class: childData.class, section: childData.section } }),
-                axios.get(`${API_BASE_URL}/marks`, { params: { student_id: childData.id } })
+                axios.get(`${API_BASE_URL}/marks`, { params: { student_id: childData.id } }),
+                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/announcements`, { params: { target_audience: 'parents', class: childData.class, section: childData.section } })
             ]);
 
             setAttendance(attendanceRes.data);
             setFees(feesRes.data);
             setHomework(homeworkRes.data?.slice(0, 5) || []);
             setMarks(marksRes.data?.slice(0, 5) || []);
+            setAnnouncements(annRes.data?.slice(0, 3) || []);
 
         } catch (err) {
             console.error("Dashboard Load Error:", err);
@@ -401,6 +404,50 @@ const ParentDashboard = () => {
                                             })
                                         )}
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Announcements Section */}
+                            <div className="mt-8">
+                                <h3 className="text-xl font-black text-white mb-6 uppercase tracking-widest flex items-center gap-3">
+                                    <Megaphone size={20} className="text-blue-400" /> School Announcements
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {announcements.length === 0 ? (
+                                        <div className="col-span-3 py-12 text-center text-white/40 font-bold border border-white/10 rounded-2xl bg-white/5">
+                                            No recent announcements.
+                                        </div>
+                                    ) : (
+                                        announcements.map((ann, idx) => (
+                                            <div key={ann.id || idx} style={styles.glassCard} className="flex flex-col relative overflow-hidden group">
+                                                {ann.priority === 'urgent' && <div className="absolute top-0 left-0 w-full h-1 bg-red-500 animate-pulse"></div>}
+                                                {ann.priority === 'important' && <div className="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>}
+                                                
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <span style={{
+                                                        padding: '4px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase',
+                                                        backgroundColor: ann.priority === 'urgent' ? 'rgba(239,68,68,0.2)' : ann.priority === 'important' ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.1)',
+                                                        color: ann.priority === 'urgent' ? '#FCA5A5' : ann.priority === 'important' ? '#FCD34D' : '#D1D5DB',
+                                                        boxShadow: ann.priority === 'urgent' ? '0 0 10px rgba(239,68,68,0.3)' : 'none',
+                                                        display: 'inline-flex', alignItems: 'center', gap: '4px'
+                                                    }}>
+                                                        {ann.priority === 'urgent' && <AlertCircle size={10} />}
+                                                        {ann.priority}
+                                                    </span>
+                                                    <span className="text-[10px] text-white/40 font-bold font-mono">
+                                                        {new Date(ann.created_at).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                                <h4 className="text-base font-bold text-white mb-2 leading-tight">{ann.title}</h4>
+                                                <p className="text-xs text-white/70 line-clamp-2 leading-relaxed mb-4 flex-1">
+                                                    {ann.content}
+                                                </p>
+                                                <button className="text-[10px] font-black text-blue-400 uppercase tracking-widest text-left hover:text-blue-300 transition-colors">
+                                                    Read full
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             </div>
                         </div>

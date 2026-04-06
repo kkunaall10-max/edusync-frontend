@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
-  Menu, X, Users, BookOpen, GraduationCap, 
+  Menu, X, Users, BookOpen, GraduationCap, Calendar, Bell, 
   ClipboardCheck, TrendingUp, Save, BarChart2, Award, Target, LogOut, Download
 } from 'lucide-react';
 import { 
@@ -21,6 +21,7 @@ const Marks = () => {
     const [examType, setExamType] = useState('Unit Test');
     const [examDate, setExamDate] = useState(new Date().toISOString().split('T')[0]);
     const [subject, setSubject] = useState('');
+  const [stats, setStats] = useState({ pendingLeaves: 0 });
 
     const navigate = useNavigate();
     const EXAM_TYPES = ['Unit Test', 'Class Test', 'Mid Term', 'Half Yearly', 'Final Exam', 'Assignment'];
@@ -43,21 +44,25 @@ const Marks = () => {
             setTeacherProfile(profile);
             setSubject(profile.subject || '');
 
-            const [studentsRes, existingMarksRes] = await Promise.all([
+            const [studentsRes, existingMarksRes, leavesRes] = await Promise.all([
                 axios.get(`${API}/api/students`, {
-                    params: { class: profile.class_assigned, section: profile.section_assigned }
+                  params: { class: profile.class_assigned, section: profile.section_assigned }
                 }),
                 axios.get(`${API}/api/marks`, {
-                    params: { 
-                        class: profile.class_assigned, 
-                        section: profile.section_assigned,
-                        exam_type: examType,
-                        subject: subject || profile.subject
-                    }
+                  params: { 
+                    class: profile.class_assigned, 
+                    section: profile.section_assigned,
+                    exam_type: examType,
+                    subject: subject || profile.subject
+                  }
+                }),
+                axios.get(`${API}/api/leave/teacher`, { 
+                  params: { class: profile.class_assigned, section: profile.section_assigned, status: 'pending' } 
                 })
             ]);
             
             setStudents(studentsRes.data);
+            setStats({ pendingLeaves: leavesRes.data.length || 0 });
             
             const existing = {};
             existingMarksRes.data.forEach(m => {
@@ -257,10 +262,21 @@ const Marks = () => {
                         { label: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
                         { label: 'Attendance', icon: <ClipboardCheck size={20} />, path: '/dashboard/teacher/attendance' },
                         { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
+                        { label: 'Leave Requests', icon: <Calendar size={20} />, path: '/dashboard/teacher/leaves', badge: stats.pendingLeaves },
                         { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
                     ].map(item => (
-                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
+                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left', position: 'relative'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
                             {item.icon} {item.label}
+                            {item.badge > 0 && (
+                                <span style={{
+                                    position: 'absolute', top: -4, right: -4,
+                                    backgroundColor: 'red', borderRadius: 10,
+                                    width: 18, height: 18, fontSize: 11, color: 'white',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}>
+                                    {item.badge}
+                                </span>
+                            )}
                         </button>
                     ))}
                 </nav>

@@ -21,9 +21,11 @@ const TeacherDashboard = () => {
         totalStudents: 0,
         avgAttendance: 0,
         pendingHomework: 0,
-        classPerformance: 0
+        classPerformance: 0,
+        pendingLeaves: 0
     });
     const [recentActivity, setRecentActivity] = useState([]);
+    const [pendingRequests, setPendingRequests] = useState([]);
     const [attendanceData, setAttendanceData] = useState([]);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -44,18 +46,21 @@ const TeacherDashboard = () => {
             const profile = profileRes.data;
             setTeacherProfile(profile);
 
-            const [studentsRes, homeworkRes, attendanceRes] = await Promise.all([
+            const [studentsRes, homeworkRes, attendanceRes, leavesRes] = await Promise.all([
                 axios.get(`${API}/api/students`, { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
                 axios.get(`${API}/api/homework`, { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
-                axios.get(`${API}/api/attendance`, { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken })
+                axios.get(`${API}/api/attendance`, { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
+                axios.get(`${API}/api/leave/teacher`, { params: { class: profile.class_assigned, section: profile.section_assigned, status: 'pending' }, cancelToken }),
             ]);
 
             setStats({
                 totalStudents: studentsRes.data.length || 0,
                 avgAttendance: 92,
                 pendingHomework: homeworkRes.data.length || 0,
-                classPerformance: 88
+                classPerformance: 88,
+                pendingLeaves: (leavesRes.data || []).length
             });
+            setPendingRequests(leavesRes.data || []);
 
             setAttendanceData([
                 { day: 'Mon', present: 42, absent: 3 },
@@ -75,7 +80,21 @@ const TeacherDashboard = () => {
                 console.error("Dashboard Fetch Error:", error);
             }
         }
-    }, []);
+    }, [navigate]);
+ 
+    const handleLeaveResponse = async (leaveId, status) => {
+        try {
+            await axios.put(`${API}/api/leave/${leaveId}/respond`, {
+                status,
+                teacher_remark: 'Processed from dashboard'
+            });
+            // Update local state to remove the processed leave
+            setPendingRequests(prev => prev.filter(l => l.id !== leaveId));
+            setStats(prev => ({ ...prev, pendingLeaves: Math.max(0, prev.pendingLeaves - 1) }));
+        } catch (error) {
+            console.error("Dashboard leave response error:", error);
+        }
+    };
 
     useEffect(() => {
         const source = axios.CancelToken.source();
@@ -212,10 +231,21 @@ const TeacherDashboard = () => {
                         { label: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
                         { label: 'Attendance', icon: <ClipboardCheck size={20} />, path: '/dashboard/teacher/attendance' },
                         { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
+                        { label: 'Leave Requests', icon: <Calendar size={20} />, path: '/dashboard/teacher/leaves', badge: stats.pendingLeaves },
                         { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
                     ].map((item) => (
-                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if (isMobile) setMenuOpen(false); }}>
+                        <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left', position:'relative'}} onClick={() => { navigate(item.path); if (isMobile) setMenuOpen(false); }}>
                             {item.icon} {item.label}
+                            {item.badge > 0 && (
+                                <span style={{
+                                    position: 'absolute', top: -4, right: -4,
+                                    backgroundColor: 'red', borderRadius: 10,
+                                    width: 18, height: 18, fontSize: 11, color: 'white',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}>
+                                    {item.badge}
+                                </span>
+                            )}
                         </button>
                     ))}
                 </nav>
@@ -236,14 +266,15 @@ const TeacherDashboard = () => {
             </header>
 
             <main style={styles.mainContent}>
-                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap:'20px', marginBottom:'32px'}}>
+                <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(5, 1fr)', gap:'20px', marginBottom:'32px'}}>
                     {[
                         { label: 'Total Students', value: stats.totalStudents, icon: <Users size={24}/>, color: '#2563EB' },
                         { label: 'Attendance', value: `${stats.avgAttendance}%`, icon: <ClipboardCheck size={24}/>, color: '#10B981' },
+                        { label: 'Pending Leaves', value: stats.pendingLeaves, icon: <Calendar size={24}/>, color: '#EF4444', path: '/dashboard/teacher/leaves' },
                         { label: 'Homework', value: stats.pendingHomework, icon: <BookOpen size={24}/>, color: '#F59E0B' },
                         { label: 'Performance', value: `${stats.classPerformance}%`, icon: <TrendingUp size={24}/>, color: '#8B5CF6' }
                     ].map((stat, i) => (
-                        <div key={i} style={styles.statCard}>
+                        <div key={i} style={{...styles.statCard, cursor: stat.path ? 'pointer' : 'default'}} onClick={() => stat.path && navigate(stat.path)}>
                             <div style={{width:'48px', height:'48px', borderRadius:'14px', background:`${stat.color}20`, display:'flex', alignItems:'center', justifyContent:'center', color:stat.color, marginBottom:'16px'}}>
                                 {stat.icon}
                             </div>
@@ -254,9 +285,9 @@ const TeacherDashboard = () => {
                 </div>
 
                 <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap:'24px'}}>
-                    <div style={styles.glassCard}>
+                    <div style={{ ...styles.glassCard, minHeight: '350px' }}>
                         <h4 style={{fontSize:'18px', fontWeight:'800', marginBottom:'24px', margin:0}}>Attendance Overview</h4>
-                        <div style={{height:'280px', width:'100%', minWidth: 0}}>
+                        <div style={{height:'300px', width:'100%', minWidth: 0}}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={attendanceData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
@@ -288,6 +319,51 @@ const TeacherDashboard = () => {
                         </div>
                     </div>
                 </div>
+ 
+                {/* Pending Leave Requests Section - NEW */}
+                {pendingRequests.length > 0 && (
+                    <div style={{marginTop:'32px'}}>
+                        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'20px'}}>
+                            <h4 style={{fontSize:'20px', fontWeight:'800', margin:0}}>Pending Leave Requests</h4>
+                            <button 
+                                onClick={() => navigate('/dashboard/teacher/leaves')}
+                                style={{background:'transparent', border:'none', color:'#2563EB', fontSize:'13px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', gap:'4px'}}
+                            >
+                                View All <ChevronRight size={14} />
+                            </button>
+                        </div>
+                        <div style={{display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:'20px'}}>
+                            {pendingRequests.slice(0, 3).map(l => (
+                                <div key={l.id} style={styles.glassCard}>
+                                    <div style={{display:'flex', alignItems:'center', gap:'12px', marginBottom:'16px'}}>
+                                        <div style={{width:'40px', height:'40px', borderRadius:'12px', background:'rgba(255,255,255,0.1)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'800'}}>
+                                            {l.students?.full_name?.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <p style={{fontSize:'15px', fontWeight:'800', margin:0}}>{l.students?.full_name}</p>
+                                            <p style={{fontSize:'11px', opacity:0.5, margin:0}}>{new Date(l.from_date).toLocaleDateString()} — {new Date(l.to_date).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                    <p style={{fontSize:'13px', opacity:0.7, margin:'0 0 20px 0', lineHeight:'1.4', height:'36px', overflow:'hidden'}}>{l.reason}</p>
+                                    <div style={{display:'flex', gap:'8px'}}>
+                                        <button 
+                                            onClick={() => handleLeaveResponse(l.id, 'approved')}
+                                            style={{flex:1, height:'36px', borderRadius:'10px', background:'#10B981', color:'white', border:'none', fontSize:'12px', fontWeight:'700', cursor:'pointer', transition:'0.2s', display:'flex', alignItems:'center', justifyContent:'center', gap:'4px'}}
+                                        >
+                                            Approve
+                                        </button>
+                                        <button 
+                                            onClick={() => handleLeaveResponse(l.id, 'rejected')}
+                                            style={{flex:1, height:'36px', borderRadius:'10px', background:'rgba(244,63,94,0.15)', color:'#FB7185', border:'none', fontSize:'12px', fontWeight:'700', cursor:'pointer', transition:'0.2s', display:'flex', alignItems:'center', justifyContent:'center', gap:'4px'}}
+                                        >
+                                            Deny
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );

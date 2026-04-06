@@ -13,6 +13,8 @@ import PrincipalHomework from './pages/Homework';
 import PrincipalMarks from './pages/Marks';
 import FeeManagement from './pages/FeeManagement';
 import Reports from './pages/Reports';
+import LeaveManagement from './pages/LeaveManagement';
+import Announcements from './pages/Announcements';
 
 // Teacher Pages (Nature/Glassmorphism UI)
 import TeacherDashboard from './pages/teacher/Dashboard';
@@ -20,6 +22,7 @@ import MyStudents from './pages/teacher/MyStudents';
 import TeacherAttendance from './pages/teacher/Attendance';
 import TeacherHomework from './pages/teacher/Homework';
 import TeacherMarks from './pages/teacher/Marks';
+import LeaveRequests from './pages/teacher/LeaveRequests';
 
 // Extra Pages
 import ParentDashboard from './pages/ParentDashboard';
@@ -111,6 +114,14 @@ function App() {
         } 
       />
       <Route 
+        path="/dashboard/announcements" 
+        element={
+          <ProtectedRoute allowedRoles={['principal']}>
+            <Announcements />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
         path="/dashboard/marks" 
         element={
           <ProtectedRoute allowedRoles={['principal']}>
@@ -131,6 +142,14 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['principal']}>
             <Reports />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/leave-management" 
+        element={
+          <ProtectedRoute allowedRoles={['principal']}>
+            <LeaveManagement />
           </ProtectedRoute>
         } 
       />
@@ -175,6 +194,14 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
             <TeacherMarks />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/teacher/leaves" 
+        element={
+          <ProtectedRoute allowedRoles={['teacher']}>
+            <LeaveRequests />
           </ProtectedRoute>
         } 
       />
