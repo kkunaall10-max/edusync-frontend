@@ -53,7 +53,7 @@ const ParentDashboard = () => {
                 axios.get(`${API_BASE_URL}/fees`, { params: { student_id: childData.id } }),
                 axios.get(`${API_BASE_URL}/homework`, { params: { class: childData.class, section: childData.section } }),
                 axios.get(`${API_BASE_URL}/marks`, { params: { student_id: childData.id } }),
-                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/announcements`, { params: { target_audience: 'parents', class: childData.class, section: childData.section } })
+                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/announcements`, { params: { audience: 'parents', class: childData.class, section: childData.section } })
             ]);
 
             setAttendance(attendanceRes.data);
@@ -419,32 +419,43 @@ const ParentDashboard = () => {
                                         </div>
                                     ) : (
                                         announcements.map((ann, idx) => (
-                                            <div key={ann.id || idx} style={styles.glassCard} className="flex flex-col relative overflow-hidden group">
-                                                {ann.priority === 'urgent' && <div className="absolute top-0 left-0 w-full h-1 bg-red-500 animate-pulse"></div>}
+                                            <div key={ann.id || idx} style={{...styles.glassCard, borderColor: ann.priority === 'urgent' ? 'rgba(239,68,68,0.5)' : undefined}} className={`flex flex-col relative overflow-hidden group ${ann.priority === 'urgent' ? 'shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-[pulse_3s_ease-in-out_infinite]' : ''}`}>
+                                                {ann.priority === 'urgent' && <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>}
                                                 {ann.priority === 'important' && <div className="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>}
                                                 
                                                 <div className="flex justify-between items-start mb-4">
-                                                    <span style={{
-                                                        padding: '4px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase',
-                                                        backgroundColor: ann.priority === 'urgent' ? 'rgba(239,68,68,0.2)' : ann.priority === 'important' ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.1)',
-                                                        color: ann.priority === 'urgent' ? '#FCA5A5' : ann.priority === 'important' ? '#FCD34D' : '#D1D5DB',
-                                                        boxShadow: ann.priority === 'urgent' ? '0 0 10px rgba(239,68,68,0.3)' : 'none',
-                                                        display: 'inline-flex', alignItems: 'center', gap: '4px'
-                                                    }}>
-                                                        {ann.priority === 'urgent' && <AlertCircle size={10} />}
-                                                        {ann.priority}
-                                                    </span>
+                                                    <div className="flex gap-2 items-center">
+                                                        <span style={{
+                                                            padding: '4px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase',
+                                                            backgroundColor: ann.priority === 'urgent' ? 'rgba(239,68,68,0.2)' : ann.priority === 'important' ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.1)',
+                                                            color: ann.priority === 'urgent' ? '#FCA5A5' : ann.priority === 'important' ? '#FCD34D' : '#D1D5DB',
+                                                            display: 'inline-flex', alignItems: 'center', gap: '4px'
+                                                        }}>
+                                                            {ann.priority === 'urgent' && <AlertCircle size={10} />}
+                                                            {ann.priority}
+                                                        </span>
+                                                    </div>
                                                     <span className="text-[10px] text-white/40 font-bold font-mono">
                                                         {new Date(ann.created_at).toLocaleDateString()}
                                                     </span>
                                                 </div>
                                                 <h4 className="text-base font-bold text-white mb-2 leading-tight">{ann.title}</h4>
-                                                <p className="text-xs text-white/70 line-clamp-2 leading-relaxed mb-4 flex-1">
+                                                <p className="text-xs text-white/70 line-clamp-2 leading-relaxed flex-1">
                                                     {ann.content}
                                                 </p>
-                                                <button className="text-[10px] font-black text-blue-400 uppercase tracking-widest text-left hover:text-blue-300 transition-colors">
-                                                    Read full
-                                                </button>
+                                                <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                                                    <span className={`px-2 py-1 rounded inline-flex items-center text-[9px] font-black uppercase tracking-wider ${
+                                                        ann.target_audience === 'all' ? 'bg-blue-500/20 text-blue-300' :
+                                                        ann.target_audience === 'teachers' ? 'bg-purple-500/20 text-purple-300' :
+                                                        ann.target_audience === 'parents' ? 'bg-green-500/20 text-green-300' :
+                                                        'bg-orange-500/20 text-orange-300'
+                                                    }`}>
+                                                        {ann.target_audience === 'class' ? `Class ${ann.target_class}` : ann.target_audience === 'all' ? 'All School' : 'Parents Only'}
+                                                    </span>
+                                                    <button className="text-[10px] font-black text-blue-400 uppercase tracking-widest text-left hover:text-blue-300 transition-colors bg-transparent border-none cursor-pointer">
+                                                        Read full
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))
                                     )}

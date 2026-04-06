@@ -15,6 +15,7 @@ const PrincipalDashboard = () => {
         attendanceToday: 0
     });
     const [recentAlerts, setRecentAlerts] = useState([]);
+    const [announcements, setAnnouncements] = useState([]);
     const navigate = useNavigate();
 
     const fetchData = useCallback(async (cancelToken) => {
@@ -26,13 +27,15 @@ const PrincipalDashboard = () => {
                 teachersRes,
                 feesRes,
                 attendanceRes,
-                overdueRes
+                overdueRes,
+                annRes
             ] = await Promise.all([
                 axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/students`, { cancelToken }),
                 axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/teachers`, { cancelToken }),
                 axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/fees/stats`, { cancelToken }),
                 axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/attendance?date=${today}`, { cancelToken }),
-                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/fees?status=overdue`, { cancelToken })
+                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/fees?status=overdue`, { cancelToken }),
+                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/announcements`, { cancelToken })
             ]);
 
             const totalAttendance = attendanceRes.data.length;
@@ -47,6 +50,7 @@ const PrincipalDashboard = () => {
             });
 
             setRecentAlerts(overdueRes.data.slice(0, 3));
+            setAnnouncements(annRes?.data?.slice(0, 3) || []);
             setLoading(false);
         } catch (error) {
             if (!axios.isCancel(error)) {
@@ -185,6 +189,46 @@ const PrincipalDashboard = () => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Announcements Widget */}
+                    <div style={styles.card} className="mt-8">
+                        <div className="flex justify-between items-center mb-8">
+                            <h4 className="text-lg font-black text-slate-900 m-0 uppercase tracking-tighter">Latest Announcements</h4>
+                            <button onClick={() => navigate('/dashboard/announcements')} className="text-xs font-black text-blue-600 uppercase tracking-widest bg-transparent border-none cursor-pointer">View All Announcements</button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {announcements.length === 0 ? (
+                                <div className="col-span-3 py-8 text-center text-slate-400 font-bold uppercase tracking-widest text-sm">No announcements</div>
+                            ) : announcements.map(ann => (
+                                <div key={ann.id} className="p-5 bg-white border border-slate-200 rounded-2xl flex flex-col hover:border-slate-300 transition-colors cursor-pointer" onClick={() => navigate('/dashboard/announcements')}>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                            ann.priority === 'urgent' ? 'bg-red-100 text-red-600 border border-red-200' :
+                                            ann.priority === 'important' ? 'bg-amber-100 text-amber-600 border border-amber-200' : 
+                                            'bg-slate-100 text-slate-600 border border-slate-200'
+                                        }`}>
+                                            {ann.priority || 'Normal'}
+                                        </span>
+                                        <span className="text-[10px] font-bold text-slate-400">
+                                            {new Date(ann.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <h5 className="text-base font-black text-slate-900 mb-2 m-0 leading-tight">{ann.title}</h5>
+                                    <p className="text-sm font-medium text-slate-500 m-0 line-clamp-1 flex-1">{ann.content}</p>
+                                    <div className="mt-4 pt-4 border-t border-slate-100 flex items-center">
+                                        <span className={`px-2 py-1 rounded inline-flex items-center text-[10px] font-black uppercase tracking-wider ${
+                                            ann.target_audience === 'all' ? 'bg-blue-50 text-blue-600' :
+                                            ann.target_audience === 'teachers' ? 'bg-purple-50 text-purple-600' :
+                                            ann.target_audience === 'parents' ? 'bg-green-50 text-green-600' :
+                                            'bg-orange-50 text-orange-600'
+                                        }`}>
+                                            {ann.target_audience === 'class' ? `Class ${ann.target_class} ${ann.target_section||''}` : ann.target_audience === 'all' ? 'All School' : ann.target_audience === 'teachers' ? 'Teachers Only' : 'Parents Only'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

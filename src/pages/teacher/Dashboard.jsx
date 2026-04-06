@@ -44,7 +44,7 @@ const Dashboard = () => {
                 axios.get(`${API}/api/students`, { params: { class: profile.class_assigned, section: profile.section_assigned } }),
                 axios.get(`${API}/api/homework`, { params: { class: profile.class_assigned, section: profile.section_assigned } }),
                 axios.get(`${API}/api/leave/teacher`, { params: { class: profile.class_assigned, section: profile.section_assigned, status: 'pending' } }),
-                axios.get(`${API}/api/announcements`, { params: { target_audience: 'teachers', class: profile.class_assigned, section: profile.section_assigned } })
+                axios.get(`${API}/api/announcements`, { params: { audience: 'teachers' } })
             ]);
 
             setStats({

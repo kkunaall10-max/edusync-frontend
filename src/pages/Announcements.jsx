@@ -10,6 +10,7 @@ const API = import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app';
 const Announcements = () => {
     const [loading, setLoading] = useState(true);
     const [announcements, setAnnouncements] = useState([]);
+    const [activeTab, setActiveTab] = useState('All');
     const [showModal, setShowModal] = useState(false);
     const [profile, setProfile] = useState(null);
     const [formData, setFormData] = useState({
@@ -85,11 +86,29 @@ const Announcements = () => {
     };
 
     const getAudienceLabel = (ann) => {
-        if (ann.target_audience === 'all') return 'All School';
-        if (ann.target_audience === 'teachers') return 'Teachers Only';
-        if (ann.target_audience === 'parents') return 'Parents Only';
-        if (ann.target_audience === 'class') return `Class ${ann.target_class} - ${ann.target_section || 'All Sections'}`;
-        return 'General';
+        if (ann.target_audience === 'all') return <span className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md font-bold">All School</span>;
+        if (ann.target_audience === 'teachers') return <span className="bg-purple-50 text-purple-600 px-2.5 py-1 rounded-md font-bold">Teachers Only</span>;
+        if (ann.target_audience === 'parents') return <span className="bg-green-50 text-green-600 px-2.5 py-1 rounded-md font-bold">Parents Only</span>;
+        if (ann.target_audience === 'class') return <span className="bg-orange-50 text-orange-600 px-2.5 py-1 rounded-md font-bold">Class {ann.target_class} {ann.target_section||''}</span>;
+        return <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-bold">General</span>;
+    };
+
+    const filteredAnnouncements = announcements.filter(ann => {
+        if (activeTab === 'All School') return ann.target_audience === 'all';
+        if (activeTab === 'Teachers Only') return ann.target_audience === 'teachers';
+        if (activeTab === 'Parents Only') return ann.target_audience === 'parents';
+        if (activeTab === 'Specific Class') return ann.target_audience === 'class';
+        if (activeTab === 'Urgent') return ann.priority === 'urgent';
+        return true;
+    });
+
+    const counts = {
+        All: announcements.length,
+        'All School': announcements.filter(a => a.target_audience === 'all').length,
+        'Teachers Only': announcements.filter(a => a.target_audience === 'teachers').length,
+        'Parents Only': announcements.filter(a => a.target_audience === 'parents').length,
+        'Specific Class': announcements.filter(a => a.target_audience === 'class').length,
+        'Urgent': announcements.filter(a => a.priority === 'urgent').length,
     };
 
     if (loading) return <LoadingScreen />;
@@ -110,10 +129,29 @@ const Announcements = () => {
                     </button>
                 </div>
 
+                <div className="flex flex-wrap gap-2 mb-6">
+                    {['All', 'All School', 'Teachers Only', 'Parents Only', 'Specific Class', 'Urgent'].map(tab => (
+                        <button 
+                            key={tab} 
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${activeTab === tab ? 'bg-slate-900 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        >
+                            {tab}
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === tab ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                {counts[tab]}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+
+                <div className="mb-4">
+                    <h3 className="text-lg font-black text-slate-800">{counts[activeTab]} Announcements</h3>
+                </div>
+
                 {/* Announcements List */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {announcements.length > 0 ? announcements.map(ann => (
-                        <div key={ann.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col relative group">
+                    {filteredAnnouncements.length > 0 ? filteredAnnouncements.map(ann => (
+                        <div key={ann.id} className={`bg-white border ${ann.priority === 'urgent' ? 'border-red-400 shadow-[0_0_15px_rgba(220,38,38,0.3)] animate-[pulse_3s_ease-in-out_infinite]' : 'border-slate-200 shadow-sm'} rounded-2xl p-6 hover:shadow-md transition-shadow flex flex-col relative group`}>
                             <div className="flex justify-between items-start mb-4">
                                 {getPriorityBadge(ann.priority)}
                                 <button 
@@ -129,13 +167,13 @@ const Announcements = () => {
                                 {ann.content}
                             </p>
                             
-                            <div className="flex items-center justify-between pt-4 border-t border-slate-100 text-xs font-semibold text-slate-500">
+                            <div className="flex items-center justify-between pt-4 border-t border-slate-100 text-xs font-semibold text-slate-500 mt-auto">
                                 <div className="flex items-center gap-1.5">
-                                    <Users size={14} className="text-blue-500" />
+                                    <Users size={14} className="text-slate-400" />
                                     {getAudienceLabel(ann)}
                                 </div>
                                 <div className="flex items-center gap-1.5">
-                                    <Clock size={14} />
+                                    <Clock size={14} className="text-slate-400" />
                                     {new Date(ann.created_at).toLocaleDateString()}
                                 </div>
                             </div>
