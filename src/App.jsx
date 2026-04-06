@@ -23,9 +23,11 @@ import TeacherAttendance from './pages/teacher/Attendance';
 import TeacherHomework from './pages/teacher/Homework';
 import TeacherMarks from './pages/teacher/Marks';
 import LeaveRequests from './pages/teacher/LeaveRequests';
+import TeacherAnnouncements from './pages/teacher/Announcements';
 
 // Extra Pages
 import ParentDashboard from './pages/ParentDashboard';
+import ParentAnnouncements from './pages/ParentAnnouncements';
 import StudentDashboard from './pages/StudentDashboard';
 import Settings from './pages/Settings';
 import Support from './pages/Support';
@@ -205,6 +207,14 @@ function App() {
           </ProtectedRoute>
         } 
       />
+      <Route 
+        path="/dashboard/teacher/announcements" 
+        element={
+          <ProtectedRoute allowedRoles={['teacher']}>
+            <TeacherAnnouncements />
+          </ProtectedRoute>
+        } 
+      />
 
       {/* =========================================================
           GLOBAL SHARED ROUTES
@@ -232,6 +242,14 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['parent']}>
             <ParentDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/parent/announcements" 
+        element={
+          <ProtectedRoute allowedRoles={['parent']}>
+            <ParentAnnouncements />
           </ProtectedRoute>
         } 
       />

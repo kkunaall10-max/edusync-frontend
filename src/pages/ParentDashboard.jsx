@@ -180,6 +180,15 @@ const ParentDashboard = () => {
                         >
                             <LayoutDashboard size={20} /> Overview
                         </button>
+                        <button 
+                            onClick={() => { navigate('/dashboard/parent/announcements'); if(isMobile) setMenuOpen(false); }} 
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', 
+                                border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontWeight: '700', cursor: 'pointer', textAlign: 'left' 
+                            }}
+                        >
+                            <Megaphone size={20} /> Announcements
+                        </button>
                     </nav>
 
                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
