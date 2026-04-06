@@ -25,6 +25,7 @@ const TeacherAnnouncements = () => {
     }, []);
 
     useEffect(() => {
+        let channel;
         const init = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { navigate('/login'); return; }
@@ -37,7 +38,7 @@ const TeacherAnnouncements = () => {
                 setAnnouncements(annRes.data || []);
 
                 // Fetch real-time updates
-                const subscription = supabase
+                channel = supabase
                   .channel('announcements_channel')
                   .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, payload => {
                      // Auto-refresh when an announcement changes
@@ -59,14 +60,13 @@ const TeacherAnnouncements = () => {
                 }
 
                 setLoading(false);
-
-                return () => { supabase.removeChannel(subscription); };
             } catch (err) {
                 console.error("Init error:", err);
                 setLoading(false);
             }
         };
         init();
+        return () => { if (channel) supabase.removeChannel(channel); };
     }, [navigate]);
 
     const styles = {

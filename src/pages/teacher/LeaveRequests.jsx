@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
   Menu, X, LayoutDashboard, Users, Calendar, CheckSquare, 
-  Clock, CheckCircle, XCircle, ClipboardCheck, BookOpen, GraduationCap, Megaphone, Settings, AlertCircle
+  Clock, CheckCircle, XCircle, ClipboardCheck, BookOpen, GraduationCap, Megaphone, Settings, AlertCircle, Filter, MessageSquare
 } from 'lucide-react';
 import LoadingScreen from '../../components/LoadingScreen';
 

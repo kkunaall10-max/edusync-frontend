@@ -29,6 +29,7 @@ const ParentAnnouncements = () => {
     }, []);
 
     useEffect(() => {
+        let channel;
         const init = async () => {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
@@ -47,7 +48,7 @@ const ParentAnnouncements = () => {
                 await fetchAnns();
 
                 // Real-time listener
-                const subscription = supabase
+                channel = supabase
                   .channel('announcements_channel_parent')
                   .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, payload => {
                      fetchAnns();
@@ -55,14 +56,13 @@ const ParentAnnouncements = () => {
                   .subscribe();
 
                 setLoading(false);
-
-                return () => { supabase.removeChannel(subscription); };
             } catch (err) {
                 console.error("Init Error:", err);
                 setLoading(false);
             }
         };
         init();
+        return () => { if (channel) supabase.removeChannel(channel); };
     }, [navigate]);
 
     const getInitials = (name) => {
