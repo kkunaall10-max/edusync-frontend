@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
   Menu, X, Users, BookOpen, GraduationCap, 
-  ClipboardCheck, TrendingUp, Plus, Search, Calendar, Trash2, LogOut, Download
+  ClipboardCheck, TrendingUp, Plus, Search, Calendar, Trash2, LogOut, Download, Megaphone, AlertCircle, Settings
 } from 'lucide-react';
 
 const API = import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app';
@@ -178,6 +178,9 @@ const Homework = () => {
                         { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
                         { label: 'Leave Requests', icon: <Calendar size={20} />, path: '/dashboard/teacher/leaves', badge: leaveStats.pendingLeaves },
                         { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
+                        { label: 'Announcements', icon: <Megaphone size={20} />, path: '/dashboard/teacher/announcements' },
+                        { label: 'Settings', icon: <Settings size={20} />, path: '/dashboard/settings' },
+                        { label: 'Support', icon: <AlertCircle size={20} />, path: '/dashboard/support' },
                     ].map(item => (
                         <button key={item.label} style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left'}} onClick={() => { navigate(item.path); if(isMobile) setMenuOpen(false); }}>
                             <div style={{display:'flex', alignItems:'center', gap:'8px'}}>{item.icon} {item.label}</div>{item.badge !== undefined && (<span style={{background:'rgba(255,0,0,0.6)', borderRadius:'8px', padding:'2px 6px', fontSize:'12px', color:'#fff'}}>{item.badge}</span>)}

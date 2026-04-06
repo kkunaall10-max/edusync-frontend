@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { 
   Menu, X, Search, Bell, User, LayoutDashboard, LogOut,
-  Megaphone, AlertCircle 
+  Megaphone, AlertCircle, Settings 
 } from 'lucide-react';
 import parentBg from '../assets/parent-bg.jpg';
 import LoadingScreen from '../components/LoadingScreen';
@@ -103,6 +103,8 @@ const ParentAnnouncements = () => {
                     <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <button onClick={() => {navigate('/dashboard/parent'); setMenuOpen(false);}} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', color: '#fff', opacity: 0.6, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: '600' }}><LayoutDashboard size={20} /> Dashboard</button>
                         <button style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', color: '#fff', opacity: 1, background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: '600' }}><Megaphone size={20} /> Announcements</button>
+                        <button onClick={() => {navigate('/dashboard/settings'); setMenuOpen(false);}} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', color: '#fff', opacity: 0.6, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: '600' }}><Settings size={20} /> Settings</button>
+                        <button onClick={() => {navigate('/dashboard/support'); setMenuOpen(false);}} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', color: '#fff', opacity: 0.6, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: '600' }}><AlertCircle size={20} /> Support</button>
                     </nav>
                 </aside>
 

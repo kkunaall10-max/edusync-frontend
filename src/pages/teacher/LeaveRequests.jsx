@@ -3,8 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
-  Menu, X, Bell, Users, Clock, CheckCircle, XCircle, 
-  ChevronRight, Calendar, User, MessageSquare, Filter, LayoutDashboard
+  Menu, X, LayoutDashboard, Users, Calendar, CheckSquare, 
+  Clock, CheckCircle, XCircle, ClipboardCheck, BookOpen, GraduationCap, Megaphone, Settings, AlertCircle
 } from 'lucide-react';
 import LoadingScreen from '../../components/LoadingScreen';
 
@@ -227,7 +227,13 @@ const LeaveRequests = () => {
                     {[
                         { label: 'Overview', icon: <LayoutDashboard size={20} />, path: '/dashboard/teacher' },
                         { label: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
+                        { label: 'Attendance', icon: <ClipboardCheck size={20} />, path: '/dashboard/teacher/attendance' },
+                        { label: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
                         { label: 'Leave Requests', icon: <Calendar size={20} />, path: '/dashboard/teacher/leaves', badge: stats.pending },
+                        { label: 'Marks Entry', icon: <GraduationCap size={20} />, path: '/dashboard/teacher/marks' },
+                        { label: 'Announcements', icon: <Megaphone size={20} />, path: '/dashboard/teacher/announcements' },
+                        { label: 'Settings', icon: <Settings size={20} />, path: '/dashboard/settings' },
+                        { label: 'Support', icon: <AlertCircle size={20} />, path: '/dashboard/support' },
                     ].map((item) => (
                         <button key={item.label} style={{display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderRadius:'16px', color: '#fff', opacity: (window.location.pathname === item.path ? 1 : 0.6), background: (window.location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent'), border:'none', width:'100%', cursor:'pointer', fontSize:'15px', fontWeight:'600', marginBottom:'6px', transition:'0.2s', textAlign:'left', position:'relative'}} onClick={() => { navigate(item.path); if (isMobile) setMenuOpen(false); }}>
                             {item.icon} {item.label}

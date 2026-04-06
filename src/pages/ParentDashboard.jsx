@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { 
   Search, Bell, User, LayoutDashboard, LogOut, 
   Menu, X, TrendingUp, Calendar, CreditCard, 
-  CheckCircle2, AlertCircle, BookOpen, GraduationCap, Megaphone
+  CheckCircle2, AlertCircle, BookOpen, GraduationCap, Megaphone, Settings
 } from 'lucide-react';
 import parentBg from '../assets/parent-bg.jpg';
 
@@ -24,6 +24,7 @@ const ParentDashboard = () => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [showAccountDropdown, setShowAccountDropdown] = useState(false);
     const [userEmail, setUserEmail] = useState('');
+    const location = useLocation();
     const navigate = useNavigate();
 
     // 1. Detect screen size
@@ -184,10 +185,28 @@ const ParentDashboard = () => {
                             onClick={() => { navigate('/dashboard/parent/announcements'); if(isMobile) setMenuOpen(false); }} 
                             style={{ 
                                 display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', 
-                                border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontWeight: '700', cursor: 'pointer', textAlign: 'left' 
+                                border: 'none', background: location.pathname === '/dashboard/parent/announcements' ? 'rgba(255,255,255,0.2)' : 'transparent', color: location.pathname === '/dashboard/parent/announcements' ? 'white' : 'rgba(255,255,255,0.6)', fontWeight: '700', cursor: 'pointer', textAlign: 'left' 
                             }}
                         >
                             <Megaphone size={20} /> Announcements
+                        </button>
+                        <button 
+                            onClick={() => { navigate('/dashboard/settings'); if(isMobile) setMenuOpen(false); }} 
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', 
+                                border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontWeight: '700', cursor: 'pointer', textAlign: 'left' 
+                            }}
+                        >
+                            <Settings size={20} /> Settings
+                        </button>
+                        <button 
+                            onClick={() => { navigate('/dashboard/support'); if(isMobile) setMenuOpen(false); }} 
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', 
+                                border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontWeight: '700', cursor: 'pointer', textAlign: 'left' 
+                            }}
+                        >
+                            <AlertCircle size={20} /> Support
                         </button>
                     </nav>
 
