@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
+  Menu, X, Bell, Users, BookOpen, GraduationCap,
   ClipboardCheck, TrendingUp, ChevronRight, LogOut, Calendar, Megaphone, AlertCircle
 } from 'lucide-react';
 import { 
