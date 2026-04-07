@@ -15,7 +15,7 @@ export default function LandingFooter() {
 
   return (
     <footer style={{ background: C.bg, borderTop: `1px solid ${C.border}`, overflow: 'hidden', position: 'relative' }}>
-      <div style={{ maxWidth: 1140, margin: '0 auto', padding: '60px 48px 0' }}>
+      <div className="footer-mobile-pad" style={{ maxWidth: 1140, margin: '0 auto', padding: '60px 48px 0' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40, justifyContent: 'space-between', marginBottom: 40 }}>
 
           {/* Brand */}
@@ -63,7 +63,7 @@ export default function LandingFooter() {
           </motion.div>
 
           {/* Columns */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 36, flex: '1 1 380px', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '36px 52px', flex: '1 1 380px', justifyContent: 'flex-start' }}>
             {footerCols.map((col, ci) => (
               <motion.div key={col.heading}
                 initial={{ opacity: 0, y: -6, filter: 'blur(4px)' }}

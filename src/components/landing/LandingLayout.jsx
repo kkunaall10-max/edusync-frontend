@@ -26,6 +26,11 @@ export default function LandingLayout({ children, bg = C.white }) {
             padding-top: 64px !important;
             padding-bottom: 64px !important;
           }
+          .footer-mobile-pad {
+            padding-left: 24px !important;
+            padding-right: 24px !important;
+            padding-top: 48px !important;
+          }
           .land-wrapper h1 {
             font-size: clamp(32px, 8vw, 48px) !important;
           }

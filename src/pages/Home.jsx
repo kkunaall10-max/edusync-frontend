@@ -177,7 +177,7 @@ function Hero({ navigate }) {
         background: 'rgba(0,0,0,0.18)',
         backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
         border: '1px solid rgba(255,255,255,0.18)',
-        borderRadius: 28, padding: '52px 48px',
+        borderRadius: 28, padding: 'clamp(32px, 6vw, 52px) clamp(20px, 5vw, 48px)',
         maxWidth: 660, width: '90%', textAlign: 'center',
         boxShadow: '0 8px 48px rgba(0,0,0,0.28)',
       }}>
@@ -210,15 +210,12 @@ function Hero({ navigate }) {
           <BtnGhost onClick={() => navigate('/login')}>Login to Portal</BtnGhost>
         </div>
 
-        <div style={{display:'flex', gap:0, marginTop:36, justifyContent:'center', flexWrap:'wrap'}}>
-          {[['3','User Portals'],['25+','Features Built'],['100%','Live & Deployed']].map(([n,l],i,arr) => (
-            <React.Fragment key={n}>
-              <div style={{textAlign:'center', padding:'0 28px'}}>
-                <div style={{fontSize:28, fontWeight:800, color:'#60b4ff', fontFamily:C.sans}}>{n}</div>
-                <div style={{fontSize:11, color:'rgba(255,255,255,0.65)', fontWeight:500, letterSpacing:'0.5px', fontFamily:C.sans}}>{l}</div>
-              </div>
-              {i < arr.length-1 && <div style={{width:1, height:36, background:C.border, alignSelf:'center'}}/>}
-            </React.Fragment>
+        <div style={{display:'flex', gap:16, marginTop:36, justifyContent:'center', flexWrap:'wrap'}}>
+          {[['3','User Portals'],['25+','Features Built'],['100%','Live & Deployed']].map(([n,l]) => (
+            <div key={n} style={{textAlign:'center', padding:'0 16px', flex: '1 1 120px'}}>
+              <div style={{fontSize:28, fontWeight:800, color:'#60b4ff', fontFamily:C.sans}}>{n}</div>
+              <div style={{fontSize:11, color:'rgba(255,255,255,0.65)', fontWeight:500, letterSpacing:'0.5px', fontFamily:C.sans}}>{l}</div>
+            </div>
           ))}
         </div>
       </div>
