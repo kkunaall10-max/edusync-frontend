@@ -99,24 +99,30 @@ const Analytics = () => {
             const userRole = userData.user_metadata?.role || 'teacher';
             setRole(userRole);
             
-            // For teachers, fetch their locked scope to show in the UI
+            // For teachers, fetch their locked scope
             if (userRole === 'teacher') {
-                const { data: teacher } = await supabase
-                    .from('teachers')
-                    .select('class_assigned, section_assigned')
-                    .eq('email', userData.email)
-                    .single();
-                
-                if (teacher) {
-                    const teacherFilters = {
-                        ...filters,
-                        class: teacher.class_assigned,
-                        section: teacher.section_assigned
-                    };
-                    setFilters(teacherFilters);
-                    // Fetch with actual teacher scope immediately
-                    fetchData(userRole, userData.email, teacherFilters);
-                    return;
+                try {
+                    const { data: teachers, error: teacherErr } = await supabase
+                        .from('teachers')
+                        .select('class_assigned, section_assigned')
+                        .eq('email', userData.email)
+                        .limit(1);
+                    
+                    if (teachers && teachers.length > 0) {
+                        const teacher = teachers[0];
+                        const teacherFilters = {
+                            ...filters,
+                            class: teacher.class_assigned,
+                            section: teacher.section_assigned
+                        };
+                        setFilters(teacherFilters);
+                        fetchData(userRole, userData.email, teacherFilters);
+                        return;
+                    } else if (teacherErr) {
+                        console.warn("Teacher scope fetch failed:", teacherErr.message);
+                    }
+                } catch (e) {
+                    console.error("Secondary scope failure handled:", e);
                 }
             }
             
