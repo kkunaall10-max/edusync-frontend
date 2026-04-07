@@ -150,6 +150,51 @@ const Analytics = () => {
         };
     }, [filters, navigate, fetchData]);
 
+    const handleExportAudit = () => {
+        try {
+            const timestamp = new Date().toISOString().split('T')[0];
+            const filename = `edusync_audit_${filters.class}_${timestamp}.csv`;
+            
+            // Header
+            let csvRows = [`"EduSync Academic & Fiscal Audit - ${timestamp}"`, `""`];
+            
+            // Student Performance Section
+            csvRows.push(`"STUDENT PERFORMANCE (${filters.class})"`);
+            csvRows.push(`"Name","Roll Number","Percentage"`);
+            performanceData.students.forEach(s => {
+                csvRows.push(`"${s.name}","${s.roll}","${s.percentage}%"`);
+            });
+            csvRows.push(`""`);
+            
+            // Subject Proficiency Section
+            csvRows.push(`"SUBJECT PROFICIENCY"`);
+            csvRows.push(`"Subject","Average Score"`);
+            subjectData.forEach(s => {
+                csvRows.push(`"${s.subject}","${s.average}%"`);
+            });
+            csvRows.push(`""`);
+            
+            // Fiscal Summary
+            csvRows.push(`"FISCAL LIQUIDITY SUMMARY"`);
+            csvRows.push(`"Status","Count"`);
+            feeData.summary.forEach(s => {
+                csvRows.push(`"${s.name}","${s.value}"`);
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (err) {
+            console.error("Export failure:", err);
+            alert("Audit export failed. Please check device permissions.");
+        }
+    };
+
     const glassStyle = {
         background: 'rgba(255, 255, 255, 0.7)',
         backdropFilter: 'blur(20px)',
@@ -220,6 +265,7 @@ const Analytics = () => {
                     </button>
                     {role === 'principal' && (
                         <button 
+                            onClick={handleExportAudit}
                             style={{ background: '#0f172a', border: 'none', borderRadius: '14px', color: 'white', padding: '12px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '800' }}
                         >
                             <Download size={16} />
@@ -443,12 +489,28 @@ const Analytics = () => {
                         </div>
                     </div>
 
-                    {/* Priority Intervention Table */}
+                    {/* Priority Intervention Table / Student Ledger */}
                     <div style={{ ...glassStyle, overflowX: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#0f172a' }}>Critical Interventions</h4>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', padding: '8px 16px', borderRadius: '14px', fontSize: '11px', fontWeight: '900' }}>
-                                <AlertCircle size={16} /> {performanceData.weakStudents.length} RISKY PROFILES
+                            <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#0f172a' }}>
+                                {filters.class === 'All' ? "Critical Interventions" : `${filters.class} Performance Ledger`}
+                            </h4>
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '8px', 
+                                background: filters.class === 'All' ? '#fef2f2' : '#f0fdf4', 
+                                color: filters.class === 'All' ? '#ef4444' : '#10b981', 
+                                border: `1px solid ${filters.class === 'All' ? '#fee2e2' : '#dcfce7'}`, 
+                                padding: '8px 16px', 
+                                borderRadius: '14px', 
+                                fontSize: '11px', 
+                                fontWeight: '900' 
+                            }}>
+                                <AlertCircle size={16} /> 
+                                {filters.class === 'All' 
+                                    ? `${performanceData.weakStudents.length} RISKY PROFILES` 
+                                    : `${performanceData.students.length} ENROLLED STUDENTS`}
                             </div>
                         </div>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -461,25 +523,42 @@ const Analytics = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {performanceData.weakStudents.length > 0 ? performanceData.weakStudents.map((s, idx) => (
+                                {(filters.class === 'All' ? performanceData.weakStudents : performanceData.students).length > 0 ? 
+                                (filters.class === 'All' ? performanceData.weakStudents : performanceData.students).map((s, idx) => (
                                     <tr key={idx} style={{ borderBottom: '1px solid #f8fafc' }} className="group">
                                         <td style={{ padding: '18px 12px', fontWeight: '900', color: '#0f172a' }}>{s.name}</td>
                                         <td style={{ padding: '18px 12px', color: '#64748b', fontWeight: '700' }}>{s.roll}</td>
                                         <td style={{ padding: '18px 12px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                 <div style={{ flex: 1, height: '8px', background: '#f1f5f9', borderRadius: '4px', minWidth: '80px', overflow: 'hidden' }}>
-                                                    <div style={{ width: `${s.percentage}%`, height: '100%', background: '#ef4444', borderRadius: '4px' }} />
+                                                    <div style={{ 
+                                                        width: `${s.percentage}%`, 
+                                                        height: '100%', 
+                                                        background: s.percentage > 75 ? '#10b981' : s.percentage > 40 ? '#f59e0b' : '#ef4444', 
+                                                        borderRadius: '4px' 
+                                                    }} />
                                                 </div>
-                                                <span style={{ color: '#ef4444', fontWeight: '900', fontSize: '12px' }}>{s.percentage}%</span>
+                                                <span style={{ 
+                                                    color: s.percentage > 75 ? '#10b981' : s.percentage > 40 ? '#f59e0b' : '#ef4444', 
+                                                    fontWeight: '900', 
+                                                    fontSize: '12px' 
+                                                }}>{s.percentage}%</span>
                                             </div>
                                         </td>
                                         <td style={{ padding: '18px 12px', textAlign: 'right' }}>
-                                            <button style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#0f172a', padding: '8px 16px', borderRadius: '12px', cursor: 'pointer', fontSize: '11px', fontWeight: '900', transition: 'all 0.2s' }}>Deep Audit</button>
+                                            <button 
+                                                onClick={() => navigate(`/dashboard/students?search=${s.name}`)}
+                                                style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#0f172a', padding: '8px 16px', borderRadius: '12px', cursor: 'pointer', fontSize: '11px', fontWeight: '900', transition: 'all 0.2s' }}
+                                            >
+                                                Deep Audit
+                                            </button>
                                         </td>
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan="4" style={{ padding: '60px', textAlign: 'center', color: '#94a3b8', fontWeight: '700', fontSize: '14px' }}>All student profiles meeting normative standards.</td>
+                                        <td colSpan="4" style={{ padding: '60px', textAlign: 'center', color: '#94a3b8', fontWeight: '700', fontSize: '14px' }}>
+                                            {filters.class === 'All' ? "All student profiles meeting normative standards." : "No student records identified for this solo class." }
+                                        </td>
                                     </tr>
                                 )}
                             </tbody>
