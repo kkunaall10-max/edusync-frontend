@@ -5,9 +5,11 @@ import apiClient from '../utils/api';
 import { supabase } from '../lib/supabase';
 import Layout from '../components/Layout';
 import LoadingScreen from '../components/LoadingScreen';
+import AISidebar from '../components/AISidebar';
 
 const PrincipalDashboard = () => {
     const [loading, setLoading] = useState(true);
+    const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
 
     const [metrics, setMetrics] = useState({
         totalStudents: 0,
@@ -93,9 +95,18 @@ const PrincipalDashboard = () => {
         <div style={styles.pageWrapper}>
             <Layout role="principal">
                 <div className="space-y-8">
-                    <div>
-                    <h2 className="text-2xl md:text-3xl font-black text-slate-900 m-0 tracking-tight">Good morning, Principal</h2>
-                    <p className="text-sm font-bold text-slate-500 mt-1 uppercase tracking-widest">Academic Command Center</p>
+                    <div className="flex justify-between items-center">
+                        <div>
+                        <h2 className="text-2xl md:text-3xl font-black text-slate-900 m-0 tracking-tight">Good morning, Principal</h2>
+                        <p className="text-sm font-bold text-slate-500 mt-1 uppercase tracking-widest">Academic Command Center</p>
+                        </div>
+                        <button 
+                            onClick={() => setAiSidebarOpen(true)}
+                            className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all font-black text-xs uppercase tracking-widest"
+                        >
+                            <span className="material-symbols-outlined text-base">auto_awesome</span>
+                            AI Insights
+                        </button>
                     </div>
 
                     {/* Stats Grid */}
@@ -234,6 +245,7 @@ const PrincipalDashboard = () => {
                     </div>
                 </div>
             </Layout>
+            <AISidebar isOpen={aiSidebarOpen} onClose={() => setAiSidebarOpen(false)} />
         </div>
     );
 };
