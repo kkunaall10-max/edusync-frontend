@@ -39,12 +39,12 @@ const Analytics = () => {
     const navigate = useNavigate();
 
     // Secure Data Fetching with Centralized ApiClient
-    const fetchData = useCallback(async (userRole, email) => {
+    const fetchData = useCallback(async (userRole, email, currentFilters = filters) => {
         setLoading(true);
         setError(null);
         try {
             const config = {
-                params: { ...filters, role: userRole, email }
+                params: { ...currentFilters, role: userRole, email }
             };
             
             const [attRes, perfRes, subRes] = await Promise.all([
@@ -90,7 +90,28 @@ const Analytics = () => {
             const userRole = userData.user_metadata?.role || 'teacher';
             setRole(userRole);
             
-            fetchData(userRole, userData.email);
+            // For teachers, fetch their locked scope to show in the UI
+            if (userRole === 'teacher') {
+                const { data: teacher } = await supabase
+                    .from('teachers')
+                    .select('class_assigned, section_assigned')
+                    .eq('email', userData.email)
+                    .single();
+                
+                if (teacher) {
+                    const teacherFilters = {
+                        ...filters,
+                        class: teacher.class_assigned,
+                        section: teacher.section_assigned
+                    };
+                    setFilters(teacherFilters);
+                    // Fetch with actual teacher scope immediately
+                    fetchData(userRole, userData.email, teacherFilters);
+                    return;
+                }
+            }
+            
+            fetchData(userRole, userData.email, filters);
         };
         
         init();
@@ -124,36 +145,68 @@ const Analytics = () => {
                 <p style={{ color: '#64748b', margin: '4px 0 0', fontSize: '14px', fontWeight: '600' }}>Academic telemetry for {role === 'principal' ? 'Full Institution' : 'Assigned Class'}</p>
             </div>
             
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                {role === 'principal' && (
-                    <div style={{ display: 'flex', gap: '8px', background: 'white', padding: '4px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    gap: '12px', 
+                    background: 'white', 
+                    padding: '6px 12px', 
+                    borderRadius: '20px', 
+                    border: '1px solid #f1f5f9',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                    width: isMobile ? '100%' : 'auto',
+                    opacity: role === 'teacher' ? 0.8 : 1
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '10px', fontWeight: '900', color: '#64748b', textTransform: 'uppercase' }}>Class</span>
                         <select 
-                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 12px', fontSize: '13px', fontWeight: '800', outline: 'none', cursor: 'pointer' }}
+                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 0', fontSize: '14px', fontWeight: '900', outline: 'none', cursor: role === 'teacher' ? 'not-allowed' : 'pointer' }}
                             value={filters.class}
                             onChange={(e) => setFilters({...filters, class: e.target.value})}
+                            disabled={role === 'teacher'}
                         >
-                            <option value="All">All Classes</option>
-                            <option value="Class 1">Class 1</option>
-                            <option value="Class 2">Class 2</option>
-                            <option value="Class 5">Class 5</option>
-                        </select>
-                        <select 
-                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 12px', fontSize: '13px', fontWeight: '800', outline: 'none', cursor: 'pointer' }}
-                            value={filters.section}
-                            onChange={(e) => setFilters({...filters, section: e.target.value})}
-                        >
-                            <option value="All">All Sections</option>
-                            <option value="A">Section A</option>
-                            <option value="B">Section B</option>
+                            <option value="All">All Levels</option>
+                            {[...Array(12)].map((_, i) => (
+                                <option key={i+1} value={`Class ${i+1}`}>Class {i+1}</option>
+                            ))}
                         </select>
                     </div>
-                )}
-                <button 
-                    onClick={() => fetchData(role, user?.email)}
-                    style={{ background: 'white', border: '1px solid #f1f5f9', borderRadius: '14px', color: '#0f172a', padding: '10px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-                >
-                    <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                </button>
+                    
+                    <div style={{ width: '1px', background: '#f1f5f9', margin: '8px 4px' }} />
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '10px', fontWeight: '900', color: '#64748b', textTransform: 'uppercase' }}>Section</span>
+                        <select 
+                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 0', fontSize: '14px', fontWeight: '900', outline: 'none', cursor: role === 'teacher' ? 'not-allowed' : 'pointer' }}
+                            value={filters.section}
+                            onChange={(e) => setFilters({...filters, section: e.target.value})}
+                            disabled={role === 'teacher'}
+                        >
+                            <option value="All">All Sections</option>
+                            {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(s => (
+                                <option key={s} value={s}>Section {s}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                        onClick={() => fetchData(role, user?.email)}
+                        style={{ background: 'white', border: '1px solid #f1f5f9', borderRadius: '14px', color: '#0f172a', padding: '12px 14px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '800' }}
+                    >
+                        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                        {!isMobile && "Sync Data"}
+                    </button>
+                    {role === 'principal' && (
+                        <button 
+                            style={{ background: '#0f172a', border: 'none', borderRadius: '14px', color: 'white', padding: '12px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '800' }}
+                        >
+                            <Download size={16} />
+                            {!isMobile && "Export Audit"}
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -170,6 +223,23 @@ const Analytics = () => {
             </div>
         </div>
     );
+
+    if (loading && !attendanceData.length && !performanceData.students.length) {
+        return (
+            <Layout role={role}>
+                <div style={{ height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '24px' }}>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <RefreshCw size={48} className="animate-spin" color="#3b82f6" />
+                        <LayoutDashboard size={20} color="#3b82f6" style={{ position: 'absolute' }} />
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <p style={{ fontWeight: '950', color: '#0f172a', fontSize: '14px', letterSpacing: '2px', margin: '0 0 8px' }}>SYNCHRONIZING TELEMETRY</p>
+                        <p style={{ fontWeight: '700', color: '#64748b', fontSize: '11px', textTransform: 'uppercase', opacity: 0.6 }}>Assembling real-time institutional insights...</p>
+                    </div>
+                </div>
+            </Layout>
+        );
+    }
 
     if (error) {
         return (
@@ -193,16 +263,6 @@ const Analytics = () => {
 
     return (
         <Layout role={role}>
-            <div style={{ position: 'relative' }}>
-                {loading && !attendanceData.length && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '24px' }}>
-                        <div style={{ textAlign: 'center' }}>
-                            <TrendingUp size={32} className="animate-bounce" color="#3b82f6" style={{ margin: '0 auto 16px' }} />
-                            <p style={{ fontSize: '14px', fontWeight: '700' }}>Syncing Models...</p>
-                        </div>
-                    </div>
-                )}
-
                 {renderHeader()}
 
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '20px', marginBottom: '24px' }}>
