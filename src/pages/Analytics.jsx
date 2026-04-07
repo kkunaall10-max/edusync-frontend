@@ -29,6 +29,7 @@ const Analytics = () => {
     const [subjectData, setSubjectData] = useState([]);
     const [feeData, setFeeData] = useState({ summary: [], trends: [] });
     const [classStats, setClassStats] = useState([]);
+    const [bulkReport, setBulkReport] = useState([]); // State for consolidated class audit
 
     // Filters
     const [filters, setFilters] = useState({
@@ -64,12 +65,14 @@ const Analytics = () => {
             if (subRes.data.success) setSubjectData(subRes.data.data);
 
             if (userRole === 'principal') {
-                const [feeRes, classRes] = await Promise.all([
+                const [feeRes, classRes, bulkRes] = await Promise.all([
                     apiClient.get(`/analytics/fees`, config),
-                    apiClient.get(`/analytics/classes`, config)
+                    apiClient.get(`/analytics/classes`, config),
+                    apiClient.get(`/analytics/bulk-report`, config)
                 ]);
                 if (feeRes.data.success) setFeeData(feeRes.data.data);
                 if (classRes.data.success) setClassStats(classRes.data.data);
+                if (bulkRes.data.success) setBulkReport(bulkRes.data.data);
             }
         } catch (err) {
             console.error("Analytics fetch error:", err);
@@ -158,11 +161,17 @@ const Analytics = () => {
             // Header
             let csvRows = [`"EduSync Academic & Fiscal Audit - ${timestamp}"`, `""`];
             
-            // Student Performance Section
-            csvRows.push(`"STUDENT PERFORMANCE (${filters.class})"`);
-            csvRows.push(`"Name","Roll Number","Percentage"`);
-            performanceData.students.forEach(s => {
-                csvRows.push(`"${s.name}","${s.roll}","${s.percentage}%"`);
+            // Unified Audit Section
+            csvRows.push(`"STUDENT PERFORMANCE AUDIT (${filters.class})"`);
+            csvRows.push(`"Name","Roll Number","Attendance %","Academic %","Fee Status"`);
+            
+            const reportData = (filters.class === 'All' ? performanceData.weakStudents : bulkReport);
+            
+            reportData.forEach(s => {
+                const ac = filters.class === 'All' ? s.percentage : s.academic;
+                const fe = filters.class === 'All' ? "N/A" : s.fees;
+                const att = filters.class === 'All' ? "N/A" : `${s.attendance}%`;
+                csvRows.push(`"${s.name}","${s.roll}","${att}","${ac}%","${fe}"`);
             });
             csvRows.push(`""`);
             
@@ -174,12 +183,14 @@ const Analytics = () => {
             });
             csvRows.push(`""`);
             
-            // Fiscal Summary
-            csvRows.push(`"FISCAL LIQUIDITY SUMMARY"`);
-            csvRows.push(`"Status","Count"`);
-            feeData.summary.forEach(s => {
-                csvRows.push(`"${s.name}","${s.value}"`);
-            });
+            // Fiscal Summary (Principal Only)
+            if (role === 'principal') {
+                csvRows.push(`"FISCAL LIQUIDITY SUMMARY"`);
+                csvRows.push(`"Status","Count"`);
+                feeData.summary.forEach(s => {
+                    csvRows.push(`"${s.name}","${s.value}"`);
+                });
+            }
 
             const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
             const encodedUri = encodeURI(csvContent);
@@ -256,6 +267,21 @@ const Analytics = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
+                    <div style={{ 
+                        background: '#f0fdf4', 
+                        color: '#166534', 
+                        padding: '8px 16px', 
+                        borderRadius: '12px', 
+                        fontSize: '11px', 
+                        fontWeight: '900', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '6px',
+                        border: '1px solid #dcfce7'
+                    }}>
+                        <div style={{ width: '6px', height: '6px', background: '#22c55e', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+                        LIVE SYNC ACTIVE
+                    </div>
                     <button 
                         onClick={() => fetchData(role, user?.email)}
                         style={{ background: 'white', border: '1px solid #f1f5f9', borderRadius: '14px', color: '#0f172a', padding: '12px 14px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '800' }}
@@ -489,75 +515,110 @@ const Analytics = () => {
                         </div>
                     </div>
 
-                    {/* Priority Intervention Table / Student Ledger */}
+                    {/* Unified Academic & Fiscal Audit Matrix */}
                     <div style={{ ...glassStyle, overflowX: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#0f172a' }}>
-                                {filters.class === 'All' ? "Critical Interventions" : `${filters.class} Performance Ledger`}
+                                {filters.class === 'All' ? "Critical Institutional Interventions" : `Live ${filters.class} Audit Matrix`}
                             </h4>
                             <div style={{ 
                                 display: 'flex', 
                                 alignItems: 'center', 
                                 gap: '8px', 
-                                background: filters.class === 'All' ? '#fef2f2' : '#f0fdf4', 
-                                color: filters.class === 'All' ? '#ef4444' : '#10b981', 
-                                border: `1px solid ${filters.class === 'All' ? '#fee2e2' : '#dcfce7'}`, 
+                                background: filters.class === 'All' ? '#fef2f2' : '#f0f9ff', 
+                                color: filters.class === 'All' ? '#ef4444' : '#0ea5e9', 
+                                border: `1px solid ${filters.class === 'All' ? '#fee2e2' : '#e0f2fe'}`, 
                                 padding: '8px 16px', 
                                 borderRadius: '14px', 
                                 fontSize: '11px', 
                                 fontWeight: '900' 
                             }}>
-                                <AlertCircle size={16} /> 
+                                <LayoutDashboard size={14} /> 
                                 {filters.class === 'All' 
                                     ? `${performanceData.weakStudents.length} RISKY PROFILES` 
-                                    : `${performanceData.students.length} ENROLLED STUDENTS`}
+                                    : `${bulkReport.length} ACTIVE AUDITS`}
                             </div>
                         </div>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                             <thead style={{ borderBottom: '2px solid #f1f5f9' }}>
                                 <tr>
-                                    <th style={{ textAlign: 'left', padding: '16px 12px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>Dossier Name</th>
-                                    <th style={{ textAlign: 'left', padding: '16px 12px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>Roll</th>
-                                    <th style={{ textAlign: 'left', padding: '16px 12px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>Status Quo</th>
+                                    <th style={{ textAlign: 'left', padding: '16px 12px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>Identity</th>
+                                    <th style={{ textAlign: 'left', padding: '16px 12px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>Attendance</th>
+                                    <th style={{ textAlign: 'left', padding: '16px 12px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>Academics</th>
+                                    <th style={{ textAlign: 'left', padding: '16px 12px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>Fiscal</th>
                                     <th style={{ textAlign: 'right', padding: '16px 12px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {(filters.class === 'All' ? performanceData.weakStudents : performanceData.students).length > 0 ? 
-                                (filters.class === 'All' ? performanceData.weakStudents : performanceData.students).map((s, idx) => (
-                                    <tr key={idx} style={{ borderBottom: '1px solid #f8fafc' }} className="group">
-                                        <td style={{ padding: '18px 12px', fontWeight: '900', color: '#0f172a' }}>{s.name}</td>
-                                        <td style={{ padding: '18px 12px', color: '#64748b', fontWeight: '700' }}>{s.roll}</td>
-                                        <td style={{ padding: '18px 12px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ flex: 1, height: '8px', background: '#f1f5f9', borderRadius: '4px', minWidth: '80px', overflow: 'hidden' }}>
-                                                    <div style={{ 
-                                                        width: `${s.percentage}%`, 
-                                                        height: '100%', 
-                                                        background: s.percentage > 75 ? '#10b981' : s.percentage > 40 ? '#f59e0b' : '#ef4444', 
-                                                        borderRadius: '4px' 
-                                                    }} />
+                                {(filters.class === 'All' ? performanceData.weakStudents : bulkReport).length > 0 ? 
+                                (filters.class === 'All' ? performanceData.weakStudents : bulkReport).map((s, idx) => {
+                                    const percent = filters.class === 'All' ? s.percentage : s.academic;
+                                    const feeStatus = filters.class === 'All' ? 'unknown' : s.fees;
+                                    
+                                    return (
+                                        <tr key={idx} style={{ borderBottom: '1px solid #f8fafc' }} className="group">
+                                            <td style={{ padding: '18px 12px' }}>
+                                                <div style={{ fontWeight: '900', color: '#0f172a' }}>{s.name}</div>
+                                                <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700' }}>ROLL: {s.roll}</div>
+                                            </td>
+                                            
+                                            <td style={{ padding: '18px 12px' }}>
+                                                {filters.class === 'All' ? (
+                                                    <span style={{ color: '#94a3b8' }}>--</span>
+                                                ) : (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <div style={{ width: '40px', height: '4px', background: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
+                                                            <div style={{ width: `${s.attendance}%`, height: '100%', background: s.attendance > 75 ? '#10b981' : '#ef4444' }} />
+                                                        </div>
+                                                        <span style={{ fontWeight: '800', fontSize: '11px', color: s.attendance > 75 ? '#10b981' : '#ef4444' }}>{s.attendance}%</span>
+                                                    </div>
+                                                )}
+                                            </td>
+
+                                            <td style={{ padding: '18px 12px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div style={{ width: '40px', height: '4px', background: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
+                                                        <div style={{ width: `${percent}%`, height: '100%', background: percent > 75 ? '#8b5cf6' : percent > 40 ? '#f59e0b' : '#ef4444' }} />
+                                                    </div>
+                                                    <span style={{ fontWeight: '800', fontSize: '11px', color: percent > 75 ? '#8b5cf6' : percent > 40 ? '#f59e0b' : '#ef4444' }}>{percent}%</span>
                                                 </div>
-                                                <span style={{ 
-                                                    color: s.percentage > 75 ? '#10b981' : s.percentage > 40 ? '#f59e0b' : '#ef4444', 
-                                                    fontWeight: '900', 
-                                                    fontSize: '12px' 
-                                                }}>{s.percentage}%</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '18px 12px', textAlign: 'right' }}>
-                                            <button 
-                                                onClick={() => navigate(`/dashboard/students?search=${s.name}`)}
-                                                style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#0f172a', padding: '8px 16px', borderRadius: '12px', cursor: 'pointer', fontSize: '11px', fontWeight: '900', transition: 'all 0.2s' }}
-                                            >
-                                                Deep Audit
-                                            </button>
-                                        </td>
-                                    </tr>
-                                )) : (
+                                            </td>
+
+                                            <td style={{ padding: '18px 12px' }}>
+                                                {filters.class === 'All' ? (
+                                                    <span style={{ color: '#94a3b8' }}>--</span>
+                                                ) : (
+                                                    <span style={{ 
+                                                        px: '8x', 
+                                                        py: '4px', 
+                                                        borderRadius: '8px', 
+                                                        fontSize: '10px', 
+                                                        fontWeight: '900', 
+                                                        textTransform: 'uppercase',
+                                                        color: feeStatus === 'paid' ? '#10b981' : feeStatus === 'pending' ? '#f59e0b' : '#ef4444',
+                                                        background: feeStatus === 'paid' ? '#f0fdf4' : feeStatus === 'pending' ? '#fffbeb' : '#fef2f2',
+                                                        padding: '4px 8px',
+                                                        border: `1px solid ${feeStatus === 'paid' ? '#dcfce7' : feeStatus === 'pending' ? '#fef3c7' : '#fee2e2'}`
+                                                    }}>
+                                                        {feeStatus}
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            <td style={{ padding: '18px 12px', textAlign: 'right' }}>
+                                                <button 
+                                                    onClick={() => navigate(`/dashboard/students?search=${s.name}`)}
+                                                    style={{ background: 'white', border: '1px solid #e2e8f0', color: '#0f172a', padding: '8px 16px', borderRadius: '12px', cursor: 'pointer', fontSize: '11px', fontWeight: '900', transition: 'all 0.2s' }}
+                                                >
+                                                    Deep Audit
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                }) : (
                                     <tr>
-                                        <td colSpan="4" style={{ padding: '60px', textAlign: 'center', color: '#94a3b8', fontWeight: '700', fontSize: '14px' }}>
-                                            {filters.class === 'All' ? "All student profiles meeting normative standards." : "No student records identified for this solo class." }
+                                        <td colSpan="5" style={{ padding: '60px', textAlign: 'center', color: '#94a3b8', fontWeight: '700', fontSize: '14px' }}>
+                                            {filters.class === 'All' ? "Institutional health is optimal. No critical interventions identified." : "Live data stream empty for this specific solo class." }
                                         </td>
                                     </tr>
                                 )}
