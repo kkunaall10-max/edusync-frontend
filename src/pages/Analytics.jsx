@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
+import apiClient from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import Layout from '../components/Layout';
 import { 
     LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
-    ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area 
+    ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area,
+    ReferenceLine, LabelList
 } from 'recharts';
 import { 
     TrendingUp, Users, BookOpen, AlertCircle, 
     Download, LayoutDashboard, ChevronRight, Menu, X,
-    Calendar, DollarSign, Filter, MoreHorizontal
+    Calendar, DollarSign, Filter, RefreshCw
 } from 'lucide-react';
 
 const API = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/analytics';
@@ -19,7 +21,7 @@ const Analytics = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [menuOpen, setMenuOpen] = useState(false);
+    const [error, setError] = useState(null);
     
     // Data states
     const [attendanceData, setAttendanceData] = useState([]);
@@ -36,70 +38,97 @@ const Analytics = () => {
 
     const navigate = useNavigate();
 
+    // Secure Data Fetching with Centralized ApiClient
+    const fetchData = useCallback(async (userRole, email) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const config = {
+                params: { ...filters, role: userRole, email }
+            };
+            
+            const [attRes, perfRes, subRes] = await Promise.all([
+                apiClient.get(`/analytics/attendance`, config),
+                apiClient.get(`/analytics/performance`, config),
+                apiClient.get(`/analytics/subjects`, config)
+            ]);
+
+            // Map data from { success, data } format
+            if (attRes.data.success) setAttendanceData(attRes.data.data);
+            if (perfRes.data.success) setPerformanceData(perfRes.data.data);
+            if (subRes.data.success) setSubjectData(subRes.data.data);
+
+            if (userRole === 'principal') {
+                const feeRes = await apiClient.get(`/analytics/fees`, config);
+                if (feeRes.data.success) setFeeData(feeRes.data.data);
+            }
+        } catch (err) {
+            console.error("Analytics fetch error:", err);
+            setError(err.response?.data?.error || err.message);
+            if (err.message.includes('session')) navigate('/login');
+        } finally {
+            setLoading(false);
+        }
+    }, [filters, navigate]);
+
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
         window.addEventListener('resize', handleResize);
         
         const init = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { navigate('/login'); return; }
+            // Check session and handle potential refresh token errors
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             
-            setUser(user);
-            const userRole = user.user_metadata?.role || 'teacher';
+            if (sessionError || !session) {
+                console.error("Session error:", sessionError);
+                navigate('/login');
+                return;
+            }
+            
+            const userData = session.user;
+            setUser(userData);
+            const userRole = userData.user_metadata?.role || 'teacher';
             setRole(userRole);
             
-            fetchData(userRole, user.email);
+            fetchData(userRole, userData.email);
         };
         
         init();
-        return () => window.removeEventListener('resize', handleResize);
-    }, [filters]);
 
-    const fetchData = async (userRole, email) => {
-        setLoading(true);
-        try {
-            const params = { ...filters, role: userRole, email };
-            
-            const [attRes, perfRes, subRes, feeRes] = await Promise.all([
-                axios.get(`${API}/attendance`, { params }),
-                axios.get(`${API}/performance`, { params }),
-                axios.get(`${API}/subjects`, { params }),
-                userRole === 'principal' ? axios.get(`${API}/fees`, { params }) : Promise.resolve({ data: { summary: [], trends: [] } })
-            ]);
+        // Listen for auth changes to prevent stale refresh token errors
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
+                navigate('/login');
+            }
+        });
 
-            setAttendanceData(attRes.data);
-            setPerformanceData(perfRes.data);
-            setSubjectData(subRes.data);
-            setFeeData(feeRes.data);
-        } catch (err) {
-            console.error("Analytics fetch error:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            subscription.unsubscribe();
+        };
+    }, [filters, navigate, fetchData]);
 
     const glassStyle = {
-        background: 'rgba(255, 255, 255, 0.1)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
+        background: 'rgba(255, 255, 255, 0.05)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
         borderRadius: '24px',
         padding: '24px',
-        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.2)'
+        boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)'
     };
 
     const renderHeader = () => (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
             <div>
-                <h1 style={{ fontSize: '32px', fontWeight: '900', margin: 0, color: 'white' }}>Academic Insights</h1>
-                <p style={{ color: 'rgba(255,255,255,0.6)', margin: '4px 0 0' }}>Real-time school performance analytics</p>
+                <h1 style={{ fontSize: '28px', fontWeight: '900', margin: 0, color: 'white', letterSpacing: '-0.5px' }}>Dashboard Intelligence</h1>
+                <p style={{ color: 'rgba(255,255,255,0.5)', margin: '4px 0 0', fontSize: '14px', fontWeight: '500' }}>Comprehensive data visualization for {role === 'principal' ? 'Full Institution' : 'Assigned Class'}</p>
             </div>
             
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 {role === 'principal' && (
-                    <>
+                    <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)' }}>
                         <select 
-                            style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', color: 'white', padding: '10px 16px', outline: 'none' }}
+                            style={{ background: 'transparent', border: 'none', color: 'white', padding: '8px 12px', fontSize: '13px', fontWeight: '700', outline: 'none', cursor: 'pointer' }}
                             value={filters.class}
                             onChange={(e) => setFilters({...filters, class: e.target.value})}
                         >
@@ -109,7 +138,7 @@ const Analytics = () => {
                             <option value="Class 5" style={{color:'black'}}>Class 5</option>
                         </select>
                         <select 
-                            style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', color: 'white', padding: '10px 16px', outline: 'none' }}
+                            style={{ background: 'transparent', border: 'none', color: 'white', padding: '8px 12px', fontSize: '13px', fontWeight: '700', outline: 'none', cursor: 'pointer' }}
                             value={filters.section}
                             onChange={(e) => setFilters({...filters, section: e.target.value})}
                         >
@@ -117,154 +146,231 @@ const Analytics = () => {
                             <option value="A" style={{color:'black'}}>Section A</option>
                             <option value="B" style={{color:'black'}}>Section B</option>
                         </select>
-                    </>
+                    </div>
                 )}
-                <button style={{ background: '#2563eb', border: 'none', borderRadius: '12px', color: 'white', padding: '10px 20px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Download size={18} /> Export
+                <button 
+                    onClick={() => fetchData(role, user?.email)}
+                    style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '12px', color: 'white', padding: '10px', cursor: 'pointer' }}
+                >
+                    <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                 </button>
             </div>
         </div>
     );
 
     const StatCard = ({ title, value, sub, icon: Icon, color }) => (
-        <div style={{ ...glassStyle, display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{ background: `${color}20`, padding: '16px', borderRadius: '16px' }}>
-                <Icon color={color} size={28} />
+        <div style={{ ...glassStyle, display: 'flex', alignItems: 'center', gap: '20px', padding: '20px' }}>
+            <div style={{ background: `${color}15`, padding: '12px', borderRadius: '14px', border: `1px solid ${color}30` }}>
+                <Icon color={color} size={24} />
             </div>
             <div>
-                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{title}</p>
-                <h3 style={{ fontSize: '24px', fontWeight: '900', margin: 0, color: 'white' }}>{value}</h3>
-                <p style={{ fontSize: '12px', color: color, margin: '4px 0 0', fontWeight: '700' }}>{sub}</p>
+                <p style={{ fontSize: '12px', fontWeight: '700', color: 'rgba(255,255,255,0.4)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{title}</p>
+                <h3 style={{ fontSize: '24px', fontWeight: '900', margin: '4px 0 0', color: 'white' }}>{value}</h3>
+                <p style={{ fontSize: '11px', color: color, margin: '2px 0 0', fontWeight: '800' }}>{sub}</p>
             </div>
         </div>
     );
 
-    if (loading && !attendanceData.length) {
+    if (error) {
         return (
-            <div style={{ minHeight: '100vh', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                <div style={{ textAlign: 'center' }}>
-                    <TrendingUp size={48} className="animate-bounce" style={{ margin: '0 auto 20px', color: '#3b82f6' }} />
-                    <h2>Compiling Analytic Models...</h2>
+            <Layout role={role}>
+                <div style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ ...glassStyle, textAlign: 'center', maxWidth: '400px' }}>
+                        <AlertCircle size={48} color="#ef4444" style={{ margin: '0 auto 16px' }} />
+                        <h3 style={{ margin: '0 0 8px' }}>Intelligence Engine Failure</h3>
+                        <p style={{ fontSize: '14px', opacity: 0.7, marginBottom: '20px' }}>{error}</p>
+                        <button 
+                            onClick={() => window.location.reload()}
+                            style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '10px 24px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}
+                        >
+                            Reconnect System
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </Layout>
         );
     }
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0f172a', color: 'white', padding: isMobile ? '20px' : '40px', position: 'relative', overflow: 'hidden' }}>
-            {/* Background blobs */}
-            <div style={{ position: 'fixed', top: '-10%', left: '-10%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(37,99,235,0.15) 0%, rgba(0,0,0,0) 70%)', zIndex: 0 }} />
-            <div style={{ position: 'fixed', bottom: '-10%', right: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, rgba(0,0,0,0) 70%)', zIndex: 0 }} />
+        <Layout role={role}>
+            <div style={{ position: 'relative' }}>
+                {loading && !attendanceData.length && (
+                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '24px' }}>
+                        <div style={{ textAlign: 'center' }}>
+                            <TrendingUp size={32} className="animate-bounce" color="#3b82f6" style={{ margin: '0 auto 16px' }} />
+                            <p style={{ fontSize: '14px', fontWeight: '700' }}>Syncing Models...</p>
+                        </div>
+                    </div>
+                )}
 
-            <div style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', margin: '0 auto' }}>
                 {renderHeader()}
 
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
-                    <StatCard title="Avg Attendance" value={attendanceData.length > 0 ? `${attendanceData[attendanceData.length-1].present}%` : '0%'} sub="+2.5% from last week" icon={Calendar} color="#3b82f6" />
-                    <StatCard title="Academic Average" value={`${performanceData.average}%`} sub="Above board average" icon={TrendingUp} color="#10b981" />
-                    <StatCard title="Total Students" value={performanceData.students.length} sub="Active enrollment" icon={Users} color="#8b5cf6" />
-                    <StatCard title="Weak Profiles" value={performanceData.weakStudents.length} sub="Need attention" icon={AlertCircle} color="#ef4444" />
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '20px', marginBottom: '24px' }}>
+                    <StatCard 
+                        title="Avg Attendance" 
+                        value={attendanceData.length > 0 ? `${attendanceData[attendanceData.length-1].present}%` : '0%'} 
+                        sub="System Normative" icon={Calendar} color="#3b82f6" 
+                    />
+                    <StatCard 
+                        title="Academic Average" 
+                        value={`${performanceData.average || 0}%`} 
+                        sub="Standard Deviation: 4.2" icon={TrendingUp} color="#10b981" 
+                    />
+                    <StatCard 
+                        title="Total Active" 
+                        value={performanceData.students.length} 
+                        sub="Verified Identities" icon={Users} color="#8b5cf6" 
+                    />
+                    <StatCard 
+                        title="Risk Profiles" 
+                        value={performanceData.weakStudents.length} 
+                        sub="Intervention Needed" icon={AlertCircle} color="#ef4444" 
+                    />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '24px', marginBottom: '32px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '20px', marginBottom: '24px' }}>
                     {/* Attendance Trend */}
-                    <div style={{ ...glassStyle, gridColumn: isMobile ? '1' : 'span 2' }}>
-                        <h4 style={{ margin: '0 0 24px', fontSize: '18px', fontWeight: '800' }}>Attendance Trends (Last {filters.days} Days)</h4>
-                        <div style={{ height: '300px' }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={attendanceData}>
-                                    <defs>
-                                        <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.4)" fontSize={12} tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, {month:'short', day:'numeric'})} />
-                                    <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} />
-                                    <Tooltip contentStyle={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px' }} />
-                                    <Area type="monotone" dataKey="present" stroke="#3b82f6" fillOpacity={1} fill="url(#colorPresent)" strokeWidth={3} />
-                                    <Line type="monotone" dataKey="absent" stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" />
-                                </AreaChart>
-                            </ResponsiveContainer>
+                    <div style={glassStyle}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '800' }}>Attendance Trajectory</h4>
+                            <div style={{ display: 'flex', gap: '12px', fontSize: '11px', fontWeight: '700' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }} /> Present</span>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} /> Absent</span>
+                            </div>
+                        </div>
+                        <div style={{ height: '320px', width: '100%' }}>
+                            {attendanceData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={attendanceData}>
+                                        <defs>
+                                            <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                        <XAxis 
+                                            dataKey="date" 
+                                            stroke="rgba(255,255,255,0.3)" 
+                                            fontSize={10} 
+                                            tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, {month:'short', day:'numeric'})} 
+                                        />
+                                        <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} />
+                                        <Tooltip 
+                                            contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }} 
+                                            itemStyle={{ fontWeight: '700' }}
+                                        />
+                                        <Area type="monotone" dataKey="present" stroke="#3b82f6" fillOpacity={1} fill="url(#colorAtt)" strokeWidth={3} animationDuration={1500} />
+                                        <Line type="monotone" dataKey="absent" stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>No telemetry data available</div>
+                            )}
                         </div>
                     </div>
 
-                    {/* Fee Distribution (Principal Only) */}
+                    {/* Fee Analysis */}
                     {role === 'principal' && (
                         <div style={glassStyle}>
-                            <h4 style={{ margin: '0 0 24px', fontSize: '18px', fontWeight: '800' }}>Fee Collection Status</h4>
-                            <div style={{ height: '300px' }}>
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie data={feeData.summary} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                                            {feeData.summary.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-                                        </Pie>
-                                        <Tooltip />
-                                        <Legend verticalAlign="bottom" height={36}/>
-                                    </PieChart>
-                                </ResponsiveContainer>
+                            <h4 style={{ margin: '0 0 24px', fontSize: '16px', fontWeight: '800' }}>Fiscal Liquidity</h4>
+                            <div style={{ height: '320px', width: '100%' }}>
+                                {feeData.summary.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie 
+                                                data={feeData.summary} 
+                                                cx="50%" cy="50%" 
+                                                innerRadius={70} 
+                                                outerRadius={95} 
+                                                paddingAngle={8} 
+                                                dataKey="value"
+                                                animationBegin={200}
+                                            >
+                                                {feeData.summary.map((entry, index) => <Cell key={index} fill={entry.color} stroke="none" />)}
+                                            </Pie>
+                                            <Tooltip contentStyle={{ background: '#1e293b', border: 'none', borderRadius: '10px' }} />
+                                            <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: '700', paddingTop: '20px' }} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>Awaiting fiscal audit...</div>
+                                )}
                             </div>
                         </div>
                     )}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '24px' }}>
-                    {/* Subject Performance */}
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap: '20px' }}>
+                    {/* Subject Distribution */}
                     <div style={glassStyle}>
-                        <h4 style={{ margin: '0 0 24px', fontSize: '18px', fontWeight: '800' }}>Subject Average %</h4>
-                        <div style={{ height: '300px' }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={subjectData} layout="vertical">
-                                    <XAxis type="number" hide />
-                                    <YAxis dataKey="subject" type="category" stroke="rgba(255,255,255,0.6)" fontSize={12} width={80} />
-                                    <Tooltip contentStyle={{ background: 'rgba(15,23,42,0.9)', borderRadius: '12px' }} />
-                                    <Bar dataKey="average" radius={[0, 4, 4, 0]}>
-                                        {subjectData.map((entry, index) => (
-                                            <Cell key={index} fill={entry.average > 75 ? '#10b981' : entry.average > 40 ? '#f59e0b' : '#ef4444'} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
+                        <h4 style={{ margin: '0 0 24px', fontSize: '16px', fontWeight: '800' }}>Subject Proficiency</h4>
+                        <div style={{ height: '320px', width: '100%' }}>
+                            {subjectData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={subjectData} layout="vertical" margin={{ left: -20, right: 20 }}>
+                                        <XAxis type="number" hide />
+                                        <YAxis dataKey="subject" type="category" stroke="rgba(255,255,255,0.5)" fontSize={10} width={80} tickLine={false} axisLine={false} />
+                                        <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ background: '#1e293b', border: 'none', borderRadius: '10px' }} />
+                                        <Bar dataKey="average" radius={[0, 6, 6, 0]} barSize={20}>
+                                            {subjectData.map((entry, index) => (
+                                                <Cell key={index} fill={entry.average > 75 ? '#10b981' : entry.average > 40 ? '#f59e0b' : '#ef4444'} />
+                                            ))}
+                                            <LabelList dataKey="average" position="right" style={{ fill: 'rgba(255,255,255,0.6)', fontSize: '10px', fontWeight: '700' }} formatter={(v) => `${v}%`} />
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>No academic records found</div>
+                            )}
                         </div>
                     </div>
 
-                    {/* Weak Students Tracker */}
-                    <div style={{ ...glassStyle, gridColumn: isMobile ? '1' : 'span 2', maxHeight: '400px', overflowY: 'auto' }}>
+                    {/* Priority Intervention Table */}
+                    <div style={{ ...glassStyle, overflowX: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '800' }}>Priority Intervention (Weak Students)</h4>
-                            <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700' }}>
-                                {performanceData.weakStudents.length} Students at Risk
-                            </span>
+                            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '800' }}>Critical Interventions</h4>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '6px 12px', borderRadius: '10px', fontSize: '11px', fontWeight: '800' }}>
+                                <AlertCircle size={14} /> {performanceData.weakStudents.length} RISKY PROFILES
+                            </div>
                         </div>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <th style={{ textAlign: 'left', padding: '12px', fontSize: '12px', opacity: 0.5 }}>Student Name</th>
-                                    <th style={{ textAlign: 'left', padding: '12px', fontSize: '12px', opacity: 0.5 }}>Roll</th>
-                                    <th style={{ textAlign: 'left', padding: '12px', fontSize: '12px', opacity: 0.5 }}>Academic %</th>
-                                    <th style={{ textAlign: 'right', padding: '12px', fontSize: '12px', opacity: 0.5 }}>Actions</th>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                            <thead style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                <tr>
+                                    <th style={{ textAlign: 'left', padding: '12px', color: 'rgba(255,255,255,0.3)', fontWeight: '700', textTransform: 'uppercase', fontSize: '11px' }}>Dossier Name</th>
+                                    <th style={{ textAlign: 'left', padding: '12px', color: 'rgba(255,255,255,0.3)', fontWeight: '700', textTransform: 'uppercase', fontSize: '11px' }}>Roll</th>
+                                    <th style={{ textAlign: 'left', padding: '12px', color: 'rgba(255,255,255,0.3)', fontWeight: '700', textTransform: 'uppercase', fontSize: '11px' }}>Status Quo</th>
+                                    <th style={{ textAlign: 'right', padding: '12px', color: 'rgba(255,255,255,0.3)', fontWeight: '700', textTransform: 'uppercase', fontSize: '11px' }}>Operational Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {performanceData.weakStudents.map((s, idx) => (
-                                    <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                        <td style={{ padding: '12px', fontWeight: '700' }}>{s.name}</td>
-                                        <td style={{ padding: '12px', opacity: 0.6 }}>{s.roll}</td>
-                                        <td style={{ padding: '12px' }}>
-                                            <span style={{ color: '#ef4444', fontWeight: '900' }}>{s.percentage}%</span>
+                                {performanceData.weakStudents.length > 0 ? performanceData.weakStudents.map((s, idx) => (
+                                    <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                        <td style={{ padding: '14px 12px', fontWeight: '700' }}>{s.name}</td>
+                                        <td style={{ padding: '14px 12px', opacity: 0.5 }}>{s.roll}</td>
+                                        <td style={{ padding: '14px 12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', minWidth: '60px' }}>
+                                                    <div style={{ width: `${s.percentage}%`, height: '100%', background: '#ef4444', borderRadius: '2px' }} />
+                                                </div>
+                                                <span style={{ color: '#ef4444', fontWeight: '900', fontSize: '12px' }}>{s.percentage}%</span>
+                                            </div>
                                         </td>
-                                        <td style={{ padding: '12px', textAlign: 'right' }}>
-                                            <button style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>Focus Profile</button>
+                                        <td style={{ padding: '14px 12px', textAlign: 'right' }}>
+                                            <button style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: '700' }}>Deep Audit</button>
                                         </td>
                                     </tr>
-                                ))}
+                                )) : (
+                                    <tr>
+                                        <td colSpan="4" style={{ padding: '40px', textAlign: 'center', opacity: 0.3 }}>All student profiles meeting normative standards.</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-        </div>
+        </Layout>
     );
 };
 
