@@ -6,8 +6,9 @@ import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 import Layout from '../components/Layout';
 import { 
   Menu, X, Bell, Users, BookOpen, GraduationCap, 
-  Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Search, Plus
+  Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Search, Plus, FileSpreadsheet, Download, AlertCircle
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/students';
 const TEACHERS_API_URL = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/teachers';
@@ -41,6 +42,11 @@ const StudentList = ({ role = 'principal' }) => {
         address: '',
         admission_date: new Date().toISOString().split('T')[0]
     });
+
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [importPreview, setImportPreview] = useState([]);
+    const [isImporting, setIsImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
 
     const navigate = useNavigate();
 
@@ -144,6 +150,74 @@ const StudentList = ({ role = 'principal' }) => {
             } catch (error) {
                 alert('Error deleting student');
             }
+        }
+    };
+
+    const downloadTemplate = () => {
+        const template = [
+            {
+                'Full Name': 'Example Student',
+                'Roll Number': '101',
+                'Class': 'Class 5',
+                'Section': 'A',
+                'Parent Email': 'parent@example.com',
+                'Parent Phone': '9876543210',
+                'Gender': 'male',
+                'Date of Birth': '2010-01-15'
+            }
+        ];
+        const ws = XLSX.utils.json_to_sheet(template);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Students');
+        XLSX.writeFile(wb, 'EduSync_Student_Template.xlsx');
+    };
+
+    const handleFileImport = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const data = evt.target.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet);
+                
+                // Map columns
+                const mappedData = rows.map(row => ({
+                    full_name: row['Full Name'],
+                    roll_number: String(row['Roll Number']),
+                    class: row['Class'],
+                    section: row['Section'],
+                    parent_email: row['Parent Email'],
+                    parent_phone: String(row['Parent Phone'] || ''),
+                    gender: row['Gender'],
+                    date_of_birth: row['Date of Birth']
+                }));
+
+                setImportPreview(mappedData);
+                setImportResult(null);
+                setIsImportModalOpen(true);
+            } catch (err) {
+                alert('Error reading Excel file: ' + err.message);
+            }
+            // Reset input
+            e.target.value = null;
+        };
+        reader.readAsBinaryString(file);
+    };
+
+    const confirmBulkImport = async () => {
+        setIsImporting(true);
+        try {
+            const res = await axios.post(`${API_BASE_URL}/bulk-import`, { students: importPreview });
+            setImportResult(res.data);
+            fetchStudents();
+        } catch (error) {
+            alert('Error during bulk import: ' + (error.response?.data?.error || error.message));
+        } finally {
+            setIsImporting(false);
         }
     };
 
@@ -300,12 +374,26 @@ const StudentList = ({ role = 'principal' }) => {
                                 onChange={(e) => setFilters(prev => ({...prev, search: e.target.value}))}
                             />
                         </div>
-                        <button 
-                            className="bg-blue-600 text-white h-12 px-6 rounded-xl font-bold hover:bg-blue-700 transition"
-                            onClick={() => handleOpenModal()}
-                        >
-                            Add Student
-                        </button>
+                        <div className="flex gap-2">
+                            <button 
+                                className="bg-slate-100 text-slate-700 h-12 px-4 rounded-xl font-bold hover:bg-slate-200 transition flex items-center gap-2"
+                                title="Download Template"
+                                onClick={downloadTemplate}
+                            >
+                                <Download size={18} />
+                            </button>
+                            <label className="bg-emerald-600 text-white h-12 px-6 rounded-xl font-bold hover:bg-emerald-700 transition cursor-pointer flex items-center gap-2">
+                                <FileSpreadsheet size={18} />
+                                Import from Excel
+                                <input type="file" accept=".xlsx, .xls, .csv" hidden onChange={handleFileImport} />
+                            </label>
+                            <button 
+                                className="bg-blue-600 text-white h-12 px-6 rounded-xl font-bold hover:bg-blue-700 transition flex items-center gap-2"
+                                onClick={() => handleOpenModal()}
+                            >
+                                <Plus size={18} /> Add Student
+                            </button>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -395,12 +483,27 @@ const StudentList = ({ role = 'principal' }) => {
                 </div>
                 <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
                     <Search size={18} />
-                    <button 
-                        onClick={() => handleOpenModal()}
-                        style={{...glass, background:'rgba(255,255,255,0.2)', color:'white', border:'none', padding:'6px 12px', borderRadius:'10px', fontSize:'12px', fontWeight:'700', display:'flex', alignItems:'center', gap:'6px', cursor:'pointer'}}
-                    >
-                        <Plus size={16} /> Enroll Student
-                    </button>
+                    <div style={{display:'flex', gap:'8px'}}>
+                        <button 
+                            onClick={downloadTemplate}
+                            title="Download Excel Template"
+                            style={{...glass, background:'rgba(255,255,255,0.1)', color:'white', border:'none', padding:'8px', borderRadius:'10px', cursor:'pointer'}}
+                        >
+                            <Download size={16} />
+                        </button>
+                        <label 
+                            style={{...glass, background:'rgba(16,185,129,0.3)', color:'white', border:'1px solid rgba(16,185,129,0.5)', padding:'6px 12px', borderRadius:'10px', fontSize:'12px', fontWeight:'700', display:'flex', alignItems:'center', gap:'6px', cursor:'pointer'}}
+                        >
+                            <FileSpreadsheet size={16} /> Import
+                            <input type="file" accept=".xlsx, .xls, .csv" hidden onChange={handleFileImport} />
+                        </label>
+                        <button 
+                            onClick={() => handleOpenModal()}
+                            style={{...glass, background:'rgba(37,99,235,0.4)', color:'white', border:'1px solid rgba(37,99,235,0.5)', padding:'6px 12px', borderRadius:'10px', fontSize:'12px', fontWeight:'700', display:'flex', alignItems:'center', gap:'6px', cursor:'pointer'}}
+                        >
+                            <Plus size={16} /> Enroll
+                        </button>
+                    </div>
                     <div style={{width:'32px', height:'32px', borderRadius:'50%', background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700', fontSize:'12px'}}>
                         {user?.email?.charAt(0).toUpperCase()}
                     </div>
@@ -459,36 +562,119 @@ const StudentList = ({ role = 'principal' }) => {
 
             {isModalOpen && (
                 <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', backdropFilter:'blur(5px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', zIndex:100}}>
-                    <div style={{...glass, background:'rgba(40,40,40,0.8)', border:'1px solid rgba(255,255,255,0.1)', width:'100%', maxWidth:'500px', padding:'24px', position:'relative'}}>
-                        <button onClick={() => setIsModalOpen(false)} style={{position:'absolute', right:'20px', top:'20px', background:'none', border:'none', color:'white', cursor:'pointer'}}><X size={20} /></button>
+                    <div style={{...glass, background: isTeacher ? 'rgba(40,40,40,0.8)' : 'white', border: isTeacher ? '1px solid rgba(255,255,255,0.1)' : '1px solid white', width:'100%', maxWidth:'500px', padding:'24px', position:'relative', color: isTeacher ? 'white' : 'inherit', borderRadius: '24px'}}>
+                        <button onClick={() => setIsModalOpen(false)} style={{position:'absolute', right:'20px', top:'20px', background:'none', border:'none', color: isTeacher ? 'white' : '#64748B', cursor:'pointer'}}><X size={20} /></button>
                         <h3 style={{fontSize:'20px', fontWeight:'800', marginBottom:'20px'}}>Learner Dossier</h3>
                         <form onSubmit={handleSave} style={{display:'flex', flexDirection:'column', gap:'16px'}}>
                             <div>
                                 <label style={styles.label}>Full Name</label>
-                                <input style={{...glass, background:'rgba(255,255,255,0.05)', width:'100%', padding:'12px', boxSizing:'border-box', border:'none', color:'white'}} value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} required />
+                                <input style={{...glass, background: isTeacher ? 'rgba(255,255,255,0.05)' : '#F8FAFC', width:'100%', padding:'12px', boxSizing:'border-box', border: isTeacher ? 'none' : '1px solid #E2E8F0', color: isTeacher ? 'white' : 'black', borderRadius: '12px'}} value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} required />
                             </div>
                             <div>
                                 <label style={styles.label}>Roll Number</label>
-                                <input style={{...glass, background:'rgba(255,255,255,0.05)', width:'100%', padding:'12px', boxSizing:'border-box', border:'none', color:'white'}} value={formData.roll_number} onChange={e => setFormData({...formData, roll_number: e.target.value})} required />
+                                <input style={{...glass, background: isTeacher ? 'rgba(255,255,255,0.05)' : '#F8FAFC', width:'100%', padding:'12px', boxSizing:'border-box', border: isTeacher ? 'none' : '1px solid #E2E8F0', color: isTeacher ? 'white' : 'black', borderRadius: '12px'}} value={formData.roll_number} onChange={e => setFormData({...formData, roll_number: e.target.value})} required />
                             </div>
                             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px'}}>
                                 <div>
                                     <label style={styles.label}>Class</label>
-                                    <select style={{...glass, background:'rgba(255,255,255,0.05)', width:'100%', padding:'12px', border:'none', color:'white'}} value={formData.class} onChange={e => setFormData({...formData, class: e.target.value})} required>
-                                        <option value="" style={{color:'black'}}>Class</option>
-                                        {SCHOOL_CLASSES.map(c => <option key={c} value={c} style={{color:'black'}}>{c}</option>)}
+                                    <select style={{...glass, background: isTeacher ? 'rgba(255,255,255,0.05)' : '#F8FAFC', width:'100%', padding:'12px', border: isTeacher ? 'none' : '1px solid #E2E8F0', color: isTeacher ? 'white' : 'black', borderRadius: '12px'}} value={formData.class} onChange={e => setFormData({...formData, class: e.target.value})} required>
+                                        <option value="">Class</option>
+                                        {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label style={styles.label}>Section</label>
-                                    <select style={{...glass, background:'rgba(255,255,255,0.05)', width:'100%', padding:'12px', border:'none', color:'white'}} value={formData.section} onChange={e => setFormData({...formData, section: e.target.value})} required>
-                                        <option value="" style={{color:'black'}}>Section</option>
-                                        {SCHOOL_SECTIONS.map(s => <option key={s} value={s} style={{color:'black'}}>{s}</option>)}
+                                    <select style={{...glass, background: isTeacher ? 'rgba(255,255,255,0.05)' : '#F8FAFC', width:'100%', padding:'12px', border: isTeacher ? 'none' : '1px solid #E2E8F0', color: isTeacher ? 'white' : 'black', borderRadius: '12px'}} value={formData.section} onChange={e => setFormData({...formData, section: e.target.value})} required>
+                                        <option value="">Section</option>
+                                        {SCHOOL_SECTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>
                                 </div>
                             </div>
                             <button type="submit" style={{marginTop:'10px', background:'#2563EB', color:'white', border:'none', padding:'14px', borderRadius:'10px', fontWeight:'800', cursor:'pointer'}}>Sync Data</button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {isImportModalOpen && (
+                <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', backdropFilter:'blur(5px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', zIndex:110}}>
+                    <div style={{...glass, background: isTeacher ? 'rgba(30,30,30,0.9)' : 'white', width:'100%', maxWidth:'700px', padding:'32px', borderRadius:'24px', color: isTeacher ? 'white' : 'inherit', maxHeight:'80vh', overflowY:'auto'}}>
+                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'24px'}}>
+                            <h3 style={{fontSize:'22px', fontWeight:'900', margin:0}}>Import Students</h3>
+                            <button onClick={() => setIsImportModalOpen(false)} style={{background:'none', border:'none', color: isTeacher ? 'white' : '#64748B', cursor:'pointer'}}><X size={24} /></button>
+                        </div>
+
+                        {!importResult ? (
+                            <>
+                                <p style={{fontSize:'14px', opacity:0.7, marginBottom:'20px'}}>
+                                    We found <b>{importPreview.length} students</b> in your file. Please review the first few rows below:
+                                </p>
+                                <div style={{overflowX:'auto', marginBottom:'24px'}}>
+                                    <table style={{width:'100%', borderCollapse:'collapse', fontSize:'13px'}}>
+                                        <thead>
+                                            <tr style={{borderBottom:'1px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.05)'}}>
+                                                <th style={{padding:'8px', textAlign:'left'}}>Roll</th>
+                                                <th style={{padding:'8px', textAlign:'left'}}>Name</th>
+                                                <th style={{padding:'8px', textAlign:'left'}}>Class</th>
+                                                <th style={{padding:'8px', textAlign:'left'}}>Parent Phone</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {importPreview.slice(0, 5).map((row, idx) => (
+                                                <tr key={idx} style={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
+                                                    <td style={{padding:'8px'}}>{row.roll_number}</td>
+                                                    <td style={{padding:'8px'}}>{row.full_name}</td>
+                                                    <td style={{padding:'8px'}}>{row.class}-{row.section}</td>
+                                                    <td style={{padding:'8px'}}>{row.parent_phone}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div style={{display:'flex', gap:'12px'}}>
+                                    <button 
+                                        disabled={isImporting}
+                                        onClick={confirmBulkImport}
+                                        style={{flex:2, background:'#10B981', color:'white', border:'none', padding:'14px', borderRadius:'12px', fontWeight:'800', cursor: isImporting ? 'not-allowed' : 'pointer', opacity: isImporting ? 0.7 : 1}}
+                                    >
+                                        {isImporting ? 'Processing Students...' : 'Confirm & Import All'}
+                                    </button>
+                                    <button 
+                                        onClick={() => setIsImportModalOpen(false)}
+                                        style={{flex:1, background:'rgba(255,255,255,0.1)', color: isTeacher ? 'white' : '#64748B', border:'1px solid rgba(0,0,0,0.1)', padding:'14px', borderRadius:'12px', fontWeight:'800', cursor:'pointer'}}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <div style={{textAlign:'center', padding:'20px 0'}}>
+                                <div style={{width:'64px', height:'64px', background:'rgba(16,185,129,0.2)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px'}}>
+                                    <FileSpreadsheet size={32} color="#10B981" />
+                                </div>
+                                <h4 style={{fontSize:'20px', fontWeight:'900', marginBottom:'8px'}}>Import Complete</h4>
+                                <p style={{fontSize:'16px', marginBottom:'24px', opacity:0.8}}>
+                                    Successfully imported <b>{importResult.success}</b> students.<br/>
+                                    Skipped <b>{importResult.skipped}</b> duplicates.
+                                </p>
+                                {importResult.errors?.length > 0 && (
+                                    <div style={{textAlign:'left', background:'rgba(239,68,68,0.1)', padding:'16px', borderRadius:'12px', marginBottom:'24px', border:'1px solid rgba(239,68,68,0.2)'}}>
+                                        <div style={{display:'flex', alignItems:'center', gap:'8px', color:'#EF4444', fontWeight:'700', marginBottom:'8px', fontSize:'14px'}}>
+                                            <AlertCircle size={16} /> Issues encountered:
+                                        </div>
+                                        <ul style={{margin:0, paddingLeft:'20px', fontSize:'12px', opacity:0.8}}>
+                                            {importResult.errors.map((err, i) => <li key={i}>{err.student}: {err.error}</li>)}
+                                        </ul>
+                                    </div>
+                                )}
+                                <button 
+                                    onClick={() => setIsImportModalOpen(false)}
+                                    style={{background:'#2563EB', color:'white', border:'none', padding:'14px 40px', borderRadius:'12px', fontWeight:'800', cursor:'pointer'}}
+                                >
+                                    Done
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
