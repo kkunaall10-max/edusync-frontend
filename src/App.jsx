@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
-import HomePage from './pages/HomePage';
+import Home from './pages/Home';
 import LoadingScreen from './components/LoadingScreen';
 
 // Principal Pages (White UI)
@@ -34,6 +34,19 @@ import Support from './pages/Support';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
+// Landing / Public pages
+import About from './pages/About';
+import FeaturesPage from './pages/FeaturesPage';
+import SecurityPage from './pages/SecurityPage';
+import FAQPage from './pages/FAQPage';
+import MobileAppPage from './pages/MobileAppPage';
+import ContactPage from './pages/ContactPage';
+import DemoPage from './pages/DemoPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
+import PublicSupport from './pages/PublicSupport';
+
+
 const DashboardRedirect = ({ role }) => {
   if (role === 'principal') return <Navigate to="/dashboard/principal" replace />;
   if (role === 'teacher') return <Navigate to="/dashboard/teacher" replace />;
@@ -59,7 +72,7 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       
       {/* Role-based entry point */}
@@ -261,6 +274,20 @@ function App() {
           </ProtectedRoute>
         } 
       />
+
+      {/* =========================================================
+          PUBLIC / LANDING ROUTES
+          ========================================================= */}
+      <Route path="/about"          element={<About />} />
+      <Route path="/features"       element={<FeaturesPage />} />
+      <Route path="/security"       element={<SecurityPage />} />
+      <Route path="/faq"            element={<FAQPage />} />
+      <Route path="/mobile-app"     element={<MobileAppPage />} />
+      <Route path="/contact"        element={<ContactPage />} />
+      <Route path="/demo"           element={<DemoPage />} />
+      <Route path="/privacy"        element={<PrivacyPage />} />
+      <Route path="/terms"          element={<TermsPage />} />
+      <Route path="/public-support" element={<PublicSupport />} />
 
       {/* Error Routes */}
       <Route path="/unauthorized" element={
