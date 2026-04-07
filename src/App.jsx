@@ -31,6 +31,7 @@ import ParentAnnouncements from './pages/ParentAnnouncements';
 import StudentDashboard from './pages/StudentDashboard';
 import Settings from './pages/Settings';
 import Support from './pages/Support';
+import Analytics from './pages/Analytics';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -250,6 +251,14 @@ function App() {
       />
 
       {/* Other specific dashboards */}
+      <Route 
+        path="/dashboard/analytics" 
+        element={
+          <ProtectedRoute allowedRoles={['principal', 'teacher']}>
+            <Analytics />
+          </ProtectedRoute>
+        } 
+      />
       <Route 
         path="/dashboard/parent" 
         element={

@@ -15,7 +15,8 @@ import {
   Award,
   School,
   X,
-  Bell
+  Bell,
+  TrendingUp
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -38,6 +39,7 @@ const Sidebar = ({ role, isOpen, onClose }) => {
   const navItems = {
     principal: [
       { name: 'Overview', icon: <LayoutDashboard size={20} />, path: '/dashboard/principal' },
+      { name: 'Analytics', icon: <TrendingUp size={20} />, path: '/dashboard/analytics' },
       { name: 'Attendance', icon: <CheckSquare size={20} />, path: '/dashboard/attendance' },
       { name: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/homework' },
       { name: 'Announcements', icon: <Bell size={20} />, path: '/dashboard/announcements' },
@@ -51,6 +53,7 @@ const Sidebar = ({ role, isOpen, onClose }) => {
     ],
     teacher: [
       { name: 'Overview', icon: <LayoutDashboard size={20} />, path: '/dashboard/teacher' },
+      { name: 'Analytics', icon: <TrendingUp size={20} />, path: '/dashboard/analytics' },
       { name: 'My Students', icon: <Users size={20} />, path: '/dashboard/teacher/students' },
       { name: 'Attendance', icon: <CheckSquare size={20} />, path: '/dashboard/teacher/attendance' },
       { name: 'Homework', icon: <BookOpen size={20} />, path: '/dashboard/teacher/homework' },
