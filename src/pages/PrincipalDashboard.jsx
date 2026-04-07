@@ -6,10 +6,12 @@ import { supabase } from '../lib/supabase';
 import Layout from '../components/Layout';
 import LoadingScreen from '../components/LoadingScreen';
 import AISidebar from '../components/AISidebar';
+import AIChat from '../components/AIChat';
 
 const PrincipalDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
+    const [aiChatOpen, setAiChatOpen] = useState(false);
 
     const [metrics, setMetrics] = useState({
         totalStudents: 0,
@@ -100,13 +102,22 @@ const PrincipalDashboard = () => {
                         <h2 className="text-2xl md:text-3xl font-black text-slate-900 m-0 tracking-tight">Good morning, Principal</h2>
                         <p className="text-sm font-bold text-slate-500 mt-1 uppercase tracking-widest">Academic Command Center</p>
                         </div>
-                        <button 
-                            onClick={() => setAiSidebarOpen(true)}
-                            className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all font-black text-xs uppercase tracking-widest"
-                        >
-                            <span className="material-symbols-outlined text-base">auto_awesome</span>
-                            AI Insights
-                        </button>
+                        <div className="flex gap-4">
+                            <button 
+                                onClick={() => setAiChatOpen(true)}
+                                className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-indigo-600 rounded-2xl shadow-sm hover:bg-slate-50 transition-all font-black text-xs uppercase tracking-widest"
+                            >
+                                <span className="material-symbols-outlined text-base">chat</span>
+                                AI Assistant
+                            </button>
+                            <button 
+                                onClick={() => setAiSidebarOpen(true)}
+                                className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all font-black text-xs uppercase tracking-widest"
+                            >
+                                <span className="material-symbols-outlined text-base">auto_awesome</span>
+                                AI Insights
+                            </button>
+                        </div>
                     </div>
 
                     {/* Stats Grid */}
@@ -246,6 +257,7 @@ const PrincipalDashboard = () => {
                 </div>
             </Layout>
             <AISidebar isOpen={aiSidebarOpen} onClose={() => setAiSidebarOpen(false)} />
+            <AIChat isOpen={aiChatOpen} onClose={() => setAiChatOpen(false)} />
         </div>
     );
 };
