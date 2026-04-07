@@ -45,8 +45,12 @@ const Analytics = () => {
         setError(null);
         try {
             const config = {
-                params: { ...currentFilters, role: userRole, email }
+                params: { ...currentFilters, role: userRole } 
             };
+            // Only add email for teachers to minimize PI exposure and avoid URL misparsing
+            if (userRole === 'teacher' && email) {
+                config.params.email = email;
+            }
             
             const [attRes, perfRes, subRes] = await Promise.all([
                 apiClient.get(`/analytics/attendance`, config),
@@ -178,8 +182,7 @@ const Analytics = () => {
                         </select>
                     </div>
                     
-                    <div style={{ width: '1px', background: '#f1f5f9', margin: '8px 4px' }} />
-\x2020202020202020202020
+                    <div style={{ width: '1px', background: '#f1f5f9', margin: '8px 12px' }} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div style={{ background: '#f8fafc', padding: '6px', borderRadius: '10px' }}><Layers size={14} color="#64748b" /></div>
                         <span style={{ fontSize: '10px', fontWeight: '900', color: '#64748b', textTransform: 'uppercase' }}>Section</span>
