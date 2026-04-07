@@ -11,7 +11,7 @@ import {
 import { 
     TrendingUp, Users, BookOpen, AlertCircle, 
     Download, LayoutDashboard, ChevronRight, Menu, X,
-    Calendar, DollarSign, Filter, RefreshCw
+    Calendar, DollarSign, Filter, RefreshCw, Layers
 } from 'lucide-react';
 
 const API = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/analytics';
@@ -28,6 +28,7 @@ const Analytics = () => {
     const [performanceData, setPerformanceData] = useState({ students: [], average: 0, weakStudents: [] });
     const [subjectData, setSubjectData] = useState([]);
     const [feeData, setFeeData] = useState({ summary: [], trends: [] });
+    const [classStats, setClassStats] = useState([]);
 
     // Filters
     const [filters, setFilters] = useState({
@@ -59,8 +60,12 @@ const Analytics = () => {
             if (subRes.data.success) setSubjectData(subRes.data.data);
 
             if (userRole === 'principal') {
-                const feeRes = await apiClient.get(`/analytics/fees`, config);
+                const [feeRes, classRes] = await Promise.all([
+                    apiClient.get(`/analytics/fees`, config),
+                    apiClient.get(`/analytics/classes`, config)
+                ]);
                 if (feeRes.data.success) setFeeData(feeRes.data.data);
+                if (classRes.data.success) setClassStats(classRes.data.data);
             }
         } catch (err) {
             console.error("Analytics fetch error:", err);
@@ -158,6 +163,7 @@ const Analytics = () => {
                     opacity: role === 'teacher' ? 0.8 : 1
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ background: '#f8fafc', padding: '6px', borderRadius: '10px' }}><LayoutDashboard size={14} color="#64748b" /></div>
                         <span style={{ fontSize: '10px', fontWeight: '900', color: '#64748b', textTransform: 'uppercase' }}>Class</span>
                         <select 
                             style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 0', fontSize: '14px', fontWeight: '900', outline: 'none', cursor: role === 'teacher' ? 'not-allowed' : 'pointer' }}
@@ -173,8 +179,9 @@ const Analytics = () => {
                     </div>
                     
                     <div style={{ width: '1px', background: '#f1f5f9', margin: '8px 4px' }} />
-
+\x2020202020202020202020
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ background: '#f8fafc', padding: '6px', borderRadius: '10px' }}><Layers size={14} color="#64748b" /></div>
                         <span style={{ fontSize: '10px', fontWeight: '900', color: '#64748b', textTransform: 'uppercase' }}>Section</span>
                         <select 
                             style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 0', fontSize: '14px', fontWeight: '900', outline: 'none', cursor: role === 'teacher' ? 'not-allowed' : 'pointer' }}
@@ -365,7 +372,40 @@ const Analytics = () => {
                     )}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap: '20px', marginBottom: '24px' }}>
+                    {/* Institutional Hierarchy / Solo Class Breakdown */}
+                    {role === 'principal' && classStats.length > 0 && (
+                        <div style={glassStyle}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                                <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#0f172a' }}>
+                                    {filters.class === 'All' ? "Institutional Hierarchy" : `Solo ${filters.class} Breakdown`}
+                                </h4>
+                                <TrendingUp size={20} color="#3b82f6" style={{ opacity: 0.5 }} />
+                            </div>
+                            <div style={{ height: '320px', width: '100%' }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={classStats} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                                        <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} fontWeight={800} tickLine={false} axisLine={false} dy={10} />
+                                        <YAxis stroke="#94a3b8" fontSize={11} fontWeight={700} tickLine={false} axisLine={false} dx={-10} />
+                                        <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ background: '#0f172a', border: 'none', borderRadius: '16px', color: 'white' }} />
+                                        <Bar dataKey="average" fill="#3b82f6" radius={[10, 10, 0, 0]} barSize={35}>
+                                            {classStats.map((entry, index) => (
+                                                <Cell key={index} fill={filters.class === 'All' ? '#3b82f6' : '#10b981'} />
+                                            ))}
+                                            <LabelList dataKey="average" position="top" style={{ fill: '#0f172a', fontSize: '11px', fontWeight: '950' }} formatter={(v) => `${v}%`} />
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div style={{ marginTop: '20px', padding: '12px', background: '#f8fafc', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ background: '#3b82f620', padding: '8px', borderRadius: '8px' }}><AlertCircle size={14} color="#3b82f6" /></div>
+                                <p style={{ fontSize: '11px', color: '#475569', fontWeight: '700', margin: 0 }}>
+                                    {filters.class === 'All' ? "Comparative average performance ranking for all primary solo classes." : `Granular performance analysis of individual solo sections within ${filters.class}.`}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Subject Distribution */}
                     <div style={glassStyle}>
                         <h4 style={{ margin: '0 0 24px', fontSize: '18px', fontWeight: '900', color: '#0f172a' }}>Subject Proficiency</h4>
@@ -433,7 +473,6 @@ const Analytics = () => {
                         </table>
                     </div>
                 </div>
-            </div>
         </Layout>
     );
 };
