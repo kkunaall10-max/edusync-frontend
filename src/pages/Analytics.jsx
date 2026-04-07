@@ -96,13 +96,21 @@ const Analytics = () => {
             
             const userData = session.user;
             setUser(userData);
-            const userRole = userData.user_metadata?.role || 'teacher';
+            
+            // SECURITY: Always fetch the true role from the profiles table
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', userData.id)
+                .single();
+            
+            const userRole = profile?.role?.toLowerCase() || 'teacher';
             setRole(userRole);
             
             // For teachers, fetch their locked scope
             if (userRole === 'teacher') {
                 try {
-                    const { data: teachers, error: teacherErr } = await supabase
+                    const { data: teachers } = await supabase
                         .from('teachers')
                         .select('class_assigned, section_assigned')
                         .eq('email', userData.email)
@@ -118,11 +126,9 @@ const Analytics = () => {
                         setFilters(teacherFilters);
                         fetchData(userRole, userData.email, teacherFilters);
                         return;
-                    } else if (teacherErr) {
-                        console.warn("Teacher scope fetch failed:", teacherErr.message);
                     }
                 } catch (e) {
-                    console.error("Secondary scope failure handled:", e);
+                    console.warn("Soft handling teach scope err:", e);
                 }
             }
             
@@ -176,10 +182,9 @@ const Analytics = () => {
                         <div style={{ background: '#f8fafc', padding: '6px', borderRadius: '10px' }}><LayoutDashboard size={14} color="#64748b" /></div>
                         <span style={{ fontSize: '10px', fontWeight: '900', color: '#64748b', textTransform: 'uppercase' }}>Class</span>
                         <select 
-                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 0', fontSize: '14px', fontWeight: '900', outline: 'none', cursor: role === 'teacher' ? 'not-allowed' : 'pointer' }}
+                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 0', fontSize: '14px', fontWeight: '900', outline: 'none', cursor: 'pointer' }}
                             value={filters.class}
                             onChange={(e) => setFilters({...filters, class: e.target.value})}
-                            disabled={role === 'teacher'}
                         >
                             <option value="All">All Levels</option>
                             {[...Array(12)].map((_, i) => (
@@ -193,10 +198,9 @@ const Analytics = () => {
                         <div style={{ background: '#f8fafc', padding: '6px', borderRadius: '10px' }}><Layers size={14} color="#64748b" /></div>
                         <span style={{ fontSize: '10px', fontWeight: '900', color: '#64748b', textTransform: 'uppercase' }}>Section</span>
                         <select 
-                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 0', fontSize: '14px', fontWeight: '900', outline: 'none', cursor: role === 'teacher' ? 'not-allowed' : 'pointer' }}
+                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 0', fontSize: '14px', fontWeight: '900', outline: 'none', cursor: 'pointer' }}
                             value={filters.section}
                             onChange={(e) => setFilters({...filters, section: e.target.value})}
-                            disabled={role === 'teacher'}
                         >
                             <option value="All">All Sections</option>
                             {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(s => (
