@@ -219,86 +219,124 @@ const Analytics = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
             <div>
                 <h1 style={{ fontSize: '32px', fontVariationSettings: '"wght" 900', margin: 0, color: '#0f172a', letterSpacing: '-1px' }}>Intelligence Dashboard</h1>
-                <p style={{ color: '#64748b', margin: '4px 0 0', fontSize: '14px', fontWeight: '600' }}>Academic telemetry for {role === 'principal' ? 'Full Institution' : 'Assigned Class'}</p>
+                <p style={{ color: '#64748b', margin: '4px 0 0', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    Academic telemetry for {role === 'principal' ? 'Full Institution' : 'Assigned Class'}
+                    <span style={{ 
+                        background: '#f0fdf4', 
+                        color: '#166534', 
+                        padding: '2px 8px', 
+                        borderRadius: '6px', 
+                        fontSize: '10px', 
+                        fontWeight: '900', 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '4px',
+                        border: '1px solid #dcfce7',
+                        marginLeft: '8px'
+                    }}>
+                        <div style={{ width: '5px', height: '5px', background: '#22c55e', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+                        LIVE
+                    </span>
+                </p>
             </div>
             
-            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
-                <div style={{ 
-                    display: 'flex', 
-                    gap: '12px', 
-                    background: 'white', 
-                    padding: '6px 12px', 
-                    borderRadius: '20px', 
-                    border: '1px solid #f1f5f9',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
-                    width: isMobile ? '100%' : 'auto',
-                    opacity: role === 'teacher' ? 0.8 : 1
-                }}>
+            <div style={{ 
+                display: 'flex', 
+                gap: '24px', 
+                background: 'white', 
+                padding: '16px 32px', 
+                borderRadius: '32px', 
+                border: '1px solid #f1f5f9',
+                boxShadow: '0 10px 40px rgba(15, 23, 42, 0.04)',
+                width: isMobile ? '100%' : 'auto',
+                alignItems: 'center',
+                flexGrow: 1
+            }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '120px' }}>
+                    <span style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Class</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ background: '#f8fafc', padding: '6px', borderRadius: '10px' }}><LayoutDashboard size={14} color="#64748b" /></div>
-                        <span style={{ fontSize: '10px', fontWeight: '900', color: '#64748b', textTransform: 'uppercase' }}>Class</span>
                         <select 
-                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 0', fontSize: '14px', fontWeight: '900', outline: 'none', cursor: 'pointer' }}
+                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '0', fontSize: '15px', fontWeight: '900', outline: 'none', cursor: 'pointer', width: '100%', appearance: 'none' }}
                             value={filters.class}
                             onChange={(e) => setFilters({...filters, class: e.target.value})}
                         >
                             <option value="All">All Levels</option>
-                            {[...Array(12)].map((_, i) => (
-                                <option key={i+1} value={`Class ${i+1}`}>Class {i+1}</option>
-                            ))}
-                        </select>
-                    </div>
-                    
-                    <div style={{ width: '1px', background: '#f1f5f9', margin: '8px 12px' }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ background: '#f8fafc', padding: '6px', borderRadius: '10px' }}><Layers size={14} color="#64748b" /></div>
-                        <span style={{ fontSize: '10px', fontWeight: '900', color: '#64748b', textTransform: 'uppercase' }}>Section</span>
-                        <select 
-                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 0', fontSize: '14px', fontWeight: '900', outline: 'none', cursor: 'pointer' }}
-                            value={filters.section}
-                            onChange={(e) => setFilters({...filters, section: e.target.value})}
-                        >
-                            <option value="All">All Sections</option>
-                            {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(s => (
-                                <option key={s} value={s}>Section {s}</option>
+                            {[
+                                "Nursery", "KG", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
+                                "11th Science Medical", "11th Science Non-Medical", "11th Commerce", "11th Arts",
+                                "12th Science Medical", "12th Science Non-Medical", "12th Commerce", "12th Arts"
+                            ].map((cls) => (
+                                <option key={cls} value={cls.includes(' ') ? cls : `Class ${cls}`}>
+                                    {cls.includes(' ') || isNaN(cls) ? cls : `Class ${cls}`}
+                                </option>
                             ))}
                         </select>
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <div style={{ 
-                        background: '#f0fdf4', 
-                        color: '#166534', 
-                        padding: '8px 16px', 
-                        borderRadius: '12px', 
-                        fontSize: '11px', 
-                        fontWeight: '900', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '6px',
-                        border: '1px solid #dcfce7'
-                    }}>
-                        <div style={{ width: '6px', height: '6px', background: '#22c55e', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
-                        LIVE SYNC ACTIVE
-                    </div>
-                    <button 
-                        onClick={() => fetchData(role, user?.email)}
-                        style={{ background: 'white', border: '1px solid #f1f5f9', borderRadius: '14px', color: '#0f172a', padding: '12px 14px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '800' }}
-                    >
-                        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-                        {!isMobile && "Sync Data"}
-                    </button>
-                    {role === 'principal' && (
-                        <button 
-                            onClick={handleExportAudit}
-                            style={{ background: '#0f172a', border: 'none', borderRadius: '14px', color: 'white', padding: '12px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '800' }}
+                <div style={{ width: '1px', background: '#f1f5f9', height: '24px' }} />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '80px' }}>
+                    <span style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Section</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <select 
+                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '0', fontSize: '15px', fontWeight: '900', outline: 'none', cursor: 'pointer', width: '100%' }}
+                            value={filters.section}
+                            onChange={(e) => setFilters({...filters, section: e.target.value})}
                         >
-                            <Download size={16} />
-                            {!isMobile && "Export Audit"}
-                        </button>
-                    )}
+                            <option value="All">All</option>
+                            {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(s => (
+                                <option key={s} value={s}>{s}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
+
+                <div style={{ width: '1px', background: '#f1f5f9', height: '24px' }} />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '120px' }}>
+                    <span style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Date</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '15px', fontWeight: '900', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {new Date().toLocaleDateString('en-GB')}
+                            <Calendar size={14} color="#64748b" />
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <button 
+                    onClick={() => fetchData(role, user?.email)}
+                    style={{ background: 'white', border: '1px solid #f1f5f9', borderRadius: '16px', color: '#0f172a', padding: '12px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    title="Sync Data"
+                >
+                    <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                </button>
+                
+                {role === 'principal' && (
+                    <button 
+                        onClick={handleExportAudit}
+                        style={{ 
+                            background: '#0f172a', 
+                            border: 'none', 
+                            borderRadius: '18px', 
+                            color: 'white', 
+                            padding: '12px 24px', 
+                            cursor: 'pointer', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '10px', 
+                            fontSize: '13px', 
+                            fontWeight: '900',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                        }}
+                    >
+                        <Download size={16} />
+                        EXPORT CSV
+                    </button>
+                )}
             </div>
         </div>
     );
