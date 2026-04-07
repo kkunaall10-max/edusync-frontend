@@ -109,48 +109,48 @@ const Analytics = () => {
     }, [filters, navigate, fetchData]);
 
     const glassStyle = {
-        background: 'rgba(255, 255, 255, 0.05)',
-        backdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '24px',
+        background: 'rgba(255, 255, 255, 0.7)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.3)',
+        borderRadius: '32px',
         padding: '24px',
-        boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)'
+        boxShadow: '0 8px 32px -4px rgba(15, 23, 42, 0.08)'
     };
 
     const renderHeader = () => (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
             <div>
-                <h1 style={{ fontSize: '28px', fontWeight: '900', margin: 0, color: 'white', letterSpacing: '-0.5px' }}>Dashboard Intelligence</h1>
-                <p style={{ color: 'rgba(255,255,255,0.5)', margin: '4px 0 0', fontSize: '14px', fontWeight: '500' }}>Comprehensive data visualization for {role === 'principal' ? 'Full Institution' : 'Assigned Class'}</p>
+                <h1 style={{ fontSize: '32px', fontVariationSettings: '"wght" 900', margin: 0, color: '#0f172a', letterSpacing: '-1px' }}>Intelligence Dashboard</h1>
+                <p style={{ color: '#64748b', margin: '4px 0 0', fontSize: '14px', fontWeight: '600' }}>Academic telemetry for {role === 'principal' ? 'Full Institution' : 'Assigned Class'}</p>
             </div>
             
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 {role === 'principal' && (
-                    <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ display: 'flex', gap: '8px', background: 'white', padding: '4px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
                         <select 
-                            style={{ background: 'transparent', border: 'none', color: 'white', padding: '8px 12px', fontSize: '13px', fontWeight: '700', outline: 'none', cursor: 'pointer' }}
+                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 12px', fontSize: '13px', fontWeight: '800', outline: 'none', cursor: 'pointer' }}
                             value={filters.class}
                             onChange={(e) => setFilters({...filters, class: e.target.value})}
                         >
-                            <option value="All" style={{color:'black'}}>All Classes</option>
-                            <option value="Class 1" style={{color:'black'}}>Class 1</option>
-                            <option value="Class 2" style={{color:'black'}}>Class 2</option>
-                            <option value="Class 5" style={{color:'black'}}>Class 5</option>
+                            <option value="All">All Classes</option>
+                            <option value="Class 1">Class 1</option>
+                            <option value="Class 2">Class 2</option>
+                            <option value="Class 5">Class 5</option>
                         </select>
                         <select 
-                            style={{ background: 'transparent', border: 'none', color: 'white', padding: '8px 12px', fontSize: '13px', fontWeight: '700', outline: 'none', cursor: 'pointer' }}
+                            style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '8px 12px', fontSize: '13px', fontWeight: '800', outline: 'none', cursor: 'pointer' }}
                             value={filters.section}
                             onChange={(e) => setFilters({...filters, section: e.target.value})}
                         >
-                            <option value="All" style={{color:'black'}}>All Sections</option>
-                            <option value="A" style={{color:'black'}}>Section A</option>
-                            <option value="B" style={{color:'black'}}>Section B</option>
+                            <option value="All">All Sections</option>
+                            <option value="A">Section A</option>
+                            <option value="B">Section B</option>
                         </select>
                     </div>
                 )}
                 <button 
                     onClick={() => fetchData(role, user?.email)}
-                    style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '12px', color: 'white', padding: '10px', cursor: 'pointer' }}
+                    style={{ background: 'white', border: '1px solid #f1f5f9', borderRadius: '14px', color: '#0f172a', padding: '10px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                 >
                     <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                 </button>
@@ -160,13 +160,13 @@ const Analytics = () => {
 
     const StatCard = ({ title, value, sub, icon: Icon, color }) => (
         <div style={{ ...glassStyle, display: 'flex', alignItems: 'center', gap: '20px', padding: '20px' }}>
-            <div style={{ background: `${color}15`, padding: '12px', borderRadius: '14px', border: `1px solid ${color}30` }}>
-                <Icon color={color} size={24} />
+            <div style={{ background: `${color}10`, padding: '14px', borderRadius: '18px', border: `1px solid ${color}20` }}>
+                <Icon color={color} size={26} />
             </div>
             <div>
-                <p style={{ fontSize: '12px', fontWeight: '700', color: 'rgba(255,255,255,0.4)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{title}</p>
-                <h3 style={{ fontSize: '24px', fontWeight: '900', margin: '4px 0 0', color: 'white' }}>{value}</h3>
-                <p style={{ fontSize: '11px', color: color, margin: '2px 0 0', fontWeight: '800' }}>{sub}</p>
+                <p style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>{title}</p>
+                <h3 style={{ fontSize: '28px', fontWeight: '950', margin: '2px 0', color: '#0f172a', letterSpacing: '-0.5px' }}>{value}</h3>
+                <p style={{ fontSize: '11px', color: color, margin: 0, fontWeight: '800', opacity: 0.9 }}>{sub}</p>
             </div>
         </div>
     );
@@ -231,11 +231,11 @@ const Analytics = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '20px', marginBottom: '24px' }}>
                     {/* Attendance Trend */}
                     <div style={glassStyle}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '800' }}>Attendance Trajectory</h4>
-                            <div style={{ display: 'flex', gap: '12px', fontSize: '11px', fontWeight: '700' }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }} /> Present</span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} /> Absent</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                            <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#0f172a' }}>Attendance Trajectory</h4>
+                            <div style={{ display: 'flex', gap: '16px', fontSize: '11px', fontWeight: '800', color: '#64748b' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '10px', height: '10px', borderRadius: '4px', background: '#3b82f6' }} /> Present</span>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '10px', height: '10px', borderRadius: '4px', background: '#ef4444' }} /> Absent</span>
                             </div>
                         </div>
                         <div style={{ height: '320px', width: '100%' }}>
@@ -248,24 +248,28 @@ const Analytics = () => {
                                                 <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                                             </linearGradient>
                                         </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                                         <XAxis 
                                             dataKey="date" 
-                                            stroke="rgba(255,255,255,0.3)" 
-                                            fontSize={10} 
+                                            stroke="#94a3b8" 
+                                            fontSize={11} 
+                                            fontWeight={700}
+                                            tickLine={false}
+                                            axisLine={false}
                                             tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, {month:'short', day:'numeric'})} 
+                                            dy={10}
                                         />
-                                        <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} />
+                                        <YAxis stroke="#94a3b8" fontSize={11} fontWeight={700} tickLine={false} axisLine={false} dx={-10} />
                                         <Tooltip 
-                                            contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }} 
-                                            itemStyle={{ fontWeight: '700' }}
+                                            contentStyle={{ background: '#0f172a', border: 'none', borderRadius: '16px', fontSize: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} 
+                                            itemStyle={{ color: 'white', fontWeight: '800' }}
                                         />
-                                        <Area type="monotone" dataKey="present" stroke="#3b82f6" fillOpacity={1} fill="url(#colorAtt)" strokeWidth={3} animationDuration={1500} />
-                                        <Line type="monotone" dataKey="absent" stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                                        <Area type="monotone" dataKey="present" stroke="#3b82f6" fillOpacity={1} fill="url(#colorAtt)" strokeWidth={4} animationDuration={2000} />
+                                        <Line type="monotone" dataKey="absent" stroke="#ef4444" strokeWidth={2} strokeDasharray="6 4" dot={false} />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>No telemetry data available</div>
+                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontWeight: '700' }}>Awaiting sensor data...</div>
                             )}
                         </div>
                     </div>
@@ -273,7 +277,7 @@ const Analytics = () => {
                     {/* Fee Analysis */}
                     {role === 'principal' && (
                         <div style={glassStyle}>
-                            <h4 style={{ margin: '0 0 24px', fontSize: '16px', fontWeight: '800' }}>Fiscal Liquidity</h4>
+                            <h4 style={{ margin: '0 0 24px', fontSize: '18px', fontWeight: '900', color: '#0f172a' }}>Fiscal Liquidity</h4>
                             <div style={{ height: '320px', width: '100%' }}>
                                 {feeData.summary.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
@@ -287,14 +291,14 @@ const Analytics = () => {
                                                 dataKey="value"
                                                 animationBegin={200}
                                             >
-                                                {feeData.summary.map((entry, index) => <Cell key={index} fill={entry.color} stroke="none" />)}
+                                                {feeData.summary.map((entry, index) => <Cell key={index} fill={entry.color} stroke="white" strokeWidth={4} />)}
                                             </Pie>
-                                            <Tooltip contentStyle={{ background: '#1e293b', border: 'none', borderRadius: '10px' }} />
-                                            <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: '700', paddingTop: '20px' }} />
+                                            <Tooltip contentStyle={{ background: '#0f172a', border: 'none', borderRadius: '16px', color: 'white' }} />
+                                            <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: '800', color: '#64748b', paddingTop: '20px' }} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>Awaiting fiscal audit...</div>
+                                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontWeight: '700' }}>Awaiting fiscal audit...</div>
                                 )}
                             </div>
                         </div>
@@ -304,65 +308,65 @@ const Analytics = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap: '20px' }}>
                     {/* Subject Distribution */}
                     <div style={glassStyle}>
-                        <h4 style={{ margin: '0 0 24px', fontSize: '16px', fontWeight: '800' }}>Subject Proficiency</h4>
+                        <h4 style={{ margin: '0 0 24px', fontSize: '18px', fontWeight: '900', color: '#0f172a' }}>Subject Proficiency</h4>
                         <div style={{ height: '320px', width: '100%' }}>
                             {subjectData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={subjectData} layout="vertical" margin={{ left: -20, right: 20 }}>
+                                    <BarChart data={subjectData} layout="vertical" margin={{ left: -20, right: 30 }}>
                                         <XAxis type="number" hide />
-                                        <YAxis dataKey="subject" type="category" stroke="rgba(255,255,255,0.5)" fontSize={10} width={80} tickLine={false} axisLine={false} />
-                                        <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ background: '#1e293b', border: 'none', borderRadius: '10px' }} />
-                                        <Bar dataKey="average" radius={[0, 6, 6, 0]} barSize={20}>
+                                        <YAxis dataKey="subject" type="category" stroke="#64748b" fontSize={11} fontWeight={800} width={100} tickLine={false} axisLine={false} />
+                                        <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ background: '#0f172a', border: 'none', borderRadius: '16px', color: 'white' }} />
+                                        <Bar dataKey="average" radius={[0, 8, 8, 0]} barSize={20}>
                                             {subjectData.map((entry, index) => (
-                                                <Cell key={index} fill={entry.average > 75 ? '#10b981' : entry.average > 40 ? '#f59e0b' : '#ef4444'} />
+                                                <Cell key={index} fill={entry.average > 75 ? '#10b981' : entry.average > 40 ? '#f59e0b' : '#ef4444'} radius={[0, 8, 8, 0]} />
                                             ))}
-                                            <LabelList dataKey="average" position="right" style={{ fill: 'rgba(255,255,255,0.6)', fontSize: '10px', fontWeight: '700' }} formatter={(v) => `${v}%`} />
+                                            <LabelList dataKey="average" position="right" style={{ fill: '#0f172a', fontSize: '12px', fontWeight: '900' }} formatter={(v) => `${v}%`} />
                                         </Bar>
                                     </BarChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>No academic records found</div>
+                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontWeight: '700' }}>No academic records found</div>
                             )}
                         </div>
                     </div>
 
                     {/* Priority Intervention Table */}
                     <div style={{ ...glassStyle, overflowX: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '800' }}>Critical Interventions</h4>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '6px 12px', borderRadius: '10px', fontSize: '11px', fontWeight: '800' }}>
-                                <AlertCircle size={14} /> {performanceData.weakStudents.length} RISKY PROFILES
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#0f172a' }}>Critical Interventions</h4>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', padding: '8px 16px', borderRadius: '14px', fontSize: '11px', fontWeight: '900' }}>
+                                <AlertCircle size={16} /> {performanceData.weakStudents.length} RISKY PROFILES
                             </div>
                         </div>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                            <thead style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <thead style={{ borderBottom: '2px solid #f1f5f9' }}>
                                 <tr>
-                                    <th style={{ textAlign: 'left', padding: '12px', color: 'rgba(255,255,255,0.3)', fontWeight: '700', textTransform: 'uppercase', fontSize: '11px' }}>Dossier Name</th>
-                                    <th style={{ textAlign: 'left', padding: '12px', color: 'rgba(255,255,255,0.3)', fontWeight: '700', textTransform: 'uppercase', fontSize: '11px' }}>Roll</th>
-                                    <th style={{ textAlign: 'left', padding: '12px', color: 'rgba(255,255,255,0.3)', fontWeight: '700', textTransform: 'uppercase', fontSize: '11px' }}>Status Quo</th>
-                                    <th style={{ textAlign: 'right', padding: '12px', color: 'rgba(255,255,255,0.3)', fontWeight: '700', textTransform: 'uppercase', fontSize: '11px' }}>Operational Action</th>
+                                    <th style={{ textAlign: 'left', padding: '16px 12px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>Dossier Name</th>
+                                    <th style={{ textAlign: 'left', padding: '16px 12px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>Roll</th>
+                                    <th style={{ textAlign: 'left', padding: '16px 12px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>Status Quo</th>
+                                    <th style={{ textAlign: 'right', padding: '16px 12px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {performanceData.weakStudents.length > 0 ? performanceData.weakStudents.map((s, idx) => (
-                                    <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                                        <td style={{ padding: '14px 12px', fontWeight: '700' }}>{s.name}</td>
-                                        <td style={{ padding: '14px 12px', opacity: 0.5 }}>{s.roll}</td>
-                                        <td style={{ padding: '14px 12px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', minWidth: '60px' }}>
-                                                    <div style={{ width: `${s.percentage}%`, height: '100%', background: '#ef4444', borderRadius: '2px' }} />
+                                    <tr key={idx} style={{ borderBottom: '1px solid #f8fafc' }} className="group">
+                                        <td style={{ padding: '18px 12px', fontWeight: '900', color: '#0f172a' }}>{s.name}</td>
+                                        <td style={{ padding: '18px 12px', color: '#64748b', fontWeight: '700' }}>{s.roll}</td>
+                                        <td style={{ padding: '18px 12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ flex: 1, height: '8px', background: '#f1f5f9', borderRadius: '4px', minWidth: '80px', overflow: 'hidden' }}>
+                                                    <div style={{ width: `${s.percentage}%`, height: '100%', background: '#ef4444', borderRadius: '4px' }} />
                                                 </div>
                                                 <span style={{ color: '#ef4444', fontWeight: '900', fontSize: '12px' }}>{s.percentage}%</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '14px 12px', textAlign: 'right' }}>
-                                            <button style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: '700' }}>Deep Audit</button>
+                                        <td style={{ padding: '18px 12px', textAlign: 'right' }}>
+                                            <button style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#0f172a', padding: '8px 16px', borderRadius: '12px', cursor: 'pointer', fontSize: '11px', fontWeight: '900', transition: 'all 0.2s' }}>Deep Audit</button>
                                         </td>
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan="4" style={{ padding: '40px', textAlign: 'center', opacity: 0.3 }}>All student profiles meeting normative standards.</td>
+                                        <td colSpan="4" style={{ padding: '60px', textAlign: 'center', color: '#94a3b8', fontWeight: '700', fontSize: '14px' }}>All student profiles meeting normative standards.</td>
                                     </tr>
                                 )}
                             </tbody>
