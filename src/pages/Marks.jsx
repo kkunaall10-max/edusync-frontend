@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/api';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 import Layout from '../components/Layout';
 import { 
   GraduationCap, Search, Filter, Plus, Calendar, 
   ChevronRight, ArrowRight, Download, BarChart2, Award, Target
 } from 'lucide-react';
-
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api';
 
 const Marks = () => {
     const [loading, setLoading] = useState(true);
@@ -26,8 +24,8 @@ const Marks = () => {
         setLoading(true);
         try {
             const [stdRes, marksRes] = await Promise.all([
-                axios.get(`${API_BASE}/students`, { params: { class: filters.class, section: filters.section } }),
-                axios.get(`${API_BASE}/marks`, { 
+                apiClient.get('/students', { params: { class: filters.class, section: filters.section } }),
+                apiClient.get('/marks', { 
                     params: { 
                         class: filters.class, 
                         section: filters.section,

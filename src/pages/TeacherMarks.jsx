@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import LoadingScreen from '../components/LoadingScreen';
@@ -11,8 +11,6 @@ import {
   Menu, X, Bell, Users, BookOpen, GraduationCap, 
   ClipboardCheck, TrendingUp, Search, Award, TrendingDown, Target
 } from 'lucide-react';
-
-const API = import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app';
 
 const TeacherMarks = () => {
     const [loading, setLoading] = useState(true);
@@ -41,26 +39,23 @@ const TeacherMarks = () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { navigate('/login'); return; }
 
-            const teacherRes = await axios.get(`${API}/api/teachers/profile`, {
-                params: { email: user.email },
-                cancelToken
+            const teacherRes = await apiClient.get('/teachers/profile', {
+                params: { email: user.email }
             });
             const profile = teacherRes.data;
             setTeacherProfile(profile);
 
             const [studentsRes, marksRes] = await Promise.all([
-                axios.get(`${API}/api/students`, { params: { class: profile.class_assigned, section: profile.section_assigned }, cancelToken }),
-                axios.get(`${API}/api/marks`, { params: { class: profile.class_assigned, section: profile.section_assigned, exam_type: selectedExam, subject: profile.subject_assigned }, cancelToken })
+                apiClient.get('/students', { params: { class: profile.class_assigned, section: profile.section_assigned } }),
+                apiClient.get('/marks', { params: { class: profile.class_assigned, section: profile.section_assigned, exam_type: selectedExam, subject: profile.subject_assigned } })
             ]);
 
             setStudents(studentsRes.data);
             setMarksData(marksRes.data);
             setLoading(false);
         } catch (error) {
-            if (!axios.isCancel(error)) {
-                console.error("Marks Data Error:", error);
-                setLoading(false);
-            }
+            console.error("Marks Data Error:", error);
+            setLoading(false);
         }
     }, [selectedExam, navigate]);
 
@@ -229,7 +224,7 @@ const TeacherMarks = () => {
                                             defaultValue={record?.marks_obtained}
                                             onBlur={async (e) => {
                                                 try {
-                                                    await axios.post(`${API}/api/marks`, { 
+                                                    await apiClient.post('/marks/save', { 
                                                       student_id: student.id, 
                                                       class: teacherProfile.class_assigned, 
                                                       section: teacherProfile.section_assigned, 

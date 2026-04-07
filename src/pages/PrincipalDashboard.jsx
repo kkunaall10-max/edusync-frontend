@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import apiClient from '../utils/api';
 import { supabase } from '../lib/supabase';
 import Layout from '../components/Layout';
 import LoadingScreen from '../components/LoadingScreen';
@@ -30,12 +31,12 @@ const PrincipalDashboard = () => {
                 overdueRes,
                 annRes
             ] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/students`, { cancelToken }),
-                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/teachers`, { cancelToken }),
-                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/fees/stats`, { cancelToken }),
-                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/attendance?date=${today}`, { cancelToken }),
-                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/fees?status=overdue`, { cancelToken }),
-                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/announcements`, { cancelToken })
+                apiClient.get('/students', { cancelToken }),
+                apiClient.get('/teachers', { cancelToken }),
+                apiClient.get('/fees/stats', { cancelToken }),
+                apiClient.get(`/attendance?date=${today}`, { cancelToken }),
+                apiClient.get('/fees?status=overdue', { cancelToken }),
+                apiClient.get('/announcements', { cancelToken })
             ]);
 
             const totalAttendance = attendanceRes.data.length;

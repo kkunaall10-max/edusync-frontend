@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/api';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 import Layout from '../components/Layout';
 import { 
   BookOpen, Search, Filter, Plus, Calendar, 
   ChevronRight, ArrowRight, Download, Trash2, Edit
 } from 'lucide-react';
-
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api';
 
 const Homework = () => {
     const [loading, setLoading] = useState(true);
@@ -21,7 +19,7 @@ const Homework = () => {
     const fetchHomework = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_BASE}/homework`, { 
+            const res = await apiClient.get('/homework', { 
                 params: { 
                     class: filters.class, 
                     section: filters.section,

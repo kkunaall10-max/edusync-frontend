@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import LoadingScreen from '../components/LoadingScreen';
@@ -7,8 +7,6 @@ import {
   Menu, X, Bell, Users, BookOpen, GraduationCap, 
   Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Plus
 } from 'lucide-react';
-
-const API = import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app';
 
 const TeacherHomework = () => {
     const [loading, setLoading] = useState(true);
@@ -39,27 +37,23 @@ const TeacherHomework = () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { navigate('/login'); return; }
 
-            const profileRes = await axios.get(`${API}/api/teachers/profile`, {
-                params: { email: user.email },
-                cancelToken
+            const profileRes = await apiClient.get('/teachers/profile', {
+                params: { email: user.email }
             });
             const profile = profileRes.data;
             setTeacherProfile(profile);
 
-            const hwRes = await axios.get(`${API}/api/homework`, {
+            const hwRes = await apiClient.get('/homework', {
                 params: { 
                     class: profile.class_assigned, 
                     section: profile.section_assigned 
-                },
-                cancelToken
+                }
             });
             setHomework(hwRes.data);
             setLoading(false);
         } catch (error) {
-            if (!axios.isCancel(error)) {
-                console.error("Homework Fetch Error:", error);
-                setLoading(false);
-            }
+            console.error("Homework Fetch Error:", error);
+            setLoading(false);
         }
     }, [navigate]);
 
@@ -91,12 +85,12 @@ const TeacherHomework = () => {
                 description: newHomework.description,
                 due_date: newHomework.due_date
             };
-            await axios.post(`${API}/api/homework`, payload);
+            await apiClient.post('/homework', payload);
             alert('Homework assigned successfully!');
             setShowForm(false);
             
             // Refresh list
-            const hwRes = await axios.get(`${API}/api/homework`, {
+            const hwRes = await apiClient.get('/homework', {
                 params: { 
                     class: teacherProfile.class_assigned, 
                     section: teacherProfile.section_assigned 

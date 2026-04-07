@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/api';
 import { supabase } from '../lib/supabase';
 import { SCHOOL_CLASSES, SCHOOL_SECTIONS } from '../utils/constants';
 import Layout from '../components/Layout';
@@ -7,8 +7,6 @@ import {
   ClipboardCheck, Search, Users, Calendar, 
   ChevronRight, ArrowRight, Download, Filter
 } from 'lucide-react';
-
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api';
 
 const Attendance = () => {
     const [loading, setLoading] = useState(true);
@@ -24,8 +22,8 @@ const Attendance = () => {
         setLoading(true);
         try {
             const [stdRes, attRes] = await Promise.all([
-                axios.get(`${API_BASE}/students`, { params: { class: filters.class, section: filters.section } }),
-                axios.get(`${API_BASE}/attendance`, { params: { class: filters.class, section: filters.section, date: filters.date } })
+                apiClient.get('/students', { params: { class: filters.class, section: filters.section } }),
+                apiClient.get('/attendance', { params: { class: filters.class, section: filters.section, date: filters.date } })
             ]);
             setStudents(stdRes.data);
             setAttendanceData(attRes.data);

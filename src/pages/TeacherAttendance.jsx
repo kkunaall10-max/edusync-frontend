@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import LoadingScreen from '../components/LoadingScreen';
@@ -7,8 +7,6 @@ import {
   Menu, X, Bell, Users, BookOpen, GraduationCap, 
   Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Search
 } from 'lucide-react';
-
-const API = import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app';
 
 const TeacherAttendance = () => {
     const [loading, setLoading] = useState(true);
@@ -31,31 +29,27 @@ const TeacherAttendance = () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { navigate('/login'); return; }
 
-            const teacherRes = await axios.get(`${API}/api/teachers/profile`, {
-                params: { email: user.email },
-                cancelToken
+            const teacherRes = await apiClient.get('/teachers/profile', {
+                params: { email: user.email }
             });
             const profile = teacherRes.data;
             setTeacherProfile(profile);
 
-            const studentsRes = await axios.get(`${API}/api/students`, {
-                params: { class: profile.class_assigned, section: profile.section_assigned },
-                cancelToken
+            const studentsRes = await apiClient.get('/students', {
+                params: { class: profile.class_assigned, section: profile.section_assigned }
             });
             setStudents(studentsRes.data);
             setLoading(false);
         } catch (error) {
-            if (!axios.isCancel(error)) {
-                console.error("Attendance Data Error:", error);
-                setLoading(false);
-            }
+            console.error("Attendance Data Error:", error);
+            setLoading(false);
         }
     }, [navigate]);
 
     const fetchExistingAttendance = useCallback(async (date) => {
         if (!teacherProfile) return;
         try {
-            const res = await axios.get(`${API}/api/attendance`, {
+            const res = await apiClient.get('/attendance', {
                 params: { 
                     class: teacherProfile.class_assigned, 
                     section: teacherProfile.section_assigned, 
@@ -105,7 +99,7 @@ const TeacherAttendance = () => {
                     marked_by: user.email
                 }));
             
-            await axios.post(`${API}/api/attendance/mark`, { records });
+            await apiClient.post('/attendance/mark', { records });
             alert('Attendance submitted successfully!');
         } catch (err) {
             console.error("Submit Attendance Error:", err);
