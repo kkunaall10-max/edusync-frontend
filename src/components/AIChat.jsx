@@ -146,7 +146,7 @@ const AIChat = ({ isOpen, onClose }) => {
             </button>
           </div>
           <p className="text-[10px] text-center text-slate-400 mt-4 font-bold uppercase tracking-widest">
-            Powered by Groq • End-to-End Secure Processing
+            POWERED BY EDUSYNC PRIVATE AI (LOCAL SERVER)
           </p>
         </div>
       </div>
