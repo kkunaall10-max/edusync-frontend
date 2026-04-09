@@ -455,6 +455,19 @@ const StudentList = ({ role = 'principal' }) => {
                                     <option value="">Section</option>
                                     {SCHOOL_SECTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
+                                <input type="email" placeholder="Parent Email (parent@example.com)" className="p-3 border rounded-xl" value={formData.parent_email} onChange={e => setFormData({...formData, parent_email: e.target.value})} />
+                                <input placeholder="Parent Phone (+91 XXXXX XXXXX)" className="p-3 border rounded-xl" value={formData.parent_phone} onChange={e => setFormData({...formData, parent_phone: e.target.value})} />
+                                <div className="col-span-2">
+                                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Date of Birth</label>
+                                    <input type="date" className="w-full p-3 border rounded-xl" value={formData.date_of_birth} onChange={e => setFormData({...formData, date_of_birth: e.target.value})} />
+                                </div>
+                                <select className="p-3 border rounded-xl col-span-2" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})}>
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <textarea placeholder="Full residential address" className="p-3 border rounded-xl col-span-2 min-h-[100px]" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
                                 <button type="submit" className="col-span-2 bg-blue-600 text-white p-4 rounded-xl font-bold mt-4">Save Student</button>
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="col-span-2 text-slate-400 font-bold p-2">Cancel</button>
                             </form>
@@ -589,6 +602,35 @@ const StudentList = ({ role = 'principal' }) => {
                                         {SCHOOL_SECTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>
                                 </div>
+                            </div>
+                            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px'}}>
+                                <div>
+                                    <label style={styles.label}>Parent Email</label>
+                                    <input type="email" placeholder="parent@example.com" style={{...glass, background: isTeacher ? 'rgba(255,255,255,0.05)' : '#F8FAFC', width:'100%', padding:'12px', boxSizing:'border-box', border: isTeacher ? 'none' : '1px solid #E2E8F0', color: isTeacher ? 'white' : 'black', borderRadius: '12px'}} value={formData.parent_email} onChange={e => setFormData({...formData, parent_email: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label style={styles.label}>Parent Phone</label>
+                                    <input placeholder="+91 XXXXX XXXXX" style={{...glass, background: isTeacher ? 'rgba(255,255,255,0.05)' : '#F8FAFC', width:'100%', padding:'12px', boxSizing:'border-box', border: isTeacher ? 'none' : '1px solid #E2E8F0', color: isTeacher ? 'white' : 'black', borderRadius: '12px'}} value={formData.parent_phone} onChange={e => setFormData({...formData, parent_phone: e.target.value})} />
+                                </div>
+                            </div>
+                            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px'}}>
+                                <div>
+                                    <label style={styles.label}>Date of Birth</label>
+                                    <input type="date" style={{...glass, background: isTeacher ? 'rgba(255,255,255,0.05)' : '#F8FAFC', width:'100%', padding:'12px', boxSizing:'border-box', border: isTeacher ? 'none' : '1px solid #E2E8F0', color: isTeacher ? 'white' : 'black', borderRadius: '12px'}} value={formData.date_of_birth} onChange={e => setFormData({...formData, date_of_birth: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label style={styles.label}>Gender</label>
+                                    <select style={{...glass, background: isTeacher ? 'rgba(255,255,255,0.05)' : '#F8FAFC', width:'100%', padding:'12px', border: isTeacher ? 'none' : '1px solid #E2E8F0', color: isTeacher ? 'white' : 'black', borderRadius: '12px'}} value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})}>
+                                        <option value="">Select</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label style={styles.label}>Address</label>
+                                <textarea placeholder="Full residential address" style={{...glass, background: isTeacher ? 'rgba(255,255,255,0.05)' : '#F8FAFC', width:'100%', padding:'12px', boxSizing:'border-box', border: isTeacher ? 'none' : '1px solid #E2E8F0', color: isTeacher ? 'white' : 'black', borderRadius: '12px', minHeight: '80px'}} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
                             </div>
                             <button type="submit" style={{marginTop:'10px', background:'#2563EB', color:'white', border:'none', padding:'14px', borderRadius:'10px', fontWeight:'800', cursor:'pointer'}}>Sync Data</button>
                         </form>
