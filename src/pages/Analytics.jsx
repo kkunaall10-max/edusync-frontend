@@ -428,7 +428,7 @@ const Analytics = () => {
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '10px', height: '10px', borderRadius: '4px', background: '#ef4444' }} /> Absent</span>
                             </div>
                         </div>
-                        <div style={{ height: '320px', width: '100%' }}>
+                        <div style={{ width: '100%', height: 320 }}>
                             {attendanceData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%" minHeight={0} minWidth={0}>
                                     <AreaChart data={attendanceData}>
@@ -468,7 +468,7 @@ const Analytics = () => {
                     {role === 'principal' && (
                         <div style={glassStyle}>
                             <h4 style={{ margin: '0 0 24px', fontSize: '18px', fontWeight: '900', color: '#0f172a' }}>Fiscal Liquidity</h4>
-                            <div style={{ height: '320px', width: '100%' }}>
+                            <div style={{ width: '100%', height: 320 }}>
                                 {feeData.summary.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%" minHeight={0} minWidth={0}>
                                         <PieChart>
@@ -505,7 +505,7 @@ const Analytics = () => {
                                 </h4>
                                 <TrendingUp size={20} color="#3b82f6" style={{ opacity: 0.5 }} />
                             </div>
-                            <div style={{ height: '320px', width: '100%' }}>
+                            <div style={{ width: '100%', height: 320 }}>
                                 <ResponsiveContainer width="100%" height="100%" minHeight={0} minWidth={0}>
                                     <BarChart data={classStats} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
                                         <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} fontWeight={800} tickLine={false} axisLine={false} dy={10} />
@@ -532,7 +532,7 @@ const Analytics = () => {
                     {/* Subject Distribution */}
                     <div style={glassStyle}>
                         <h4 style={{ margin: '0 0 24px', fontSize: '18px', fontWeight: '900', color: '#0f172a' }}>Subject Proficiency</h4>
-                        <div style={{ height: '320px', width: '100%' }}>
+                        <div style={{ width: '100%', height: 320 }}>
                             {subjectData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%" minHeight={0} minWidth={0}>
                                     <BarChart data={subjectData} layout="vertical" margin={{ left: -20, right: 30 }}>

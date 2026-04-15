@@ -3,7 +3,8 @@ import axios from 'axios';
 import { supabase } from '../lib/supabase';
 import Layout from '../components/Layout';
 import LoadingScreen from '../components/LoadingScreen';
-import { Plus, Trash2, Megaphone, Clock, Users, X, AlertCircle } from 'lucide-react';
+import MediaUploader from '../components/MediaUploader';
+import { Plus, Trash2, Megaphone, Clock, Users, X, AlertCircle, Image as ImageIcon } from 'lucide-react';
 
 const API = import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app';
 
@@ -13,13 +14,16 @@ const Announcements = () => {
     const [activeTab, setActiveTab] = useState('All');
     const [showModal, setShowModal] = useState(false);
     const [profile, setProfile] = useState(null);
+    const [uploadedMedia, setUploadedMedia] = useState([]);
     const [formData, setFormData] = useState({
         title: '',
         content: '',
         target_audience: 'all',
         target_class: '',
         target_section: '',
-        priority: 'normal'
+        priority: 'normal',
+        media_urls: [],
+        media_types: []
     });
 
     const fetchData = useCallback(async () => {
@@ -47,16 +51,48 @@ const Announcements = () => {
         try {
             await axios.post(`${API}/api/announcements`, {
                 ...formData,
+                media_urls: formData.media_urls,
+                media_types: formData.media_types,
                 created_by: profile?.email || 'admin'
             });
             setShowModal(false);
+            setUploadedMedia([]);
             setFormData({
-                title: '', content: '', target_audience: 'all', target_class: '', target_section: '', priority: 'normal'
+                title: '', 
+                content: '', 
+                target_audience: 'all', 
+                target_class: '', 
+                target_section: '', 
+                priority: 'normal',
+                media_urls: [],
+                media_types: []
             });
             fetchData();
         } catch (error) {
             console.error("Error posting announcement:", error);
             alert("Failed to post announcement.");
+        }
+    };
+
+    const handleMediaAdd = (media) => {
+        if (media === null) {
+            // Remove last media
+            const newMedia = [...uploadedMedia];
+            newMedia.pop();
+            setUploadedMedia(newMedia);
+            setFormData(prev => ({
+                ...prev,
+                media_urls: prev.media_urls.slice(0, -1),
+                media_types: prev.media_types.slice(0, -1)
+            }));
+        } else {
+            // Add new media
+            setUploadedMedia(prev => [...prev, media]);
+            setFormData(prev => ({
+                ...prev,
+                media_urls: [...prev.media_urls, media.url],
+                media_types: [...prev.media_types, media.type]
+            }));
         }
     };
 
@@ -163,9 +199,24 @@ const Announcements = () => {
                             </div>
                             
                             <h3 className="text-xl font-bold text-slate-900 mb-2 leading-tight">{ann.title}</h3>
-                            <p className="text-slate-600 mb-6 flex-1 line-clamp-2 leading-relaxed text-sm">
+                            <p className="text-slate-600 mb-4 flex-1 leading-relaxed text-sm">
                                 {ann.content}
                             </p>
+                            
+                            {/* Display Media */}
+                            {ann.media_urls && ann.media_urls.length > 0 && (
+                                <div className="mb-4 space-y-2">
+                                    {ann.media_urls.map((url, idx) => (
+                                        <div key={idx} className="rounded-lg overflow-hidden border border-slate-200">
+                                            {ann.media_types?.[idx] === 'image' ? (
+                                                <img src={url} alt="Announcement" className="w-full h-32 object-cover hover:scale-105 transition-transform cursor-pointer" />
+                                            ) : (
+                                                <iframe src={url} width="100%" height="200" frameBorder="0" allow="autoplay" className="rounded w-full" title="Video"></iframe>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                             
                             <div className="flex items-center justify-between pt-4 border-t border-slate-100 text-xs font-semibold text-slate-500 mt-auto">
                                 <div className="flex items-center gap-1.5">
@@ -206,6 +257,10 @@ const Announcements = () => {
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Content <span className="text-red-500">*</span></label>
                                         <textarea required rows="4" value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-400 resize-none" placeholder="Provide details here..."></textarea>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">📸 Add Images / Videos</label>
+                                        <MediaUploader onMediaAdd={handleMediaAdd} uploadedMedia={uploadedMedia} />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>

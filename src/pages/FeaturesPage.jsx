@@ -58,11 +58,11 @@ export default function Features() {
           <p style={{ fontSize: 17, color: C.muted, maxWidth: 560, margin: '0 auto 36px', fontFamily: C.sans, lineHeight: 1.7 }}>
             EduSync covers every role in your school — Principal, Teacher, and Parent — with dedicated portals and a native Android app.
           </p>
-          <button onClick={() => navigate('/demo')}
+          <button onClick={() => navigate('/download')}
             style={{ background: C.blue, color: '#fff', border: 'none', borderRadius: 980, padding: '14px 32px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: C.sans, boxShadow: `0 4px 16px ${C.blue}33`, transition: 'background .2s, transform .15s' }}
             onMouseEnter={e => { e.currentTarget.style.background = C.blueHov; e.currentTarget.style.transform = 'scale(1.03)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = C.blue; e.currentTarget.style.transform = 'scale(1)'; }}
-          >Try Live Demo</button>
+          >Get EduSync Now</button>
         </motion.div>
       </section>
 
@@ -115,13 +115,13 @@ export default function Features() {
 
       {/* CTA */}
       <section style={{ background: `linear-gradient(160deg,#003d82,#0055c4,${C.blue})`, padding: '80px 48px', textAlign: 'center' }}>
-        <h2 style={{ fontFamily: C.serif, fontSize: 'clamp(28px,4vw,48px)', color: '#fff', marginBottom: 16 }}>Ready to explore everything?</h2>
-        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.72)', fontFamily: C.sans, marginBottom: 36 }}>Try the full live demo — no account needed.</p>
-        <button onClick={() => navigate('/demo')}
+        <h2 style={{ fontFamily: C.serif, fontSize: 'clamp(28px,4vw,48px)', color: '#fff', marginBottom: 16 }}>Ready to transform your school?</h2>
+        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.72)', fontFamily: C.sans, marginBottom: 36 }}>Download EduSync and start managing your school digitally today.</p>
+        <button onClick={() => navigate('/download')}
           style={{ background: '#fff', color: C.blue, border: 'none', borderRadius: 980, padding: '14px 36px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: C.sans, boxShadow: '0 6px 24px rgba(0,0,0,0.18)', transition: 'transform .15s' }}
           onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
           onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-        >See Live Demo →</button>
+        >Download Now →</button>
       </section>
     </LandingLayout>
   );

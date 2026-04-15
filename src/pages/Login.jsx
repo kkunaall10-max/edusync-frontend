@@ -31,9 +31,7 @@ const Login = () => {
 
             if (profileError) {
                 console.error('Error fetching profile:', profileError);
-                const selectedRole = role.toLowerCase();
-                navigate(`/dashboard/${selectedRole}`);
-                return;
+                throw new Error('Unable to verify account role. Please contact the administrator.');
             }
 
             const dbRole = profile.role.toLowerCase();
@@ -52,6 +50,7 @@ const Login = () => {
             else navigate('/dashboard/student');
 
         } catch (err) {
+            await supabase.auth.signOut().catch(() => {});
             setError(err.message);
         } finally {
             setLoading(false);
@@ -156,6 +155,7 @@ const Login = () => {
                             <option value="Principal">Principal</option>
                             <option value="Teacher">Teacher</option>
                             <option value="Parent">Parent</option>
+                            <option value="Student">Student</option>
                         </select>
                     </div>
 

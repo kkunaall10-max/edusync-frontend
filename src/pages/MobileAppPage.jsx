@@ -34,11 +34,11 @@ export default function MobileAppPage() {
             The EduSync parent app brings attendance, fees, homework and marks to your Android phone — with a beautiful native experience.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => navigate('/contact')}
+            <button onClick={() => navigate('/download')}
               style={{ background: C.blue, color: '#fff', border: 'none', borderRadius: 980, padding: '14px 32px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: C.sans, boxShadow: `0 4px 16px ${C.blue}33`, transition: 'background .2s, transform .15s' }}
               onMouseEnter={e => { e.currentTarget.style.background=C.blueHov; e.currentTarget.style.transform='scale(1.03)'; }}
               onMouseLeave={e => { e.currentTarget.style.background=C.blue; e.currentTarget.style.transform='scale(1)'; }}
-            >Request APK Download</button>
+            >Download APK</button>
             <button onClick={() => window.open('https://edusync-frontend-beta.vercel.app')}
               style={{ background: 'transparent', color: C.blue, border: `1.5px solid ${C.blue}`, borderRadius: 980, padding: '14px 32px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: C.sans, transition: 'background .2s, transform .15s' }}
               onMouseEnter={e => { e.currentTarget.style.background=`${C.blue}0e`; e.currentTarget.style.transform='scale(1.03)'; }}

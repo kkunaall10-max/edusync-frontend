@@ -1,14 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { clsx } from 'clsx';
-
-// Assets
-import feat1a from '../assets/feat1a.jpg';
-import feat1b from '../assets/feat1b.jpg';
-import feat2a from '../assets/feat2a.jpg';
-import feat2b from '../assets/feat2b.jpg';
-import feat3 from '../assets/feat3.jpg';
-import feat4 from '../assets/feat4.jpg';
 
 const FeatureCarousel = ({ image }) => {
     const [activeStep, setActiveStep] = useState(0);
@@ -165,7 +156,7 @@ const FeatureCarousel = ({ image }) => {
                             <motion.img 
                                 key={i}
                                 src={img} 
-                                alt={image.alt || step.title}
+                                alt={image.alt || steps[activeStep].title}
                                 style={{
                                     width: '100%',
                                     height: 'auto',

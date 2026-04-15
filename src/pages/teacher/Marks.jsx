@@ -416,7 +416,7 @@ const Marks = () => {
                                 </div>
                             </div>
 
-                            <div style={{ width: '100%', height: 280, minWidth: 0 }}>
+                            <div style={{ width: '100%', height: 300 }}>
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={analytics.chartData}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />

@@ -91,8 +91,7 @@ const PrincipalDashboard = () => {
         // Fetch AI History from Database
         const fetchHistory = async () => {
             try {
-                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-                const res = await axios.get(`${apiUrl}/api/ai/history`);
+                const res = await apiClient.get('/ai/history');
                 if (res.data && res.data.length > 0) {
                     setMessages(res.data.map(h => ({
                         role: h.role === 'user' ? 'user' : 'ai',
@@ -119,8 +118,7 @@ const PrincipalDashboard = () => {
       setAiLoading(true);
       
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const res = await axios.post(`${apiUrl}/api/ai/chat`, { message: userMsg });
+        const res = await apiClient.post('/ai/chat', { message: userMsg });
         
         const aiResponse = res.data;
         setMessages(prev => [...prev, { 
@@ -557,7 +555,7 @@ const PrincipalDashboard = () => {
                                         {chartData.attendanceByClass && (
                                             <div className="space-y-4">
                                                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Attendance Verification (By Class)</h4>
-                                                <div className="h-[200px] w-full">
+                                                <div style={{ width: '100%', height: 200 }}>
                                                     <ResponsiveContainer width="100%" height="100%">
                                                         <BarChart data={chartData.attendanceByClass}>
                                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -573,7 +571,7 @@ const PrincipalDashboard = () => {
                                         {chartData.feeSplit && (
                                             <div className="space-y-4">
                                                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Financial Liquidity Split</h4>
-                                                <div className="h-[200px] w-full">
+                                                <div style={{ width: '100%', height: 200 }}>
                                                     <ResponsiveContainer width="100%" height="100%">
                                                         <PieChart>
                                                             <Pie

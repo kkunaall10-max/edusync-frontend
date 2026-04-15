@@ -28,12 +28,6 @@ apiClient.interceptors.request.use(
       if (session?.access_token) {
         // Use the common header format for Axios 1.x+
         config.headers.Authorization = `Bearer ${session.access_token}`;
-        // Debug log as requested by user
-        console.log("Token attached to request:", session.access_token.substring(0, 15) + "...");
-      } else {
-        console.warn("No active session found in apiClient interceptor");
-        // Optional: Redirect if session is missing for protected routes
-        // window.location.href = '/login'; 
       }
     } catch (err) {
       console.error("Interceptor error during session retrieval:", err);
@@ -52,13 +46,11 @@ apiClient.interceptors.response.use(
     // Handle 401 Unauthorized (Token Refresh or Redirect)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      console.log("401 detected, attempting token refresh...");
       
       try {
         const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
         
         if (session) {
-          console.log("Token refreshed successfully");
           originalRequest.headers.Authorization = `Bearer ${session.access_token}`;
           return apiClient(originalRequest);
         } else {
@@ -86,7 +78,6 @@ axios.interceptors.request.use(
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.access_token) {
       config.headers.Authorization = `Bearer ${session.access_token}`;
-      console.log("Global Axios - Token attached:", session.access_token.substring(0, 15) + "...");
     }
     return config;
   },

@@ -36,13 +36,13 @@ const ParentAnnouncements = () => {
                 if (!user) { navigate('/login'); return; }
                 setUserEmail(user.email);
 
-                const childRes = await axios.get(`${API_BASE_URL}/child`, { params: { parent_email: user.email } });
+                const childRes = await axios.get(`${API_BASE_URL}/child`);
                 const childData = childRes.data;
                 setChild(childData);
 
                 // Fetch Announcements
                 const fetchAnns = () => axios.get(`${API}/api/announcements`, {
-                    params: { audience: 'parents', class: childData.class, section: childData.section }
+                    params: { audience: 'parents' }
                 }).then(res => setAnnouncements(res.data || []));
 
                 await fetchAnns();

@@ -42,10 +42,9 @@ export const footerCols = [
   {
     heading: 'Resources',
     links: [
-      { label: 'Live Demo',       path: '/demo' },
-      { label: 'Support',         path: '/public-support' },
-      { label: 'Privacy Policy',  path: '/privacy' },
-      { label: 'Terms of Service',path: '/terms' },
+      { label: 'Support',          path: '/public-support' },
+      { label: 'Privacy Policy',   path: '/privacy' },
+      { label: 'Terms of Service', path: '/terms' },
     ],
   },
 ];

@@ -13,7 +13,14 @@ const StudentDashboard = () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const res = await apiClient.get(`/reports/student-report/${user.id}`);
+          const studentsRes = await apiClient.get('/students');
+          const currentStudent = Array.isArray(studentsRes.data) ? studentsRes.data[0] : null;
+
+          if (!currentStudent?.id) {
+            throw new Error('Student profile not linked to this account');
+          }
+
+          const res = await apiClient.get(`/reports/student-report/${currentStudent.id}`);
           // Transform marks into course format
           const marks = res.data.marks || [];
           const uniqueSubjects = [...new Set(marks.map(m => m.subject))];

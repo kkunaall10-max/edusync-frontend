@@ -43,25 +43,23 @@ const ParentDashboard = () => {
             if (!user) throw new Error("No logged in user found");
             setUserEmail(user.email);
 
-            const childRes = await axios.get(`${API_BASE_URL}/child`, { 
-                params: { parent_email: user.email } 
-            });
+            const childRes = await axios.get(`${API_BASE_URL}/child`);
             const childData = childRes.data;
             setChild(childData);
 
             const [attendanceRes, feesRes, homeworkRes, marksRes, annRes] = await Promise.all([
                 axios.get(`${API_BASE_URL}/attendance`, { params: { student_id: childData.id } }),
                 axios.get(`${API_BASE_URL}/fees`, { params: { student_id: childData.id } }),
-                axios.get(`${API_BASE_URL}/homework`, { params: { class: childData.class, section: childData.section } }),
+                axios.get(`${API_BASE_URL}/homework`, { params: { student_id: childData.id } }),
                 axios.get(`${API_BASE_URL}/marks`, { params: { student_id: childData.id } }),
-                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/announcements`, { params: { audience: 'parents', class: childData.class, section: childData.section } })
+                axios.get(`${import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app'}/api/announcements`, { params: { audience: 'parents' } })
             ]);
 
-            setAttendance(attendanceRes.data);
-            setFees(feesRes.data);
-            setHomework(homeworkRes.data?.slice(0, 5) || []);
-            setMarks(marksRes.data?.slice(0, 5) || []);
-            setAnnouncements(annRes.data?.slice(0, 3) || []);
+            setAttendance(attendanceRes.data?.summary || null);
+            setFees(feesRes.data || null);
+            setHomework((homeworkRes.data?.homework || []).slice(0, 5));
+            setMarks((marksRes.data?.marks || []).slice(0, 5));
+            setAnnouncements((Array.isArray(annRes.data) ? annRes.data : []).slice(0, 3));
 
         } catch (err) {
             console.error("Dashboard Load Error:", err);
@@ -132,9 +130,9 @@ const ParentDashboard = () => {
         }
     };
 
-    const totalPaid = fees?.records?.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0) || 0;
-    const totalPending = fees?.records?.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0) || 0;
-    const totalOverdue = fees?.records?.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0) || 0;
+    const totalPaid = fees?.records?.filter(r => r.status === 'paid').reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0;
+    const totalPending = fees?.records?.filter(r => r.status === 'pending').reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0;
+    const totalOverdue = fees?.records?.filter(r => r.status === 'overdue').reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0;
 
     const handleLogout = async () => {
         await supabase.auth.signOut();

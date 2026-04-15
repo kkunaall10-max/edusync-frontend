@@ -36,7 +36,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
           setRole(profile.role.toLowerCase());
         } else {
           console.error('Error fetching role:', error);
-          setRole('student'); // Fallback
+          setRole(null);
         }
         setLoading(false);
       }

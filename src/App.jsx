@@ -42,7 +42,7 @@ import SecurityPage from './pages/SecurityPage';
 import FAQPage from './pages/FAQPage';
 import MobileAppPage from './pages/MobileAppPage';
 import ContactPage from './pages/ContactPage';
-import DemoPage from './pages/DemoPage';
+import Download from './pages/Download';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import PublicSupport from './pages/PublicSupport';
@@ -293,7 +293,7 @@ function App() {
       <Route path="/faq"            element={<FAQPage />} />
       <Route path="/mobile-app"     element={<MobileAppPage />} />
       <Route path="/contact"        element={<ContactPage />} />
-      <Route path="/demo"           element={<DemoPage />} />
+      <Route path="/download"       element={<Download />} />
       <Route path="/privacy"        element={<PrivacyPage />} />
       <Route path="/terms"          element={<TermsPage />} />
       <Route path="/public-support" element={<PublicSupport />} />

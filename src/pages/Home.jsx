@@ -208,6 +208,7 @@ function Hero({ navigate }) {
         <div style={{display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap'}}>
           <BtnPrimary onClick={() => window.open('https://edusync-frontend-beta.vercel.app')}>See Live Demo</BtnPrimary>
           <BtnGhost onClick={() => navigate('/login')}>Login to Portal</BtnGhost>
+          <BtnGhost onClick={() => navigate('/download')}>📱 Download App</BtnGhost>
         </div>
 
         <div style={{display:'flex', gap:16, marginTop:36, justifyContent:'center', flexWrap:'wrap'}}>

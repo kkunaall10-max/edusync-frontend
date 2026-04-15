@@ -8,10 +8,75 @@ import {
   Menu, X, Bell, Users, BookOpen, GraduationCap, 
   Calendar, ClipboardCheck, TrendingUp, LogOut, ChevronRight, Search, Plus, FileSpreadsheet, Download, AlertCircle
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/students';
 const TEACHERS_API_URL = (import.meta.env.VITE_API_URL || 'https://edusync.up.railway.app') + '/api/teachers';
+
+const CSV_HEADERS = [
+    'Full Name',
+    'Roll Number',
+    'Class',
+    'Section',
+    'Parent Email',
+    'Parent Phone',
+    'Gender',
+    'Date of Birth'
+];
+
+const escapeCsvValue = (value) => {
+    const text = String(value ?? '');
+    if (/[",\n]/.test(text)) {
+        return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
+};
+
+const parseCsvRow = (line) => {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let index = 0; index < line.length; index += 1) {
+        const char = line[index];
+        const nextChar = line[index + 1];
+
+        if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+                current += '"';
+                index += 1;
+            } else {
+                inQuotes = !inQuotes;
+            }
+            continue;
+        }
+
+        if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+            continue;
+        }
+
+        current += char;
+    }
+
+    values.push(current.trim());
+    return values;
+};
+
+const parseCsvContent = (content) => {
+    const normalized = content.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
+    const lines = normalized.split('\n').filter((line) => line.trim() !== '');
+    if (lines.length < 2) return [];
+
+    const headers = parseCsvRow(lines[0]);
+    return lines.slice(1).map((line) => {
+        const values = parseCsvRow(line);
+        return headers.reduce((row, header, index) => {
+            row[header] = values[index] ?? '';
+            return row;
+        }, {});
+    });
+};
 
 const StudentList = ({ role = 'principal' }) => {
     const isTeacher = role === 'teacher';
@@ -154,58 +219,68 @@ const StudentList = ({ role = 'principal' }) => {
     };
 
     const downloadTemplate = () => {
-        const template = [
-            {
-                'Full Name': 'Example Student',
-                'Roll Number': '101',
-                'Class': 'Class 5',
-                'Section': 'A',
-                'Parent Email': 'parent@example.com',
-                'Parent Phone': '9876543210',
-                'Gender': 'male',
-                'Date of Birth': '2010-01-15'
-            }
+        const templateRow = {
+            'Full Name': 'Example Student',
+            'Roll Number': '101',
+            'Class': 'Class 5',
+            'Section': 'A',
+            'Parent Email': 'parent@example.com',
+            'Parent Phone': '9876543210',
+            'Gender': 'male',
+            'Date of Birth': '2010-01-15'
+        };
+
+        const csvLines = [
+            CSV_HEADERS.join(','),
+            CSV_HEADERS.map((header) => escapeCsvValue(templateRow[header])).join(',')
         ];
-        const ws = XLSX.utils.json_to_sheet(template);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Students');
-        XLSX.writeFile(wb, 'EduSync_Student_Template.xlsx');
+
+        const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'EduSync_Student_Template.csv';
+        link.click();
+        URL.revokeObjectURL(url);
     };
 
-    const handleFileImport = (e) => {
+    const handleFileImport = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            try {
-                const data = evt.target.result;
-                const workbook = XLSX.read(data, { type: 'binary' });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(sheet);
-                
-                // Map columns
-                const mappedData = rows.map(row => ({
+        try {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                throw new Error('Please upload the EduSync CSV template. XLS and XLSX imports were disabled for security hardening.');
+            }
+
+            const content = await file.text();
+            const rows = parseCsvContent(content);
+
+            const mappedData = rows
+                .map((row) => ({
                     full_name: row['Full Name'],
-                    roll_number: String(row['Roll Number']),
+                    roll_number: String(row['Roll Number'] || ''),
                     class: row['Class'],
                     section: row['Section'],
                     parent_email: row['Parent Email'],
                     parent_phone: String(row['Parent Phone'] || ''),
                     gender: row['Gender'],
                     date_of_birth: row['Date of Birth']
-                }));
+                }))
+                .filter((row) => row.full_name && row.roll_number && row.class && row.section);
 
-                setImportPreview(mappedData);
-                setImportResult(null);
-                setIsImportModalOpen(true);
-            } catch (err) {
-                alert('Error reading Excel file: ' + err.message);
+            if (mappedData.length === 0) {
+                throw new Error('The CSV did not contain any valid student rows.');
             }
-            // Reset input
+
+            setImportPreview(mappedData);
+            setImportResult(null);
+            setIsImportModalOpen(true);
+        } catch (err) {
+            alert('Error reading CSV file: ' + err.message);
+        } finally {
             e.target.value = null;
-        };
-        reader.readAsBinaryString(file);
+        }
     };
 
     const confirmBulkImport = async () => {
@@ -384,8 +459,8 @@ const StudentList = ({ role = 'principal' }) => {
                             </button>
                             <label className="bg-emerald-600 text-white h-12 px-6 rounded-xl font-bold hover:bg-emerald-700 transition cursor-pointer flex items-center gap-2">
                                 <FileSpreadsheet size={18} />
-                                Import from Excel
-                                <input type="file" accept=".xlsx, .xls, .csv" hidden onChange={handleFileImport} />
+                                Import CSV
+                                <input type="file" accept=".csv" hidden onChange={handleFileImport} />
                             </label>
                             <button 
                                 className="bg-blue-600 text-white h-12 px-6 rounded-xl font-bold hover:bg-blue-700 transition flex items-center gap-2"
@@ -499,7 +574,7 @@ const StudentList = ({ role = 'principal' }) => {
                     <div style={{display:'flex', gap:'8px'}}>
                         <button 
                             onClick={downloadTemplate}
-                            title="Download Excel Template"
+                            title="Download CSV Template"
                             style={{...glass, background:'rgba(255,255,255,0.1)', color:'white', border:'none', padding:'8px', borderRadius:'10px', cursor:'pointer'}}
                         >
                             <Download size={16} />
@@ -507,8 +582,8 @@ const StudentList = ({ role = 'principal' }) => {
                         <label 
                             style={{...glass, background:'rgba(16,185,129,0.3)', color:'white', border:'1px solid rgba(16,185,129,0.5)', padding:'6px 12px', borderRadius:'10px', fontSize:'12px', fontWeight:'700', display:'flex', alignItems:'center', gap:'6px', cursor:'pointer'}}
                         >
-                            <FileSpreadsheet size={16} /> Import
-                            <input type="file" accept=".xlsx, .xls, .csv" hidden onChange={handleFileImport} />
+                            <FileSpreadsheet size={16} /> Import CSV
+                            <input type="file" accept=".csv" hidden onChange={handleFileImport} />
                         </label>
                         <button 
                             onClick={() => handleOpenModal()}
