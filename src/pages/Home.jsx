@@ -546,7 +546,7 @@ function Footer() {
               <div key={c} style={{display:'inline-block',marginRight:6,marginBottom:6,background:C.white,border:`1px solid ${C.border}`,borderRadius:100,padding:'4px 12px',fontSize:11,color:C.muted,fontFamily:C.sans}}>{c}</div>
             ))}
           </motion.div>
-          <div style={{display:'flex',flexWrap:'wrap',gap:36,flex:'1 1 380px',justifyContent:'flex-end'}}>
+          <div style={{display:'flex',flexWrap:'wrap',gap:'36px 52px',flex:'1 1 350px',justifyContent:'flex-start'}}>
             {footCols.map((col,i) => (
               <motion.div key={col.h}
                 initial={{opacity:0,y:-6,filter:'blur(4px)'}} whileInView={{opacity:1,y:0,filter:'blur(0px)'}}
