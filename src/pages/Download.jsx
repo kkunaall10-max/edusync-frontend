@@ -23,14 +23,14 @@ export default function Download() {
           {[
             { 
               title: 'Android App', 
-              icon: '🤖', 
+              icon: '', 
               desc: 'Download for Android phones and tablets.',
               action: 'Download APK',
               link: 'https://github.com/iiblamekunal/edusync-mobile/releases' 
             },
             { 
               title: 'Web Version', 
-              icon: '🌐', 
+              icon: '', 
               desc: 'Access EduSync from any web browser.',
               action: 'Open Web App',
               link: 'https://edusync-frontend-beta.vercel.app/' 
