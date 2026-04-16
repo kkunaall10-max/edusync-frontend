@@ -26,14 +26,16 @@ export default function Download() {
               icon: '', 
               desc: 'Download for Android phones and tablets.',
               action: 'Download APK',
-              link: 'https://github.com/iiblamekunal/edusync-mobile/releases' 
+              link: '/api/download/edusync.apk',
+              isDownload: true
             },
             { 
               title: 'Web Version', 
               icon: '', 
               desc: 'Access EduSync from any web browser.',
               action: 'Open Web App',
-              link: 'https://edusync-frontend-beta.vercel.app/' 
+              link: 'https://edusync-frontend-beta.vercel.app/',
+              isDownload: false
             },
           ].map((item, i) => (
             <motion.div key={item.title} {...fade(.1+i*.08)}
@@ -41,7 +43,18 @@ export default function Download() {
               <div style={{ fontSize: 48, marginBottom: 16 }}>{item.icon}</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: C.text, fontFamily: C.sans, marginBottom: 8 }}>{item.title}</div>
               <p style={{ fontSize: 14, color: C.muted, fontFamily: C.sans, lineHeight: 1.65, marginBottom: 24, flex: 1 }}>{item.desc}</p>
-              <button onClick={() => window.open(item.link, '_blank')}
+              <button onClick={() => {
+                if (item.isDownload) {
+                  const link = document.createElement('a');
+                  link.href = item.link;
+                  link.download = 'edusync.apk';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                } else {
+                  window.open(item.link, '_blank');
+                }
+              }}
                 style={{ background: C.blue, color: '#fff', border: 'none', borderRadius: 12, padding: '12px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: C.sans, transition: 'opacity .2s, transform .15s' }}
                 onMouseEnter={e => { e.currentTarget.style.opacity='.88'; e.currentTarget.style.transform='scale(1.02)'; }}
                 onMouseLeave={e => { e.currentTarget.style.opacity='1'; e.currentTarget.style.transform='scale(1)'; }}
